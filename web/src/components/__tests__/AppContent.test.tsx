@@ -29,7 +29,7 @@ vi.mock("@miden-sdk/miden-wallet-adapter-react", () => ({ useMidenFiWallet: () =
 
 const champion = { suffix: 1n, prefix: 2n };
 const storage: ChallengeStorage = {
-  expiryBlock: 30_000,
+  expiryBlock: 28_000,
   target: 2000,
   minStake: 1_000_000n,
   champion,
@@ -349,7 +349,7 @@ describe("welcome and 1P World Tour", () => {
 });
 
 describe("open challenges in Champion vs Rival", () => {
-  const listed = (id: string, target: number, more: Partial<ChallengeNote> = {}, expiryBlock = 30_000): ChallengeNote => ({
+  const listed = (id: string, target: number, more: Partial<ChallengeNote> = {}, expiryBlock = 28_000): ChallengeNote => ({
     ...prize,
     id,
     createdAt: 5,

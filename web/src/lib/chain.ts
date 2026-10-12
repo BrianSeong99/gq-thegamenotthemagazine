@@ -26,6 +26,7 @@ import {
 import type { useMidenClient } from "@miden-sdk/react";
 import { GC_FAUCET, MIDEN_RPC_URL, RECORD_SCRIPT_URL, SHOT_SCRIPT_URL } from "@/config";
 import { decodeStorage, NOTE_TAG, type AccountFelts, type ChallengeStorage } from "./notes";
+import { acceptNote } from "./flow";
 import type { Word4 } from "./quiz";
 
 /** The app's local wasm client, as `useMidenClient()` returns it. */
@@ -90,6 +91,22 @@ function kindOf(root: string, { recordRoot, shotRoot }: Scripts): Pick<Challenge
   return null;
 }
 
+/** A record or shot of ours as the node serves it; null for a foreign root or layout, or a note not shaped as this app writes them (flow.ts acceptNote). */
+function decodeNote(input: InputNote, scripts: Scripts): Pick<ChallengeNote, "kind" | "storage" | "amount"> | null {
+  const note = input.note();
+  const kind = kindOf(note.recipient().script().root().toHex(), scripts);
+  if (!kind) return null;
+  let storage: ChallengeStorage;
+  try {
+    storage = decodeStorage(note.recipient().storage().items().map((x) => x.asInt()));
+  } catch {
+    return null;
+  }
+  const assets = note.assets().fungibleAssets().map((a) => ({ faucet: a.faucetId().toString(), amount: a.amount() }));
+  if (!acceptNote({ ...kind, storage, sender: accountFelts(note.metadata().sender()), assets }, wordFromHex(scripts.shotRoot))) return null;
+  return { ...kind, storage, amount: assets[0].amount };
+}
+
 /** Registers the app's note tag (idempotent) and syncs. */
 export async function syncNotes(client: Client): Promise<number> {
   const tags = await client.listTags();
@@ -129,19 +146,11 @@ async function scanNotes(tip: number): Promise<ChallengeNote[]> {
     for (let i = 0; i < ids.length; i += 50) {
       for (const f of await rpc.getNotesById(ids.slice(i, i + 50))) {
         const input = f.asInputNote();
-        const note = input?.note();
-        const kind = note && kindOf(note.recipient().script().root().toHex(), scripts);
-        if (!input || !note || !kind) continue;
-        let storage: ChallengeStorage;
-        try {
-          storage = decodeStorage(note.recipient().storage().items().map((x) => x.asInt()));
-        } catch {
-          continue; // same script, foreign layout
-        }
+        const decoded = input && decodeNote(input, scripts);
+        if (!input || !decoded) continue;
         const id = f.noteId.toString();
-        const gq = note.assets().fungibleAssets().find((a) => a.faucetId().toString() === GC_FAUCET);
         const createdAt = input.location()?.blockNum();
-        known.set(id, { id, idWord: wordFromHex(id), ...kind, storage, amount: gq?.amount() ?? 0n, consumed: false, createdAt, nullifier: note.nullifier().toHex() });
+        known.set(id, { id, idWord: wordFromHex(id), ...decoded, consumed: false, createdAt, nullifier: input.note().nullifier().toHex() });
       }
     }
     // which are used now, and since when
@@ -238,10 +247,8 @@ export async function fetchChallengeNote(id: string): Promise<ChallengeNote> {
   const scripts = await loadScripts();
   const { inputs } = await fetchNotesWithProof([id]);
   const note = inputs[0].note();
-  const kind = kindOf(note.recipient().script().root().toHex(), scripts);
-  if (!kind) throw new Error("This note is not a record or shot of this game.");
-  const storage = decodeStorage(note.recipient().storage().items().map((f) => f.asInt()));
-  const gq = note.assets().fungibleAssets().find((a) => a.faucetId().toString() === GC_FAUCET);
+  const decoded = decodeNote(inputs[0], scripts);
+  if (!decoded) throw new Error("This note is not a record or shot of this game.");
   const rpc = new RpcClient(endpoint());
   let consumedAt: number | undefined;
   try {
@@ -250,5 +257,5 @@ export async function fetchChallengeNote(id: string): Promise<ChallengeNote> {
   } finally {
     rpc.free();
   }
-  return { id, idWord: wordFromHex(id), ...kind, storage, amount: gq?.amount() ?? 0n, consumed: consumedAt !== undefined, consumedAt };
+  return { id, idWord: wordFromHex(id), ...decoded, consumed: consumedAt !== undefined, consumedAt };
 }

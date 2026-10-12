@@ -1,8 +1,10 @@
 // One test per incident from the first Bread session.
 import { describe, expect, it, vi } from "vitest";
 import type { ChallengeNote } from "../chain";
-import type { ChallengeStorage } from "../notes";
+import type { ChallengeStorage, Word4 } from "../notes";
+import { GC_FAUCET } from "@/config";
 import {
+  acceptNote,
   blocksToClock,
   claimVerdict,
   explain,
@@ -85,6 +87,45 @@ describe("taking a shot", () => {
     expect(shotRefusal(prize, 100, 140)).toBeNull();
     expect(shotRefusal(prize, 900, 140)).toMatch(/too late/i);
     expect(shotRefusal({ ...prize, consumed: true }, 100, 140)).toMatch(/over/);
+  });
+
+  it("refuses a record whose terms the game could never produce", () => {
+    const rigged = (storage: Partial<ChallengeStorage>) => shotRefusal({ ...prize, storage: { ...base, ...storage } }, 100, 140);
+    expect(rigged({ target: 9999 })).toBeNull();
+    expect(rigged({ target: 10_000 })).toMatch(/rigged/);
+    expect(rigged({ minStake: 999_999n })).toMatch(/rigged/);
+    expect(rigged({ minStake: 1_000_001n })).toMatch(/rigged/);
+    expect(rigged({ expiryBlock: 100 + 28_800 })).toBeNull();
+    expect(rigged({ expiryBlock: 100 + 28_801 })).toMatch(/rigged/);
+  });
+});
+
+describe("accepting a note from the chain", () => {
+  const gc = { faucet: GC_FAUCET, amount: 1_000_000n };
+  const shotRoot = base.shotRoot;
+  const record = { kind: "record" as const, storage: base, sender: champion, assets: [gc] };
+  const shot = { kind: "shot" as const, storage: { ...base, rival: me, recordId: [...recordId] as Word4, shotDeadline: 200 }, sender: me, assets: [gc] };
+
+  it("takes a record only from its champion, a shot only from its rival", () => {
+    expect(acceptNote(record, shotRoot)).toBe(true);
+    expect(acceptNote(shot, shotRoot)).toBe(true);
+    expect(acceptNote({ ...record, sender: other }, shotRoot)).toBe(false);
+    expect(acceptNote({ ...shot, sender: champion }, shotRoot)).toBe(false);
+  });
+
+  it("wants exactly one asset, the Geocoin", () => {
+    expect(acceptNote({ ...record, assets: [] }, shotRoot)).toBe(false);
+    expect(acceptNote({ ...record, assets: [{ faucet: "0xbad", amount: 1_000_000n }] }, shotRoot)).toBe(false);
+    expect(acceptNote({ ...record, assets: [gc, { faucet: "0xbad", amount: 1n }] }, shotRoot)).toBe(false);
+  });
+
+  it("a record names this game's shot script and no rival, deadline or record id", () => {
+    expect(acceptNote({ ...record, storage: { ...base, shotRoot: [2n, 2n, 2n, 2n] } }, shotRoot)).toBe(false);
+    expect(acceptNote({ ...record, storage: { ...base, rival: me } }, shotRoot)).toBe(false);
+    expect(acceptNote({ ...record, storage: { ...base, shotDeadline: 5 } }, shotRoot)).toBe(false);
+    expect(acceptNote({ ...record, storage: { ...base, recordId: [...recordId] as Word4 } }, shotRoot)).toBe(false);
+    // a shot points at a record
+    expect(acceptNote({ ...shot, storage: { ...shot.storage, recordId: [0n, 0n, 0n, 0n] } }, shotRoot)).toBe(false);
   });
 });
 

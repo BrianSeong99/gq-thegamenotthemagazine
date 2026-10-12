@@ -4,12 +4,11 @@
 
 import type { ChallengeNote } from "./chain";
 import { fmtGeocoin } from "./flow";
-import { shotDeadline, type AccountFelts } from "./notes";
+import { isShotAt, shotDeadline, type AccountFelts } from "./notes";
 import { GC_DECIMALS } from "@/config";
 
 export const keyOf = (a: AccountFelts) => `${a.prefix}:${a.suffix}`;
 const same = (a: AccountFelts | null, b: AccountFelts | null) => !!a && !!b && keyOf(a) === keyOf(b);
-const sameWord = (a: bigint[], b: bigint[]) => a.every((f, i) => f === b[i]);
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
 /** Letters of an address read from its end: digits and the wallet's `_…` routing part left out. */
@@ -79,8 +78,9 @@ export function recordOutcome(record: ChallengeNote, height: number): "smashed" 
   return height >= expiry ? "closed" : "open";
 }
 
-const shotsAt = (record: ChallengeNote, notes: ChallengeNote[]) => notes.filter((n) => n.kind === "shot" && sameWord(n.storage.recordId, record.idWord));
-const recordOf = (shot: ChallengeNote, notes: ChallengeNote[]) => notes.find((n) => n.kind === "record" && sameWord(n.idWord, shot.storage.recordId));
+// a shot belongs to a record by its full terms (isShotAt), not its record id alone
+const shotsAt = (record: ChallengeNote, notes: ChallengeNote[]) => notes.filter((n) => n.kind === "shot" && isShotAt(n.storage, record.storage, record.idWord));
+const recordOf = (shot: ChallengeNote, notes: ChallengeNote[]) => notes.find((n) => n.kind === "record" && isShotAt(shot.storage, n.storage, n.idWord));
 
 /** Shots at `record` lost so far, or null while one of them waits for the node. */
 export function triesLost(record: ChallengeNote, notes: ChallengeNote[], height: number): number | null {
@@ -163,7 +163,8 @@ export function boards(notes: ChallengeNote[], height: number, me: AccountFelts 
   const losers: Event[] = [];
   for (const n of notes) {
     if (n.kind === "shot") {
-      if (shotOutcome(n, height, recordOf(n, notes)) !== "lost") continue;
+      const record = recordOf(n, notes);
+      if (!record || shotOutcome(n, height, record) !== "lost") continue;
       defended.push({ who: n.storage.champion, value: 1, at: shotDeadline(n.storage) });
       if (n.storage.rival) losers.push({ who: n.storage.rival, value: 1, at: shotDeadline(n.storage) });
       if (n.consumedAt !== undefined) coins.push({ who: n.storage.champion, value: gc(n.amount), at: n.consumedAt });

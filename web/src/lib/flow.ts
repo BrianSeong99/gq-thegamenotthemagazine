@@ -2,10 +2,10 @@
 // Every rule here was once a bug in the component.
 
 import type { ChallengeNote } from "./chain";
-import { shotDeadline, type AccountFelts } from "./notes";
+import { shotDeadline, ZERO_WORD, type AccountFelts, type ChallengeStorage, type Word4 } from "./notes";
 import type { Place } from "./quiz";
-import { BLOCK_SECONDS, GC_DECIMALS } from "@/config";
-import { roundScore, type Answer, type City } from "./rules";
+import { BLOCK_SECONDS, GC_DECIMALS, GC_FAUCET, RECORD_LIFETIME_BLOCKS, STAKE } from "@/config";
+import { QUIZ_MAX, roundScore, type Answer, type City } from "./rules";
 
 export const sameAccount = (a: AccountFelts | null | undefined, b: AccountFelts | null | undefined) =>
   !!a && !!b && a.suffix === b.suffix && a.prefix === b.prefix;
@@ -40,7 +40,25 @@ export function sharedRecordState(record: ChallengeNote, me: AccountFelts | null
 export function shotRefusal(record: ChallengeNote, height: number, minWindow: number): string | null {
   if (record.consumed) return "This one is over.";
   if (record.storage.expiryBlock - height < minWindow) return "Too late for this one.";
+  const { target, minStake, expiryBlock } = record.storage;
+  // terms this game never writes: an unbeatable target, another stake, a record that outlives its day
+  if (target >= QUIZ_MAX || minStake !== STAKE || expiryBlock > height + RECORD_LIFETIME_BLOCKS) return "This one is rigged.";
   return null;
+}
+
+const sameWord = (a: Word4, b: Word4) => a.every((f, i) => f === b[i]);
+
+/**
+ * Whether a note the node serves under our tag with one of our script roots is one of ours: posted
+ * by the account it names (the sender is set by the kernel, the storage by whoever made the note),
+ * carrying exactly one asset, the Geocoin, and shaped the way this app writes it. A record names
+ * `shotRoot`, this game's shot script, so no stranger's script gets to settle shots at it.
+ */
+export function acceptNote(n: { kind: "record" | "shot"; storage: ChallengeStorage; sender: AccountFelts; assets: { faucet: string; amount: bigint }[] }, shotRoot: Word4): boolean {
+  if (n.assets.length !== 1 || n.assets[0].faucet !== GC_FAUCET) return false;
+  const s = n.storage;
+  if (n.kind === "record") return sameAccount(n.sender, s.champion) && !s.rival && s.shotDeadline === 0 && sameWord(s.recordId, ZERO_WORD) && sameWord(s.shotRoot, shotRoot);
+  return sameAccount(n.sender, s.rival) && !sameWord(s.recordId, ZERO_WORD);
 }
 
 export type SettlePlan = { won: boolean; claimPrize: boolean; text: string };

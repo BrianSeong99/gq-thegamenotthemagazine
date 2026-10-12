@@ -20,6 +20,16 @@ function shot(at: ChallengeNote, rival: AccountFelts, deadline: number, o: Parti
   return { id: `0xs${++n}`, idWord: [0n, 0n, 0n, BigInt(n)], kind: "shot", storage: { ...at.storage, rival, recordId: at.idWord, shotDeadline: deadline }, amount: GC, consumed: o.consumedAt !== undefined, createdAt: n, ...o };
 }
 
+describe("shots belong to a record by its terms", () => {
+  it("a shot with other terms than its record (forged storage) counts for nothing", () => {
+    const r = record(ME, 4100);
+    const forged = shot(r, KQX, 900, { consumedAt: 950 });
+    forged.storage = { ...forged.storage, target: 1 };
+    expect(triesLost(r, [r, forged], 1000)).toBe(0);
+    expect(boards([r, forged], 1000, null).defended.top).toEqual([]);
+  });
+});
+
 describe("nicknames", () => {
   it("reads three letters backward from the address, digits and the wallet's routing part left out", () => {
     expect(lettersBackward("mtst1aryq2znjyt4wqq29lxwta3sjnqlnthj9_qr7qqq9wr6w").slice(0, 3)).toBe("JHT");
