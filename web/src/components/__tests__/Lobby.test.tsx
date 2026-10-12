@@ -69,14 +69,11 @@ describe("Lobby", () => {
     expect(screen.queryByRole("button", { name: /^play$/i })).toBeNull();
   });
 
-  it("lets me take back a shot I posted at my own record once its deadline + CLAIM_FUZZ passed", () => {
-    const h = handlers();
+  it("never offers to take a shot I posted at my own record: the script serves its rival first, so it stays locked", () => {
     const own = { ...myChallenge, storage: { ...myChallenge.storage, rival: champion } };
-    const { rerender } = render(<Lobby me={champion} notes={[prize, own]} places={places} height={263} {...h} />);
+    render(<Lobby me={champion} notes={[prize, own]} places={places} height={1000} {...handlers()} />);
     expect(screen.queryByRole("button", { name: /take it/i })).toBeNull();
-    rerender(<Lobby me={champion} notes={[prize, own]} places={places} height={264} {...h} />);
-    fireEvent.click(screen.getByRole("button", { name: /take it/i }));
-    expect(h.onCollect).toHaveBeenCalledWith([own]);
+    expect(screen.getByText("Locked: this shot was at your own record.")).toBeInTheDocument();
   });
 
   it("lets the champion collect a shot only from its deadline + CLAIM_FUZZ on", () => {

@@ -75,13 +75,8 @@ export function Lobby({ me, notes, height, places, onSettle, onCollect }: LobbyP
               <div className="score">beat {c.storage.target.toLocaleString()}</div>
               <p className="muted">{fmtGeocoin(c.amount)} on the table</p>
               {expired(c) ? (
-                mine(c) && takeable(c) ? (
-                  <button className="btn primary" onClick={() => onCollect([c])}>
-                    Take it
-                  </button>
-                ) : (
-                  <p className="muted">The champion can take it.</p>
-                )
+                // the shot script serves its rival first: a shot at my own record stays locked past its deadline
+                <p className="muted">{mine(c) ? "Locked: this shot was at your own record." : "The champion can take it."}</p>
               ) : (
                 <button className="btn primary" onClick={() => onSettle(c, record && !record.consumed ? record : undefined)}>
                   Play
