@@ -251,22 +251,44 @@ table.report td:nth-child(2) { text-align: right; color: var(--muted); }
 .page-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; margin-bottom: 16px; }
 .page-head h1 { margin: 0; }
 
-/* player hub: past games (GQ-Hub-and-Leaderboards design) */
+/* player hub: past games (GQ-Hub-and-Leaderboards design, history refresh of 2026-10-12) */
 .history { margin-top: 32px; }
 .history > h2 { font-size: 24px; }
+.history-filters { display: flex; gap: 8px; margin: 0 0 24px; }
+.history-filters button { min-height: 44px; padding: 10px 16px; background: var(--void); border: 2px solid var(--rule); font: 11px/1.4 var(--display); color: var(--muted); text-transform: uppercase; white-space: nowrap; cursor: pointer; }
+.history-filters button[aria-selected="true"] { background: var(--cyan); border-color: var(--cyan); color: var(--void); }
+.history-day { margin: 0 0 24px; }
+.history-day-title { margin: 0 0 12px; font-size: 11px; line-height: 1.4; }
 .history-list { display: grid; gap: 16px; }
-.history-item { padding: 12px 16px 10px; background: var(--panel); border-left: 4px solid var(--cyan); }
-.history-item.pink { border-color: var(--pink); }
-.history-item.mint { border-color: var(--mint); }
-.history-item .eyebrow { font-size: 11px; margin-bottom: 8px; }
-.history-item .past-score { font: 24px/1.3 var(--display); color: var(--yellow); text-transform: uppercase; margin-bottom: 10px; }
-.history-item p { font-size: 14px; line-height: 1.5; margin: 0; }
-.history-item time { display: block; min-height: 15px; margin-top: 10px; color: var(--muted); font-size: 10px; }
+.history-item { min-height: 136px; padding: 14px 18px 16px; background: var(--panel); border: 1px solid var(--rule); border-left: 5px solid var(--cyan); box-shadow: 3px 3px 0 var(--shadow); }
+.history-item.pink { border-left-color: var(--pink); }
+.history-item.mint { border-left-color: var(--mint); }
+.history-meta { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 14px; }
+.history-item .eyebrow { margin: 0; font-size: 11px; }
+.history-item time { min-height: 15px; color: var(--muted); font-size: 11px; white-space: nowrap; }
+.history-body { display: grid; grid-template-columns: minmax(0, 1fr) 242px; gap: 24px; }
+.history-result { min-width: 0; }
+.history-item h3 { margin-bottom: 10px; font-size: 20px; }
+.history-item.pink h3 { color: var(--pink); }
+.history-item.mint h3 { color: var(--mint); }
+.history-item p { margin: 0; font-size: 14px; line-height: 1.6; }
+.history-score { font: 16px/1.3 var(--display); color: var(--yellow); text-transform: uppercase; white-space: nowrap; }
+.history-item .history-detail { margin-top: 4px; font-size: 13px; color: var(--muted); }
+.history-money { min-width: 0; padding-left: 20px; border-left: 1px solid var(--rule); }
+.history-item .money-label { margin-bottom: 12px; font: 16px/1.5 var(--display); text-transform: uppercase; color: var(--cyan); }
+.history-item .money-label.mint { color: var(--mint); }
+.history-item .money-label.pink { color: var(--pink); }
+.history-item .money-note { font-size: 13px; color: var(--muted); }
 .history-more { margin-top: 12px; font-size: 12px; }
-@media (min-width: 601px) {
-  .history-item { min-height: 92px; display: grid; grid-template-columns: 210px minmax(0, 1fr) 154px; gap: 14px; align-items: center; }
-  .history-item .past-score { margin-bottom: 0; }
-  .history-item time { margin: 0; align-self: start; padding-top: 8px; }
+.history-more .btn { min-width: 160px; min-height: 44px; }
+@media (max-width: 600px) {
+  .history-filters button { flex: 1; min-width: 0; padding: 10px 4px; font-size: 10px; }
+  .history-item { min-height: 178px; padding: 14px 16px; }
+  .history-body { display: block; }
+  .history-money { margin-top: 10px; padding: 10px 0 0; border-left: 0; border-top: 1px solid var(--rule); }
+  .history-item .money-label { margin-bottom: 5px; font-size: 14px; }
+  .history-item .money-note { font-size: 12px; }
+  .history-more .btn { width: 100%; }
 }
 .loader-label { font: 12px/1.6 var(--display); text-transform: uppercase; color: var(--cyan); }
 .skeleton { display: block; height: 12px; background: var(--rule); }
@@ -312,5 +334,4 @@ table.report td:nth-child(2) { text-align: right; color: var(--muted); }
 @media (max-width: 640px) {
   .masthead nav { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 14px; }
   .masthead nav button { text-align: left; }
-  .history-item { min-height: 152px; }
 }

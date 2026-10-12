@@ -5,9 +5,10 @@ import type { HistoryItem, Ranked } from "@/lib/hub";
 import { History } from "../History";
 import { Leaderboards } from "../Leaderboards";
 
-vi.mock("@/lib/chain", () => ({ blockTime: vi.fn(async () => Date.now()) }));
+// blocks under 95 were made yesterday
+vi.mock("@/lib/chain", () => ({ blockTime: vi.fn(async (b: number) => Date.now() - (b < 95 ? 86_400_000 : 0)) }));
 
-const item = (i: number): HistoryItem => ({ id: `0x${i}`, kind: "record", at: 100 - i, title: `${i} pts`, lines: ["5 tries lost"], tone: "mint" });
+const item = (i: number, kind: "record" | "shot" = "record"): HistoryItem => ({ id: `0x${i}`, kind, at: 100 - i, result: "Defended", context: "", score: i, detail: "5 tries lost", money: "1 Geocoin back", note: "", tone: "mint", moneyTone: "" });
 
 describe("History", () => {
   it("shows ten games, MORE adds the rest, then says that's all", async () => {
@@ -17,7 +18,36 @@ describe("History", () => {
     fireEvent.click(screen.getByRole("button", { name: /more/i }));
     expect(screen.getAllByRole("article")).toHaveLength(12);
     expect(screen.getByText("That’s all your games.")).toBeInTheDocument();
-    expect(await screen.findAllByText(/^TODAY \d\d:\d\d$/)).toHaveLength(12);
+    expect(await screen.findAllByText(/^\d\d:\d\d$/)).toHaveLength(12);
+  });
+
+  it("groups games by the day they ended, the row keeps only the time", async () => {
+    render(<History items={[item(1), item(2), item(7)]} />);
+    expect(await screen.findByRole("heading", { name: "TODAY" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "YESTERDAY" })).toBeInTheDocument();
+    expect(screen.queryByText(/TODAY \d/)).toBeNull();
+  });
+
+  it("leads with the result, labels whose score it is, and keeps money apart", () => {
+    render(<History items={[{ ...item(1, "shot"), result: "You won", context: "MUD's record: ", score: 6200, detail: "", money: "1 Geocoin won", note: "Your Geocoin back." }]} />);
+    expect(screen.getByRole("article", { name: "You won" })).toHaveTextContent("My shotYou wonMUD's record: 6,200 pts1 Geocoin wonYour Geocoin back.");
+  });
+
+  it("filters my records from my shots, ten of the picked kind at a time, and says when a kind has none", () => {
+    render(<History items={[...Array.from({ length: 11 }, (_, i) => item(i)), item(11, "shot")]} />);
+    fireEvent.click(screen.getByRole("tab", { name: /my records/i }));
+    expect(screen.getAllByRole("article")).toHaveLength(10);
+    fireEvent.click(screen.getByRole("button", { name: /more/i }));
+    expect(screen.getAllByRole("article")).toHaveLength(11);
+    fireEvent.click(screen.getByRole("tab", { name: /my shots/i }));
+    expect(screen.getAllByRole("article")).toHaveLength(1);
+    expect(screen.getByRole("tab", { name: /my shots/i })).toHaveAttribute("aria-selected", "true");
+    fireEvent.keyDown(screen.getByRole("tablist"), { key: "Home" });
+    expect(screen.getByRole("tab", { name: /^all$/i })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getAllByRole("article")).toHaveLength(10);
+    render(<History items={[item(1)]} />);
+    fireEvent.click(screen.getAllByRole("tab", { name: /my shots/i })[1]);
+    expect(screen.getByText("No past shots yet.")).toBeInTheDocument();
   });
 
   it("says when it is loading, when there is nothing yet, and shows the connect prompt instead of games", () => {
@@ -25,6 +55,7 @@ describe("History", () => {
     expect(screen.getByRole("status")).toHaveTextContent(/loading/i);
     rerender(<History items={[]} />);
     expect(screen.getByText("No past games yet.")).toBeInTheDocument();
+    expect(screen.queryByRole("tablist")).toBeNull();
     rerender(<History items={[item(1)]} connect={<p>Connect to see your games.</p>} />);
     expect(screen.queryByRole("article")).toBeNull();
   });

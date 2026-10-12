@@ -90,7 +90,7 @@ describe("how games ended", () => {
     const r = record(MUD, 9690, { consumedAt: 82650, expiry: 111298, v1: true });
     const s = shot(r, KQX, 82645, { consumedAt: 82650, v1: true });
     expect(shotOutcome(s, 90000, r)).toBe("won");
-    expect(history([r, s], MUD, 90000, name).map((h) => h.lines)).toEqual([["KQX beat it", "0 tries lost"]]);
+    expect(history([r, s], MUD, 90000, name).map((h) => [h.result, h.context, h.detail])).toEqual([["Beaten", "KQX beat ", "0 tries lost"]]);
     // the champion taking an expired record with a lost shot in one go is not a claim
     const old = record(MUD, 100, { consumedAt: 2000, expiry: 1000, v1: true });
     expect(shotOutcome(shot(old, KQX, 500, { consumedAt: 2000, v1: true }), 3000, old)).toBe("lost");
@@ -127,14 +127,25 @@ describe("history", () => {
       shot(other, ME, 600, { consumedAt: 500 }),
       shot(record(MUD, 8400), ME, 100, { consumedAt: 700 }),
     ];
-    const rows = history(notes, ME, 2000, name).map((h) => [h.title, ...h.lines]);
+    const rows = history(notes, ME, 2000, name).map((h) => [h.result, h.context, h.score, h.detail, h.money, h.note, h.tone, h.moneyTone]);
     expect(rows).toEqual([
-      ["6,800 pts", "2 tries lost"],
-      ["3,900 pts", "Nobody tried", "Taken back"],
-      ["MUD / 8,400", "Lost 1 Geocoin"],
-      ["KQX / 5,500", "Got my Geocoin back"],
-      ["MUD / 6,200", "Smashed it!", "Got 2 Geocoins"],
-      ["4,100 pts", "KQX beat it", "1 try lost"],
+      ["Defended", "", 6800, "2 tries lost", "1 Geocoin won", "Your Geocoin back.", "mint", "mint"],
+      ["Taken back", "", 3900, "Nobody tried.", "1 Geocoin back", "", "", ""],
+      ["You lost", "MUD's record: ", 8400, "", "1 Geocoin lost", "Went to MUD.", "pink", "pink"],
+      ["You won", "KQX's record: ", 5500, "Prize already taken.", "1 Geocoin back", "", "mint", ""],
+      ["You won", "MUD's record: ", 6200, "", "1 Geocoin won", "Your Geocoin back.", "mint", "mint"],
+      ["Beaten", "KQX beat ", 4100, "1 try lost", "1 Geocoin lost", "Prize went to KQX.", "pink", "pink"],
+    ]);
+  });
+
+  it("a beaten record still counts what its champion collected from earlier losers; a defended one with nothing collected yet only has its Geocoin back", () => {
+    const beaten = record(ME, 4100, { consumedAt: 300 });
+    const defended = record(ME, 6800, { consumedAt: 1200 });
+    const notes = [beaten, shot(beaten, MUD, 200, { consumedAt: 280 }), shot(beaten, KQX, 400, { consumedAt: 300 }), defended, shot(defended, MUD, 300)];
+    const rows = history(notes, ME, 2000, name).map((h) => [h.result, h.detail, h.money, h.note]);
+    expect(rows).toEqual([
+      ["Defended", "1 try lost", "1 Geocoin back", ""],
+      ["Beaten", "1 try lost", "1 Geocoin won", "Prize went to KQX."],
     ]);
   });
 });

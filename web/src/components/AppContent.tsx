@@ -639,6 +639,7 @@ function GqApp() {
             </>
           ) : null}
           <History
+            key={meKey ?? ""}
             items={me && notesRead ? pastGames(notes, me, height, nameOf) : null}
             connect={
               !wallet.connected && (

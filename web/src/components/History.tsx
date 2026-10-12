@@ -1,16 +1,24 @@
-// The Player Hub's past games: my used records and shots, newest first, ten at a time.
+// The Player Hub's past games: my used records and shots, newest first, ten at a time, by day.
 
 import { useEffect, useState, type ReactNode } from "react";
 import { blockTime } from "@/lib/chain";
 import { whenLabel, type HistoryItem } from "@/lib/hub";
 
 const PAGE = 10;
+const FILTERS = [
+  ["all", "All"],
+  ["record", "My records"],
+  ["shot", "My shots"],
+] as const;
+type Filter = (typeof FILTERS)[number][0];
 
 /** `items`: null while the chain is still being read. `connect`: shown instead when no wallet is connected. */
 export function History({ items, connect }: { items: HistoryItem[] | null; connect?: ReactNode }) {
+  const [filter, setFilter] = useState<Filter>("all");
   const [shown, setShown] = useState(PAGE);
   const [times, setTimes] = useState<Record<number, number>>({});
-  const visible = items?.slice(0, shown) ?? [];
+  const rows = items?.filter((h) => filter === "all" || h.kind === filter) ?? [];
+  const visible = rows.slice(0, shown);
   // each game shows when the block it ended in was made
   const missing = [...new Set(visible.map((h) => h.at).filter((b) => times[b] === undefined))].join(",");
   useEffect(() => {
@@ -20,6 +28,30 @@ export function History({ items, connect }: { items: HistoryItem[] | null; conne
         .catch(() => undefined);
     }
   }, [missing]);
+
+  const pick = (f: Filter) => {
+    setFilter(f);
+    setShown(PAGE);
+  };
+  const onKey = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const i = FILTERS.findIndex(([k]) => k === filter);
+    const next = e.key === "ArrowRight" ? (i + 1) % FILTERS.length : e.key === "ArrowLeft" ? (i + FILTERS.length - 1) % FILTERS.length : e.key === "Home" ? 0 : e.key === "End" ? FILTERS.length - 1 : -1;
+    if (next < 0) return;
+    e.preventDefault();
+    pick(FILTERS[next][0]);
+    (e.currentTarget.children[next] as HTMLElement | undefined)?.focus();
+  };
+
+  // games grouped by the day they ended; a game whose block time is still unknown stays in the group before it
+  const days: { day: string; rows: { h: HistoryItem; time: string; when?: Date }[] }[] = [];
+  for (const h of visible) {
+    const label = times[h.at] ? whenLabel(times[h.at]) : "";
+    const cut = label.lastIndexOf(" ");
+    const day = label.slice(0, cut);
+    const last = days[days.length - 1];
+    if (!last || (day && day !== last.day)) days.push({ day, rows: [] });
+    days[days.length - 1].rows.push({ h, time: label.slice(cut + 1), when: times[h.at] ? new Date(times[h.at]) : undefined });
+  }
 
   return (
     <section className="history" aria-labelledby="history-title">
@@ -43,27 +75,52 @@ export function History({ items, connect }: { items: HistoryItem[] | null; conne
         <p className="panel empty-copy">No past games yet.</p>
       ) : (
         <>
-          <div className="history-list">
-            {visible.map((h) => (
-              <article key={`${h.kind}:${h.id}`} className={`history-item ${h.tone}`}>
-                <div>
-                  <div className="eyebrow">My {h.kind}</div>
-                  <div className="past-score">{h.title}</div>
-                </div>
-                <div>
-                  {h.lines.map((line, i) => (
-                    <p key={i} className={i ? "muted" : undefined}>
-                      {line}
-                    </p>
-                  ))}
-                </div>
-                <time dateTime={times[h.at] ? new Date(times[h.at]).toISOString() : undefined} aria-label={times[h.at] ? new Date(times[h.at]).toLocaleString() : undefined}>
-                  {times[h.at] ? whenLabel(times[h.at]) : ""}
-                </time>
-              </article>
+          <div className="history-filters" role="tablist" aria-label="Past game type" onKeyDown={onKey}>
+            {FILTERS.map(([key, label]) => (
+              <button key={key} role="tab" aria-selected={filter === key} aria-controls="past-games" tabIndex={filter === key ? 0 : -1} onClick={() => pick(key)}>
+                {label}
+              </button>
             ))}
           </div>
-          {shown < items.length ? (
+          <div id="past-games" role="tabpanel">
+            {rows.length === 0 && <p className="panel empty-copy">No past {filter === "record" ? "records" : "shots"} yet.</p>}
+            {days.map((d, i) => (
+              <section key={d.day || i} className="history-day" aria-labelledby={d.day ? `day-${i}` : undefined}>
+                {d.day && (
+                  <h3 id={`day-${i}`} className="history-day-title">
+                    {d.day}
+                  </h3>
+                )}
+                <div className="history-list">
+                  {d.rows.map(({ h, time, when }) => (
+                    <article key={`${h.kind}:${h.id}`} className={`history-item ${h.tone}`} aria-labelledby={`result-${h.kind}-${h.id}`}>
+                      <div className="history-meta">
+                        <span className="eyebrow">My {h.kind}</span>
+                        <time dateTime={when?.toISOString()} aria-label={when?.toLocaleString()}>
+                          {time}
+                        </time>
+                      </div>
+                      <div className="history-body">
+                        <div className="history-result">
+                          <h3 id={`result-${h.kind}-${h.id}`}>{h.result}</h3>
+                          <p className="history-context">
+                            {h.context}
+                            <span className="history-score">{h.score.toLocaleString()} pts</span>
+                          </p>
+                          {h.detail && <p className="history-detail">{h.detail}</p>}
+                        </div>
+                        <div className="history-money">
+                          <p className={`money-label ${h.moneyTone}`}>{h.money}</p>
+                          {h.note && <p className="money-note">{h.note}</p>}
+                        </div>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
+          {shown < rows.length ? (
             <p className="history-more">
               <button className="btn" onClick={() => setShown(shown + PAGE)}>
                 More

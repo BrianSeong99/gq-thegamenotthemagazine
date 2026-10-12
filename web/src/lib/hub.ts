@@ -98,33 +98,45 @@ function winner(record: ChallengeNote, notes: ChallengeNote[], height: number): 
   return shot?.storage.rival ?? undefined;
 }
 
-export type HistoryItem = { id: string; kind: "record" | "shot"; at: number; title: string; lines: string[]; tone: "pink" | "mint" | "" };
+/** Geocoins a champion took from shots lost at `record`: the lost ones already used. */
+const collected = (record: ChallengeNote, notes: ChallengeNote[], height: number) =>
+  shotsAt(record, notes).reduce((sum, s) => (s.consumedAt !== undefined && shotOutcome(s, height, record) === "lost" ? sum + s.amount : sum), 0n);
+
+type Tone = "pink" | "mint" | "";
+/**
+ * A past game: the result leads, `context` is what comes before the score (whose record it was),
+ * `money` is what came in or went out, `note` the small line under it. Never a rival's exact score.
+ */
+export type HistoryItem = { id: string; kind: "record" | "shot"; at: number; result: string; context: string; score: number; detail: string; money: string; note: string; tone: Tone; moneyTone: Tone };
 
 /** My finished games, newest first: my records and my shots once used (live ones stay on the cards). */
 export function history(notes: ChallengeNote[], me: AccountFelts, height: number, name: (a: AccountFelts) => string): HistoryItem[] {
   const items: HistoryItem[] = [];
   for (const n of notes) {
     if (n.consumedAt === undefined) continue;
-    const base = { id: n.id, kind: n.kind, at: n.consumedAt };
+    const base = { id: n.id, kind: n.kind, at: n.consumedAt, score: n.storage.target, context: "", detail: "", note: "" };
     if (n.kind === "record" && same(n.storage.champion, me)) {
       const lost = triesLost(n, notes, height);
       if (lost === null) continue;
-      const title = `${n.storage.target.toLocaleString()} pts`;
+      const won = collected(n, notes, height);
+      const tries = plural(lost, "try lost", "tries lost");
       if (recordOutcome(n, height) === "smashed") {
         const w = winner(n, notes, height);
-        items.push({ ...base, title, lines: [`${w ? name(w) : "Someone"} beat it`, plural(lost, "try lost", "tries lost")], tone: "pink" });
-      } else if (lost > 0) items.push({ ...base, title, lines: [plural(lost, "try lost", "tries lost")], tone: "mint" });
-      else items.push({ ...base, title, lines: shotsAt(n, notes).length === 0 ? ["Nobody tried", "Taken back"] : ["Taken back"], tone: "" });
+        const who = w ? name(w) : "Someone";
+        const money = won > 0n ? { money: `${fmtGeocoin(won)} won`, moneyTone: "mint" as const } : { money: `${fmtGeocoin(n.amount)} lost`, moneyTone: "pink" as const };
+        items.push({ ...base, result: "Beaten", context: `${who} beat `, detail: tries, tone: "pink", note: `Prize went to ${who}.`, ...money });
+      } else if (lost > 0) {
+        const money = won > 0n ? { money: `${fmtGeocoin(won)} won`, moneyTone: "mint" as const, note: "Your Geocoin back." } : { money: `${fmtGeocoin(n.amount)} back`, moneyTone: "" as const };
+        items.push({ ...base, result: "Defended", detail: tries, tone: "mint", ...money });
+      } else items.push({ ...base, result: "Taken back", detail: shotsAt(n, notes).length === 0 ? "Nobody tried." : "", money: `${fmtGeocoin(n.amount)} back`, tone: "", moneyTone: "" });
     } else if (n.kind === "shot" && same(n.storage.rival, me)) {
-      const title = `${name(n.storage.champion)} / ${n.storage.target.toLocaleString()}`;
+      const who = name(n.storage.champion);
       const record = recordOf(n, notes);
-      if (shotOutcome(n, height, record) === "lost") {
-        items.push({ ...base, title, lines: [`Lost ${fmtGeocoin(n.amount)}`], tone: "pink" });
-        continue;
-      }
+      const shot = { ...base, context: `${who}'s record: ` };
+      if (shotOutcome(n, height, record) === "lost") items.push({ ...shot, result: "You lost", money: `${fmtGeocoin(n.amount)} lost`, note: `Went to ${who}.`, tone: "pink", moneyTone: "pink" });
       // the prize comes with the shot in one transaction: same block
-      if (record && record.consumedAt === n.consumedAt) items.push({ ...base, title, lines: ["Smashed it!", `Got ${fmtGeocoin(n.amount + record.amount)}`], tone: "mint" });
-      else items.push({ ...base, title, lines: ["Got my Geocoin back"], tone: "" });
+      else if (record && record.consumedAt === n.consumedAt) items.push({ ...shot, result: "You won", money: `${fmtGeocoin(record.amount)} won`, note: "Your Geocoin back.", tone: "mint", moneyTone: "mint" });
+      else items.push({ ...shot, result: "You won", detail: record && record.consumedAt !== undefined && record.consumedAt < n.consumedAt ? "Prize already taken." : "", money: `${fmtGeocoin(n.amount)} back`, tone: "mint", moneyTone: "" });
     }
   }
   return items.sort((a, b) => b.at - a.at);
