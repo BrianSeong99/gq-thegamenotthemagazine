@@ -222,14 +222,10 @@ const POSTS: ((score: number, until: string) => string)[] = [
 const HARD_CITIES = ["Funafuti", "Palikir", "Melekeok", "Majuro", "Tarawa", "Nuku'alofa", "Apia", "Honiara", "Port Vila", "Moroni", "Malé", "Bir Lehlou", "Lobamba", "Mbabane", "Maseru", "Sri Jayawardenepura Kotte", "Bandar Seri Begawan", "Naypyidaw", "Thimphu", "Ashgabat", "Dushanbe", "Bishkek", "Nur-Sultan", "Dili", "Basseterre", "Castries", "Roseau", "Kingstown", "Saint George's", "Saint John's", "Belmopan", "Paramaribo", "Bujumbura", "Lilongwe", "Gaborone", "Bissau", "Banjul", "Praia", "São Tomé", "Malabo", "Hargeisa", "Laayoune", "Vaduz", "Podgorica", "Chișinău", "Sucre", "Putrajaya", "Ürümqi", "Baguio", "Dodoma", "Bloemfontein"];
 const EASY_CITIES = ["Paris", "London", "New York", "Tokyo", "Rome", "Berlin", "Madrid", "Moscow", "Beijing", "Sydney", "Cairo", "Rio de Janeiro", "Los Angeles", "San Francisco", "Dubai", "Istanbul", "Amsterdam", "Singapore", "Hong Kong", "Mexico City", "Buenos Aires", "Lisbon", "Athens", "Mumbai", "Bangkok", "Seoul", "Shanghai", "Cape Town", "Toronto", "Chicago", "Miami", "Vienna", "Prague", "Dublin"];
 const HARD_POSTS: ((score: number, until: string, city: string) => string)[] = [
-  (score, until, city) => `Found ${city} on a blank map. ${score} points on GQ, open until ${until}.\nInstall @joinbread & beat it:`,
   (score, until, city) => `${city}. Yes, I know where that is. ${score} points on GQ until ${until}.\nInstall @joinbread & find it faster:`,
-  (score, until, city) => `${score} points on GQ, ${city} included 🗺️ Open until ${until}.\nInstall @joinbread & beat my record:`,
   (score, until, city) => `Can you place ${city} in 15 seconds? I did. ${score} points to beat before ${until}.\nInstall @joinbread & try:`,
 ];
 const EASY_POSTS: ((score: number, until: string, city: string) => string)[] = [
-  (score, until, city) => `${score} points on GQ and ${city} was in the mix, so no excuses. Open until ${until}.\nInstall @joinbread & beat it:`,
-  (score, until, city) => `Even ${city} was on the map. ${score} points on GQ until ${until}, easy one to beat?\nInstall @joinbread & prove it:`,
   (score, until, city) => `You know where ${city} is, right? ${score} points to beat before ${until}.\nInstall @joinbread & play GQ:`,
   (score, until, city) => `My run had ${city} in it. ${score} points on GQ, open until ${until}.\nInstall @joinbread & do better:`,
 ];
