@@ -145,10 +145,15 @@ pub proc assert_before_expiry
     push.CLAIM_FUZZ exec.tx::update_expiration_block_delta
 end
 
+#! Aborts until CLAIM_FUZZ blocks past the expiry: a claim proved just before it may land that late,
+#! so from here on a used note tells its own story (used earlier: won; from here: taken back).
+#!
 #! Inputs:  []
 #! Outputs: []
 pub proc assert_after_expiry
-    exec.before_expiry assertz.err=ERR_NOT_EXPIRED
+    exec.tx::get_reference_block_number mem_load.EXPIRY_PTR push.CLAIM_FUZZ add
+    # => [expiry + CLAIM_FUZZ, ref_block]
+    lt assertz.err=ERR_NOT_EXPIRED
 end
 
 #! The block a shot note stops being settleable: the earlier of its own deadline and the
@@ -175,10 +180,14 @@ pub proc assert_before_shot_deadline
     push.CLAIM_FUZZ exec.tx::update_expiration_block_delta
 end
 
+#! Aborts until CLAIM_FUZZ blocks past the shot deadline (see assert_after_expiry).
+#!
 #! Inputs:  []
 #! Outputs: []
 pub proc assert_after_shot_deadline
-    exec.before_shot_deadline assertz.err=ERR_NOT_EXPIRED
+    exec.tx::get_reference_block_number exec.shot_deadline push.CLAIM_FUZZ add
+    # => [deadline + CLAIM_FUZZ, ref_block]
+    lt assertz.err=ERR_NOT_EXPIRED
 end
 
 # VERDICT

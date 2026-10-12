@@ -33,6 +33,8 @@ pub const FUNDS: u64 = 100_000_000; // every wallet starts with 100 GC
 pub const EXPIRY: u32 = 100;
 /// A shot must be settled before this block (well before the record expires).
 pub const SHOT_DEADLINE: u32 = 40;
+/// masm/challenge/challenge_core.masm CLAIM_FUZZ
+pub const CLAIM_FUZZ: u32 = 64;
 
 pub const CITIES: [City; ROUNDS] = VECTOR_CITIES;
 

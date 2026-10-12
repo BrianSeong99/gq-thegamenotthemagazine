@@ -148,7 +148,7 @@ async fn champion_reclaims_after_expiry_only() -> Result<()> {
     let r = s.consume(s.champion.id(), &[&s.record.clone()], None).await;
     assert!(r.is_err(), "reclaim before expiry must fail");
 
-    s.jump_to(EXPIRY)?;
+    s.jump_to(EXPIRY + CLAIM_FUZZ)?;
     let before = s.balance(s.champion.id());
     let tx = s
         .consume(s.champion.id(), &[&s.record.clone()], None)
@@ -191,7 +191,7 @@ async fn settle_with_losing_answer_fails_and_the_stake_waits_for_the_champion() 
     let shot = s.standard_shot()?;
     let r = s.consume(s.rival.id(), &[&shot], Some(&losing_answers())).await;
     assert!(r.is_err(), "a losing answer cannot settle");
-    s.jump_to(SHOT_DEADLINE)?;
+    s.jump_to(SHOT_DEADLINE + CLAIM_FUZZ)?;
     let before = s.balance(s.champion.id());
     let tx = s.consume(s.champion.id(), &[&shot], None).await.expect("champion collects");
     s.commit(&tx)?;
@@ -223,11 +223,12 @@ async fn shot_deadline_cuts_settle_short_and_opens_collect() -> Result<()> {
         .consume(s.rival.id(), &[&s.record.clone(), &shot], Some(&perfect_answers()))
         .await;
     assert!(r.is_err(), "claiming with an expired shot must fail");
+    s.jump_to(SHOT_DEADLINE + CLAIM_FUZZ)?;
     let before = s.balance(s.champion.id());
     let tx = s
         .consume(s.champion.id(), &[&shot], None)
         .await
-        .expect("champion collects from the shot deadline on");
+        .expect("champion collects from the shot deadline + CLAIM_FUZZ on");
     s.commit(&tx)?;
     assert_eq!(s.balance(s.champion.id()), before + STAKE);
     Ok(())
@@ -238,7 +239,7 @@ async fn champion_takes_every_lost_shot_and_the_expired_record_in_one_transactio
     let mut s = setup(1000)?;
     let first = s.standard_shot()?;
     let second = s.standard_shot()?;
-    s.jump_to(EXPIRY)?;
+    s.jump_to(EXPIRY + CLAIM_FUZZ)?;
     let before = s.balance(s.champion.id());
     // the web app's collect: zero note argument, no advice
     let tx = s
@@ -260,7 +261,8 @@ async fn shot_deadline_cannot_outlive_the_prize() -> Result<()> {
     s.jump_to(EXPIRY)?;
     let r = s.consume(s.rival.id(), &[&shot], Some(&perfect_answers())).await;
     assert!(r.is_err(), "the record expiry bounds the shot deadline");
-    let tx = s.consume(s.champion.id(), &[&shot], None).await.expect("collect at record expiry");
+    s.jump_to(EXPIRY + CLAIM_FUZZ)?;
+    let tx = s.consume(s.champion.id(), &[&shot], None).await.expect("collect at record expiry + CLAIM_FUZZ");
     s.commit(&tx)?;
     Ok(())
 }
@@ -304,7 +306,7 @@ async fn champion_collects_after_expiry_only() -> Result<()> {
     let r = s.consume(s.champion.id(), &[&shot], None).await;
     assert!(r.is_err(), "collect before expiry must fail");
 
-    s.jump_to(EXPIRY)?;
+    s.jump_to(EXPIRY + CLAIM_FUZZ)?;
     let before = s.balance(s.champion.id());
     let tx = s
         .consume(s.champion.id(), &[&shot], None)
@@ -312,6 +314,51 @@ async fn champion_collects_after_expiry_only() -> Result<()> {
         .expect("collect after expiry");
     s.commit(&tx)?;
     assert_eq!(s.balance(s.champion.id()), before + STAKE);
+    Ok(())
+}
+
+/// A winning claim proved just before the deadline may land up to CLAIM_FUZZ blocks after it (the
+/// before-paths cap the transaction's expiration at ref + CLAIM_FUZZ). The champion's collect and
+/// take-back wait that long, so a shot used before deadline + CLAIM_FUZZ was won, after it lost.
+#[tokio::test(flavor = "multi_thread")]
+async fn collect_waits_claim_fuzz_past_the_shot_deadline() -> Result<()> {
+    let mut s = setup(1000)?;
+    let shot = s.standard_shot()?;
+    s.jump_to(SHOT_DEADLINE + CLAIM_FUZZ - 1)?;
+    let e = s.consume(s.champion.id(), &[&shot], None).await.unwrap_err();
+    assert_masm_error(&e, "challenge: the deadline has not passed yet");
+    s.jump_to(SHOT_DEADLINE + CLAIM_FUZZ)?;
+    let tx = s.consume(s.champion.id(), &[&shot], None).await.expect("collect at deadline + CLAIM_FUZZ");
+    s.commit(&tx)?;
+    Ok(())
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn take_back_waits_claim_fuzz_past_expiry() -> Result<()> {
+    let mut s = setup(1000)?;
+    s.jump_to(EXPIRY + CLAIM_FUZZ - 1)?;
+    let e = s.consume(s.champion.id(), &[&s.record.clone()], None).await.unwrap_err();
+    assert_masm_error(&e, "challenge: the deadline has not passed yet");
+    s.jump_to(EXPIRY + CLAIM_FUZZ)?;
+    let tx = s.consume(s.champion.id(), &[&s.record.clone()], None).await.expect("take back at expiry + CLAIM_FUZZ");
+    s.commit(&tx)?;
+    Ok(())
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn a_claim_proved_just_before_the_deadline_lands_before_the_champion_may_collect() -> Result<()> {
+    let mut s = setup(1000)?;
+    let shot = s.standard_shot()?;
+    s.jump_to(SHOT_DEADLINE - 1)?;
+    let tx = s
+        .consume(s.rival.id(), &[&s.record.clone(), &shot], Some(&perfect_answers()))
+        .await
+        .expect("claim proved one block before the deadline");
+    assert_eq!(tx.expiration_block_num().as_u32(), SHOT_DEADLINE - 1 + CLAIM_FUZZ);
+    // included at deadline + CLAIM_FUZZ - 2, the last block before it expires; collect opens at + CLAIM_FUZZ
+    s.jump_to(SHOT_DEADLINE + CLAIM_FUZZ - 3)?;
+    s.commit(&tx)?;
+    assert_eq!(s.balance(s.rival.id()), FUNDS + PRIZE);
     Ok(())
 }
 
