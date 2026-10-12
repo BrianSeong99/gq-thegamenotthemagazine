@@ -4,7 +4,7 @@
 import type { ChallengeNote } from "./chain";
 import { shotDeadline, ZERO_WORD, type AccountFelts, type ChallengeStorage, type Word4 } from "./notes";
 import type { Place } from "./quiz";
-import { BLOCK_SECONDS, GC_DECIMALS, GC_FAUCET, RECORD_LIFETIME_BLOCKS, STAKE } from "@/config";
+import { BLOCK_SECONDS, CLAIM_FUZZ, GC_DECIMALS, GC_FAUCET, RECORD_LIFETIME_BLOCKS, STAKE, V1_ROOTS } from "@/config";
 import { QUIZ_MAX, roundScore, type Answer, type City } from "./rules";
 
 export const sameAccount = (a: AccountFelts | null | undefined, b: AccountFelts | null | undefined) =>
@@ -48,16 +48,27 @@ export function shotRefusal(record: ChallengeNote, height: number, minWindow: nu
 
 const sameWord = (a: Word4, b: Word4) => a.every((f, i) => f === b[i]);
 
+export type NoteKind = { kind: "record"; shotRoot: string; v1?: true } | { kind: "shot"; v1?: true };
+
+/** What a note script root means to this app: a record (and the shot script its shots run), a shot, or null for a foreign note. */
+export function noteKind(root: string, current: { recordRoot: string; shotRoot: string }): NoteKind | null {
+  if (root === current.recordRoot) return { kind: "record", shotRoot: current.shotRoot };
+  if (root === current.shotRoot) return { kind: "shot" };
+  if (root === V1_ROOTS.record) return { kind: "record", shotRoot: V1_ROOTS.shot, v1: true };
+  if (root === V1_ROOTS.shot) return { kind: "shot", v1: true };
+  return null;
+}
+
 /**
  * Whether a note the node serves under our tag with one of our script roots is one of ours: posted
  * by the account it names (the sender is set by the kernel, the storage by whoever made the note),
  * carrying exactly one asset, the Geocoin, and shaped the way this app writes it. A record names
- * `shotRoot`, this game's shot script, so no stranger's script gets to settle shots at it.
+ * `shotRoot`, the shot script of its own version, so no stranger's script gets to settle shots at it.
  */
-export function acceptNote(n: { kind: "record" | "shot"; storage: ChallengeStorage; sender: AccountFelts; assets: { faucet: string; amount: bigint }[] }, shotRoot: Word4): boolean {
+export function acceptNote(n: { kind: "record" | "shot"; storage: ChallengeStorage; sender: AccountFelts; assets: { faucet: string; amount: bigint }[] }, shotRoot?: Word4): boolean {
   if (n.assets.length !== 1 || n.assets[0].faucet !== GC_FAUCET) return false;
   const s = n.storage;
-  if (n.kind === "record") return sameAccount(n.sender, s.champion) && !s.rival && s.shotDeadline === 0 && sameWord(s.recordId, ZERO_WORD) && sameWord(s.shotRoot, shotRoot);
+  if (n.kind === "record") return sameAccount(n.sender, s.champion) && !s.rival && s.shotDeadline === 0 && sameWord(s.recordId, ZERO_WORD) && !!shotRoot && sameWord(s.shotRoot, shotRoot);
   return sameAccount(n.sender, s.rival) && !sameWord(s.recordId, ZERO_WORD);
 }
 
@@ -97,8 +108,9 @@ export const blocksToClock = (blocks: number) => {
  * the rival can use a shot, and only with a winning answer; from the deadline on only the champion.
  * So a shot used before its deadline was claimed by its rival, one used later was taken.
  */
-export function claimVerdict(shots: { consumedAt?: number; deadline: number }[]): "open" | "claimed" | "lost" {
-  if (shots.some((s) => s.consumedAt !== undefined && s.consumedAt >= s.deadline)) return "lost";
+export function claimVerdict(shots: { consumedAt?: number; deadline: number; v1?: true }[]): "open" | "claimed" | "lost" {
+  // the champion collects from deadline + CLAIM_FUZZ (v1: from the deadline); a shot used earlier was ours
+  if (shots.some((s) => s.consumedAt !== undefined && s.consumedAt >= s.deadline + (s.v1 ? 0 : CLAIM_FUZZ + 1))) return "lost";
   if (shots.length > 0 && shots.every((s) => s.consumedAt !== undefined)) return "claimed";
   return "open";
 }

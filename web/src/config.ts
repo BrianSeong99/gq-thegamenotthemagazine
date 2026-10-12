@@ -26,6 +26,16 @@ export const TEST_ACCOUNTS = ["0x071d3da3ad56d88175b628f76073cb", "0x35b6665ae25
 // Where the assembled note scripts live (written by `cargo run --bin build_scripts`).
 export const RECORD_SCRIPT_URL = "/scripts/record.bin";
 export const SHOT_SCRIPT_URL = "/scripts/shot.bin";
+// The first scripts (until 2026-10-12: collect opened at the deadline itself, not CLAIM_FUZZ later).
+// Their notes stay on the boards and in histories for good, so their roots stay here; the shot
+// script file is only needed while a v1 record is still open, to take a shot at it.
+export const V1_ROOTS = {
+  record: "0xf5c76231f25a67b72beb4044d34387ef9f54e163303c896a2ca7847ace21227f",
+  shot: "0xc0dca0ae35c0f0aa35c48f388b282b08902399353405078742d5aba63f797367",
+};
+export const SHOT_SCRIPT_V1_URL = "/scripts/v1/shot.bin";
+// masm/challenge/challenge_core.masm CLAIM_FUZZ: how late a claim proved before a deadline may land.
+export const CLAIM_FUZZ = 64;
 export const CITIES_URL = "/cities.json";
 
 export const NETWORK_POLL_INTERVAL_MS = 2_500;

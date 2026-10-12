@@ -38,7 +38,7 @@ describe("Lobby", () => {
     expect(screen.queryByRole("button")).toBeNull();
   });
 
-  it("shows the champion their own record, and take-it-back only once expired", () => {
+  it("shows the champion their own record, and take-it-back only CLAIM_FUZZ blocks past expiry (a claim may land until then)", () => {
     const h = handlers();
     const { rerender } = render(<Lobby me={champion} notes={[prize]} height={100} {...h} />);
     expect(screen.queryByRole("button", { name: /take it back/i })).toBeNull();
@@ -48,7 +48,9 @@ describe("Lobby", () => {
     // an open record can be shared again from the hub
     expect(screen.getByRole("link", { name: /share on x/i }).getAttribute("href")).toContain(encodeURIComponent("?record=0xp"));
     expect(screen.queryByText(/on it/i)).toBeNull();
-    rerender(<Lobby me={champion} notes={[prize]} height={1000} {...h} />);
+    rerender(<Lobby me={champion} notes={[prize]} height={1063} {...h} />);
+    expect(screen.queryByRole("button", { name: /take it back/i })).toBeNull();
+    rerender(<Lobby me={champion} notes={[prize]} height={1064} {...h} />);
     fireEvent.click(screen.getByRole("button", { name: /take it back/i }));
     expect(h.onCollect).toHaveBeenCalledWith([prize]);
   });
@@ -62,11 +64,11 @@ describe("Lobby", () => {
     expect(screen.queryByRole("button", { name: /^play$/i })).toBeNull();
   });
 
-  it("lets the champion collect a shot only from its deadline on", () => {
+  it("lets the champion collect a shot only from its deadline + CLAIM_FUZZ on", () => {
     const h = handlers();
-    const { rerender } = render(<Lobby me={champion} notes={[prize, myChallenge]} height={199} {...h} />);
+    const { rerender } = render(<Lobby me={champion} notes={[prize, myChallenge]} height={263} {...h} />);
     expect(screen.queryByRole("button", { name: /take it/i })).toBeNull();
-    rerender(<Lobby me={champion} notes={[prize, myChallenge]} height={200} {...h} />);
+    rerender(<Lobby me={champion} notes={[prize, myChallenge]} height={264} {...h} />);
     fireEvent.click(screen.getByRole("button", { name: /take it/i }));
     expect(h.onCollect).toHaveBeenCalledWith([myChallenge]);
     expect(screen.queryByRole("button", { name: /take all/i })).toBeNull();
@@ -75,7 +77,7 @@ describe("Lobby", () => {
   it("takes everything the champion is owed in one go: lost shots and expired records", () => {
     const h = handlers();
     const second = { ...myChallenge, id: "0xc2", idWord: [2n, 2n, 2n, 2n] as [bigint, bigint, bigint, bigint] };
-    render(<Lobby me={champion} notes={[prize, myChallenge, second]} height={1000} {...h} />);
+    render(<Lobby me={champion} notes={[prize, myChallenge, second]} height={1064} {...h} />);
     fireEvent.click(screen.getByRole("button", { name: /take all/i }));
     expect(h.onCollect).toHaveBeenCalledWith([prize, myChallenge, second]);
   });

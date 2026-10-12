@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest";
 import type { ChallengeNote } from "@/lib/chain";
 import type { AccountFelts, ChallengeStorage } from "@/lib/notes";
-import { boards, history, keyOf, lettersBackward, nicknames, playersInOrder, shotOutcome, triesLost, whenLabel } from "../hub";
+import { boards, history, keyOf, lettersBackward, nicknames, playersInOrder, recordOutcome, shotOutcome, triesLost, whenLabel } from "../hub";
 
 const ME = { suffix: 1n, prefix: 1n };
 const KQX = { suffix: 2n, prefix: 2n };
@@ -53,23 +53,47 @@ describe("nicknames", () => {
 });
 
 describe("how games ended", () => {
-  it("a shot used before its deadline was won, after it was taken by the champion, unused past it is lost", () => {
+  it("a shot used up to CLAIM_FUZZ blocks past its deadline was won (the champion cannot collect before), later it was taken; unused past it is lost", () => {
     const r = record(MUD, 100);
     expect(shotOutcome(shot(r, ME, 200, { consumedAt: 199 }), 500)).toBe("won");
-    expect(shotOutcome(shot(r, ME, 200, { consumedAt: 200 }), 500)).toBe("lost");
+    expect(shotOutcome(shot(r, ME, 200, { consumedAt: 264 }), 500)).toBe("won");
+    expect(shotOutcome(shot(r, ME, 200, { consumedAt: 265 }), 500)).toBe("lost");
     expect(shotOutcome(shot(r, ME, 200), 200)).toBe("lost");
     expect(shotOutcome(shot(r, ME, 200), 199)).toBe("open");
     expect(shotOutcome({ ...shot(r, ME, 200), consumed: true }, 500)).toBeUndefined();
   });
 
-  it("a claim that lands after the shot deadline still won: it took the open record in the same block", () => {
-    const r = record(MUD, 9690, { consumedAt: 82650, expiry: 111298 });
-    const s = shot(r, KQX, 82645, { consumedAt: 82650 });
+  it("a record used up to CLAIM_FUZZ blocks past its expiry was smashed, later it was taken back", () => {
+    expect(recordOutcome(record(MUD, 100, { consumedAt: 1064 }), 2000)).toBe("smashed");
+    expect(recordOutcome(record(MUD, 100, { consumedAt: 1065 }), 2000)).toBe("closed");
+    expect(recordOutcome(record(MUD, 100), 999)).toBe("open");
+    expect(recordOutcome(record(MUD, 100), 1000)).toBe("closed");
+  });
+
+  it("v1 notes (collect opened at the deadline) keep the old reading: before the deadline or with the open record won, else lost", () => {
+    const v1 = { v1: true as const };
+    const r = record(MUD, 100, v1);
+    expect(shotOutcome(shot(r, ME, 200, { consumedAt: 199, ...v1 }), 500)).toBe("won");
+    expect(shotOutcome(shot(r, ME, 200, { consumedAt: 200, ...v1 }), 500)).toBe("lost");
+    // testnet 0x4ea99130: used at its deadline together with its record
+    const dl0 = record(MUD, 5000, { consumedAt: 500, expiry: 1000, ...v1 });
+    expect(shotOutcome(shot(dl0, KQX, 500, { consumedAt: 500, ...v1 }), 2000, dl0)).toBe("won");
+    // testnet 0x820ac053: used alone 32 blocks past its deadline, its record taken back much later: the champion collected it
+    const later = record(MUD, 5000, { consumedAt: 166348, expiry: 100000, ...v1 });
+    expect(shotOutcome(shot(later, KQX, 95104, { consumedAt: 95136, ...v1 }), 170000, later)).toBe("lost");
+    // v1 records: smashed only before expiry
+    expect(recordOutcome(record(MUD, 100, { consumedAt: 1000, ...v1 }), 2000)).toBe("closed");
+    expect(recordOutcome(record(MUD, 100, { consumedAt: 999, ...v1 }), 2000)).toBe("smashed");
+  });
+
+  it("v1: a claim that lands after the shot deadline still won: it took the open record in the same block", () => {
+    const r = record(MUD, 9690, { consumedAt: 82650, expiry: 111298, v1: true });
+    const s = shot(r, KQX, 82645, { consumedAt: 82650, v1: true });
     expect(shotOutcome(s, 90000, r)).toBe("won");
     expect(history([r, s], MUD, 90000, name).map((h) => h.lines)).toEqual([["KQX beat it", "0 tries lost"]]);
     // the champion taking an expired record with a lost shot in one go is not a claim
-    const old = record(MUD, 100, { consumedAt: 2000, expiry: 1000 });
-    expect(shotOutcome(shot(old, KQX, 500, { consumedAt: 2000 }), 3000, old)).toBe("lost");
+    const old = record(MUD, 100, { consumedAt: 2000, expiry: 1000, v1: true });
+    expect(shotOutcome(shot(old, KQX, 500, { consumedAt: 2000, v1: true }), 3000, old)).toBe("lost");
   });
 
   it("counts tries lost only once every shot is known", () => {

@@ -24,22 +24,29 @@ import {
   Word,
 } from "@miden-sdk/miden-sdk";
 import type { useMidenClient } from "@miden-sdk/react";
-import { GC_FAUCET, MIDEN_RPC_URL, RECORD_SCRIPT_URL, SHOT_SCRIPT_URL } from "@/config";
+import { GC_FAUCET, MIDEN_RPC_URL, RECORD_SCRIPT_URL, SHOT_SCRIPT_URL, SHOT_SCRIPT_V1_URL } from "@/config";
 import { decodeStorage, NOTE_TAG, type AccountFelts, type ChallengeStorage } from "./notes";
-import { acceptNote } from "./flow";
+import { acceptNote, noteKind } from "./flow";
 import type { Word4 } from "./quiz";
 
 /** The app's local wasm client, as `useMidenClient()` returns it. */
 export type Client = ReturnType<typeof useMidenClient>;
 
-export type Scripts = { record: NoteScript; shot: NoteScript; recordRoot: string; shotRoot: string };
+export type Scripts = {
+  record: NoteScript;
+  shot: NoteScript;
+  recordRoot: string;
+  shotRoot: string;
+  /** every shot script by root, v1 included: a record names the one its shots run (storage.shotRoot) */
+  shots: Map<string, NoteScript>;
+};
 
 let scriptsPromise: Promise<Scripts> | undefined;
-/** The two note scripts, assembled by `cargo run --bin build_scripts`. */
+/** The note scripts, assembled by `cargo run --bin build_scripts`, plus the v1 shot script for shots at v1 records. */
 export function loadScripts(): Promise<Scripts> {
   scriptsPromise ??= (async () => {
-    const [p, c] = await Promise.all(
-      [RECORD_SCRIPT_URL, SHOT_SCRIPT_URL].map(async (url) => {
+    const [p, c, c1] = await Promise.all(
+      [RECORD_SCRIPT_URL, SHOT_SCRIPT_URL, SHOT_SCRIPT_V1_URL].map(async (url) => {
         const buf = await fetch(url).then((r) => {
           if (!r.ok) throw new Error(`${url}: HTTP ${r.status}`);
           return r.arrayBuffer();
@@ -47,7 +54,8 @@ export function loadScripts(): Promise<Scripts> {
         return NoteScript.deserialize(new Uint8Array(buf));
       }),
     );
-    return { record: p, shot: c, recordRoot: p.root().toHex(), shotRoot: c.root().toHex() };
+    const shots = new Map([c, c1].map((n) => [n.root().toHex(), n]));
+    return { record: p, shot: c, recordRoot: p.root().toHex(), shotRoot: c.root().toHex(), shots };
   })();
   return scriptsPromise;
 }
@@ -82,20 +90,16 @@ export type ChallengeNote = {
   /** the block it was included in */
   createdAt?: number;
   nullifier?: string;
+  /** made with the first scripts (config.ts V1_ROOTS): collect opened at the deadline, outcomes read by heuristic */
+  v1?: true;
 };
 
-/** What a note script root means to this app, or null for a foreign note. */
-function kindOf(root: string, { recordRoot, shotRoot }: Scripts): Pick<ChallengeNote, "kind"> | null {
-  if (root === recordRoot) return { kind: "record" };
-  if (root === shotRoot) return { kind: "shot" };
-  return null;
-}
-
 /** A record or shot of ours as the node serves it; null for a foreign root or layout, or a note not shaped as this app writes them (flow.ts acceptNote). */
-function decodeNote(input: InputNote, scripts: Scripts): Pick<ChallengeNote, "kind" | "storage" | "amount"> | null {
+function decodeNote(input: InputNote, scripts: Scripts): Pick<ChallengeNote, "kind" | "storage" | "amount" | "v1"> | null {
   const note = input.note();
-  const kind = kindOf(note.recipient().script().root().toHex(), scripts);
-  if (!kind) return null;
+  const known = noteKind(note.recipient().script().root().toHex(), scripts);
+  if (!known) return null;
+  const { kind, v1 } = known;
   let storage: ChallengeStorage;
   try {
     storage = decodeStorage(note.recipient().storage().items().map((x) => x.asInt()));
@@ -103,8 +107,9 @@ function decodeNote(input: InputNote, scripts: Scripts): Pick<ChallengeNote, "ki
     return null;
   }
   const assets = note.assets().fungibleAssets().map((a) => ({ faucet: a.faucetId().toString(), amount: a.amount() }));
-  if (!acceptNote({ ...kind, storage, sender: accountFelts(note.metadata().sender()), assets }, wordFromHex(scripts.shotRoot))) return null;
-  return { ...kind, storage, amount: assets[0].amount };
+  const shotRoot = known.kind === "record" ? wordFromHex(known.shotRoot) : undefined;
+  if (!acceptNote({ kind, storage, sender: accountFelts(note.metadata().sender()), assets }, shotRoot)) return null;
+  return { kind, storage, amount: assets[0].amount, ...(v1 && { v1 }) };
 }
 
 /** Registers the app's note tag (idempotent) and syncs. */

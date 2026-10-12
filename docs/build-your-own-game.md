@@ -79,21 +79,25 @@ Code to copy:
 
 - A shot belongs to one record and one rival (storage commitment), carries at least `min_stake`
   of the record's asset, and is checked by its **initial** assets (input notes run in any order).
-- A shot is settleable before `min(shot_deadline, expiry_block)`; from then on only the champion
-  can collect it. The record can be claimed before `expiry_block`, reclaimed after.
-- A back-dated reference block buys at most 64 blocks (`CLAIM_FUZZ`).
+- A shot is settleable before `min(shot_deadline, expiry_block)`; from that deadline plus
+  `CLAIM_FUZZ` (64 blocks) on only the champion can collect it. The record can be claimed before
+  `expiry_block`, taken back from `expiry_block + CLAIM_FUZZ`.
+- A claim proved before a deadline expires `CLAIM_FUZZ` blocks after it (a back-dated reference
+  block buys no more). So no note can be used in the two blocks before `deadline + CLAIM_FUZZ`, and
+  the block a note was used in tells how it ended: earlier, a win; later, the champion took it.
 - The game's verdict is the only thing that decides a win.
 
 What it does not do: anti-cheat. The chain recomputes the score from the answers, but it cannot
-know how the answers were produced. See the trust list in [design.md](design.md).
+know how the answers were produced. Pick a game the script can replay from the answers alone. See
+the trust list in [design.md](design.md).
 
 ## 5. Pitfalls we paid for
 
 - **Watch the chain, not the wallet.** A wallet saying yes means it accepted the request, not that
   the transaction landed. Wait for the effect (the note exists, or it is consumed).
 - **Show the shot's deadline.** A winner who claims too late loses the stake to the champion.
-  Before claiming again, check whether the shot is already consumed: before its deadline only its
-  rival can consume it (`claimVerdict` in `web/src/lib/flow.ts`).
+  Before claiming again, check whether the shot is already consumed: up to `CLAIM_FUZZ` past its
+  deadline only its rival can have consumed it (`claimVerdict` in `web/src/lib/flow.ts`).
 - **Your own notes are output notes.** A note your account created never shows up as an input
   note in your local store; read both lists.
 - **WASM handles are consumed.** A `Word`, `NoteArray` or `AccountId` passed to an SDK builder call
@@ -119,3 +123,6 @@ know how the answers were produced. See the trust list in [design.md](design.md)
 4. MockChain tests: claim, settle, refusal, deadlines.
 5. Client: the four transactions, the answer's note argument and advice, deadlines on screen.
 6. Pick your own note tag and token.
+7. Check every note you read before trusting it: its sender is the account its storage names, it
+   carries exactly one asset (yours), its terms are ones your game writes (stake, target, expiry),
+   a record names your shot script (`acceptNote` in `web/src/lib/flow.ts`).

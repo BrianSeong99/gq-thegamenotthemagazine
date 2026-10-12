@@ -3,7 +3,7 @@
 import type { ChallengeNote } from "@/lib/chain";
 import { blocksToClock, fmtGeocoin } from "@/lib/flow";
 import { triesLost, whenLabel } from "@/lib/hub";
-import { BLOCK_SECONDS } from "@/config";
+import { BLOCK_SECONDS, CLAIM_FUZZ } from "@/config";
 import { shotDeadline, type AccountFelts } from "@/lib/notes";
 import { ShareButtons } from "./ShareButtons";
 const sameAccount = (a: AccountFelts | null, b: AccountFelts | null) => !!a && !!b && a.suffix === b.suffix && a.prefix === b.prefix;
@@ -22,8 +22,10 @@ export function Lobby({ me, notes, height, onSettle, onCollect }: LobbyProps) {
   const recordById = (idWord: bigint[]) => notes.find((n) => n.kind === "record" && n.idWord.every((f, i) => f === idWord[i]));
   const deadline = (n: ChallengeNote) => (n.kind === "shot" ? shotDeadline(n.storage) : n.storage.expiryBlock);
   const expired = (n: ChallengeNote) => height >= deadline(n);
-  // when it ends, as a clock time: blocks left at testnet's pace
-  const until = (n: ChallengeNote) => whenLabel(Date.now() + (deadline(n) - height) * BLOCK_SECONDS * 1000);
+  // the champion may take a note CLAIM_FUZZ blocks past its deadline: a claim proved just before it lands until then
+  const takeable = (n: ChallengeNote) => height >= deadline(n) + CLAIM_FUZZ;
+  // when the champion may take it, as a clock time: blocks left at testnet's pace
+  const until = (n: ChallengeNote) => whenLabel(Date.now() + (deadline(n) + CLAIM_FUZZ - height) * BLOCK_SECONDS * 1000);
 
   const mine = (n: ChallengeNote) => sameAccount(me, n.storage.champion);
   // only mine here: other people's open records are listed in Champion vs Rival
@@ -32,7 +34,7 @@ export function Lobby({ me, notes, height, onSettle, onCollect }: LobbyProps) {
   const shotsAtMyRecords = shots.filter((n) => mine(n) && !sameAccount(me, n.storage.rival));
   const empty = myRecords.length + myShots.length + shotsAtMyRecords.length === 0;
   // everything the champion can take now goes in one transaction: one wallet approval
-  const ready = [...myRecords, ...shotsAtMyRecords].filter(expired);
+  const ready = [...myRecords, ...shotsAtMyRecords].filter(takeable);
 
   return (
     <div className="lobby">
@@ -45,10 +47,10 @@ export function Lobby({ me, notes, height, onSettle, onCollect }: LobbyProps) {
         </p>
       )}
       {myRecords.map((p) => (
-        <section key={p.id} className={`panel card${expired(p) ? " yellow" : ""}`}>
-          <div className="eyebrow">{expired(p) ? "My record / over" : `My record / open until ${until(p)}`}</div>
+        <section key={p.id} className={`panel card${takeable(p) ? " yellow" : ""}`}>
+          <div className="eyebrow">{takeable(p) ? "My record / over" : `My record / open until ${until(p)}`}</div>
           <div className="score">{p.storage.target.toLocaleString()} pts</div>
-          {expired(p) ? (
+          {takeable(p) ? (
             <button className="btn primary" onClick={() => onCollect([p])}>
               Take it back
             </button>
@@ -71,7 +73,7 @@ export function Lobby({ me, notes, height, onSettle, onCollect }: LobbyProps) {
               <div className="score">beat {c.storage.target.toLocaleString()}</div>
               <p className="muted">{fmtGeocoin(c.amount)} on the table</p>
               {expired(c) ? (
-                <p className="muted">The champion can take it now.</p>
+                <p className="muted">The champion can take it.</p>
               ) : (
                 <button className="btn primary" onClick={() => onSettle(c, record && !record.consumed ? record : undefined)}>
                   Play
@@ -84,9 +86,9 @@ export function Lobby({ me, notes, height, onSettle, onCollect }: LobbyProps) {
       {me &&
         shotsAtMyRecords.map((c) => (
           <section key={c.id} className="panel card mint">
-            <div className="eyebrow">{expired(c) ? "For you / ready" : "For you / in play"}</div>
+            <div className="eyebrow">{takeable(c) ? "For you / ready" : "For you / in play"}</div>
             <div className="score">{fmtGeocoin(c.amount)}</div>
-            {expired(c) ? (
+            {takeable(c) ? (
               <button className="btn primary" onClick={() => onCollect([c])}>
                 Take it
               </button>

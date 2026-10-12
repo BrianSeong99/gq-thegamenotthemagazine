@@ -19,7 +19,7 @@ import {
 } from "@miden-sdk/miden-sdk";
 import { Transaction } from "@miden-sdk/miden-wallet-adapter-base";
 import type { useMidenFiWallet } from "@miden-sdk/miden-wallet-adapter-react";
-import { buildChallengeNote, endpoint, fetchNotesWithProof, feltArray, loadScripts, parseAccountId, syncNotes, type Client, type ChallengeNote } from "./chain";
+import { buildChallengeNote, endpoint, fetchNotesWithProof, feltArray, loadScripts, parseAccountId, syncNotes, wordFromFelts, type Client, type ChallengeNote } from "./chain";
 import { SHOT_WINDOW_BLOCKS, GC_FAUCET, NETWORK_POLL_INTERVAL_MS, NETWORK_POLL_TIMEOUT_MS } from "@/config";
 import { encodeStorage, SHOT_DEADLINE_INDEX, shotStorage, ZERO_WORD, type AccountFelts, type ChallengeStorage, type GameAnswer } from "./notes";
 import { randomSeed, type Word4 } from "./quiz";
@@ -168,7 +168,9 @@ export async function postRecord(client: Client, wallet: Wallet, storage: Challe
 /** Rival: post a shot note at `record`, staking `record.storage.minStake`. */
 export async function postShot(client: Client, wallet: Wallet, record: ChallengeNote, me: AccountFelts): Promise<Submitted & { deadline: number }> {
   await requireGc(wallet, record.storage.minStake);
-  const { shot } = await loadScripts();
+  // the record names the shot script its shots run (its own version's)
+  const shot = (await loadScripts()).shots.get(wordFromFelts(record.storage.shotRoot).toHex());
+  if (!shot) throw new Error("This record wants a shot script this app does not have.");
   const deadline = (await client.getSyncHeight()) + SHOT_WINDOW_BLOCKS;
   const storage = shotStorage(record.storage, me, record.idWord, deadline);
   const felts = encodeStorage(storage);
@@ -192,7 +194,7 @@ export async function settle(client: Client, wallet: Wallet, shots: ChallengeNot
   if (shots.length === 0) throw new Error("no shot note to settle");
   const ids = [...(record ? [record.id] : []), ...shots.map((c) => c.id)];
   const { files } = await fetchNotesWithProof(ids);
-  const { shotRoot } = await loadScripts();
+  const { shots: shotScripts } = await loadScripts();
   // every WASM object below is consumed by the builder: build them inside each attempt
   const build = async (b: TransactionRequestBuilder) => {
     const { inputs } = await fetchNotesWithProof(ids);
@@ -201,7 +203,7 @@ export async function settle(client: Client, wallet: Wallet, shots: ChallengeNot
     for (const [key, felts] of answer.advice) advice.insert(wordOf(key), feltArray(felts));
     for (const input of inputs) {
       // the record script learns each shot's deadline from the advice map and proves it by commitment
-      if (input.note().recipient().script().root().toHex() === shotRoot) {
+      if (shotScripts.has(input.note().recipient().script().root().toHex())) {
         const items = input.note().recipient().storage().items();
         advice.insert(Word.fromHex(input.id().toString()), feltArray([items[SHOT_DEADLINE_INDEX].asInt()]));
       }

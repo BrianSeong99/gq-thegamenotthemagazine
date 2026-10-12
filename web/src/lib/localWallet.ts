@@ -11,6 +11,7 @@ import type { Asset, Transaction } from "@miden-sdk/miden-wallet-adapter-base";
 import { useCallback, useState } from "react";
 import { MIDEN_FAUCET_URL } from "@/config";
 import { loadScripts, type Client } from "./chain";
+import { noteKind } from "./flow";
 import { requestFaucetTokens } from "./funding";
 
 const LOCAL = typeof location !== "undefined" ? new URLSearchParams(location.search).get("local") : null;
@@ -38,7 +39,7 @@ export function useLocalWallet(client: Client | null, runExclusive: <T>(fn: () =
   const claimIncoming = useCallback(
     async (hex: string, waitMs: number): Promise<number> => {
       if (!client) throw new Error("client not ready");
-      const { recordRoot, shotRoot } = await loadScripts();
+      const scripts = await loadScripts();
       const deadline = Date.now() + waitMs;
       let pending: string[] = [];
       for (;;) {
@@ -48,7 +49,7 @@ export function useLocalWallet(client: Client | null, runExclusive: <T>(fn: () =
             .flatMap((n) => n.inputNoteRecord() ?? [])
             .filter((r) => {
               const root = r.details()?.recipient().script().root().toHex();
-              return root !== recordRoot && root !== shotRoot;
+              return !root || !noteKind(root, scripts); // game notes are not payments
             })
             .flatMap((r) => r.id()?.toString() ?? []);
         });

@@ -2,10 +2,11 @@
 import { describe, expect, it, vi } from "vitest";
 import type { ChallengeNote } from "../chain";
 import type { ChallengeStorage, Word4 } from "../notes";
-import { GC_FAUCET } from "@/config";
+import { GC_FAUCET, V1_ROOTS } from "@/config";
 import {
   acceptNote,
   blocksToClock,
+  noteKind,
   claimVerdict,
   explain,
   NOT_FINISHED,
@@ -97,6 +98,17 @@ describe("taking a shot", () => {
     expect(rigged({ minStake: 1_000_001n })).toMatch(/rigged/);
     expect(rigged({ expiryBlock: 100 + 28_800 })).toBeNull();
     expect(rigged({ expiryBlock: 100 + 28_801 })).toMatch(/rigged/);
+  });
+});
+
+describe("script roots", () => {
+  const current = { recordRoot: "0xr2", shotRoot: "0xs2" };
+  it("knows both versions of the scripts: a record names the shot script of its own version", () => {
+    expect(noteKind("0xr2", current)).toEqual({ kind: "record", shotRoot: "0xs2" });
+    expect(noteKind("0xs2", current)).toEqual({ kind: "shot" });
+    expect(noteKind(V1_ROOTS.record, current)).toEqual({ kind: "record", shotRoot: V1_ROOTS.shot, v1: true });
+    expect(noteKind(V1_ROOTS.shot, current)).toEqual({ kind: "shot", v1: true });
+    expect(noteKind("0xother", current)).toBeNull();
   });
 });
 
@@ -272,11 +284,14 @@ describe("leaving a record behind", () => {
 });
 
 describe("before sending a claim", () => {
-  it("knows a shot used before its deadline was claimed by its rival, and one used later was taken", () => {
+  it("knows a shot used up to CLAIM_FUZZ past its deadline was claimed by its rival, and one used later was taken", () => {
     expect(claimVerdict([{ deadline: 100 }])).toBe("open");
     expect(claimVerdict([{ consumedAt: 99, deadline: 100 }])).toBe("claimed");
-    expect(claimVerdict([{ consumedAt: 100, deadline: 100 }])).toBe("lost");
+    expect(claimVerdict([{ consumedAt: 164, deadline: 100 }])).toBe("claimed");
+    expect(claimVerdict([{ consumedAt: 165, deadline: 100 }])).toBe("lost");
     expect(claimVerdict([{ consumedAt: 90, deadline: 100 }, { deadline: 100 }])).toBe("open");
+    // a v1 shot's champion could collect from the deadline itself
+    expect(claimVerdict([{ consumedAt: 100, deadline: 100, v1: true }])).toBe("lost");
   });
   it("shows block counts as a clock", () => {
     expect(blocksToClock(81)).toBe("4:03");

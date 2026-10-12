@@ -5,7 +5,7 @@
 import type { ChallengeNote } from "./chain";
 import { fmtGeocoin } from "./flow";
 import { isShotAt, shotDeadline, type AccountFelts } from "./notes";
-import { GC_DECIMALS } from "@/config";
+import { CLAIM_FUZZ, GC_DECIMALS } from "@/config";
 
 export const keyOf = (a: AccountFelts) => `${a.prefix}:${a.suffix}`;
 const same = (a: AccountFelts | null, b: AccountFelts | null) => !!a && !!b && keyOf(a) === keyOf(b);
@@ -56,25 +56,29 @@ export function playersInOrder(notes: ChallengeNote[]): AccountFelts[] {
 
 /**
  * How a shot ended. Before its deadline only its rival can use it, and only with a winning answer;
- * from the deadline on only its champion. A claim proved before the deadline can land a few blocks
- * after it (testnet, 2026-10-09: deadline 82645, claim in 82650), but it takes the shot together with
- * its `record`, which only a winner can take before the record expires. undefined while the node has
- * not said when it was used.
- * ponytail: a win without the prize (record already gone) that lands after the deadline reads as lost;
- * read the claim's reference block if the node ever serves it.
+ * a claim proved before the deadline lands at most CLAIM_FUZZ blocks after it, and the champion may
+ * only collect from deadline + CLAIM_FUZZ on. So the block it was used in tells: won up to there,
+ * taken after. undefined while the node has not said when it was used.
+ *
+ * v1 notes: the champion could collect from the deadline itself, so a late-landing claim (testnet,
+ * 2026-10-09: deadline 82645, claim in 82650) is told apart by having taken the open `record` in the
+ * same block. A v1 win without the prize that lands after the deadline reads as lost; kept as is.
  */
 export function shotOutcome(shot: ChallengeNote, height: number, record?: ChallengeNote): "won" | "lost" | "open" | undefined {
   const deadline = shotDeadline(shot.storage);
   if (!shot.consumed) return height >= deadline ? "lost" : "open";
   if (shot.consumedAt === undefined) return undefined;
+  if (!shot.v1) return shot.consumedAt <= deadline + CLAIM_FUZZ ? "won" : "lost";
   const claimedWithRecord = record?.consumedAt === shot.consumedAt && shot.consumedAt < record.storage.expiryBlock;
   return shot.consumedAt < deadline || claimedWithRecord ? "won" : "lost";
 }
 
-/** How a record ended: smashed (used before it expired, which only a winner can do), closed (expired) or open. */
+/** How a record ended: smashed (used before the champion could take it back, which only a winner can do), closed (expired) or open. */
 export function recordOutcome(record: ChallengeNote, height: number): "smashed" | "closed" | "open" | undefined {
   const expiry = record.storage.expiryBlock;
-  if (record.consumed) return record.consumedAt === undefined ? undefined : record.consumedAt < expiry ? "smashed" : "closed";
+  // v1: take-back opened at the expiry itself
+  const takeBack = record.v1 ? expiry : expiry + CLAIM_FUZZ + 1;
+  if (record.consumed) return record.consumedAt === undefined ? undefined : record.consumedAt < takeBack ? "smashed" : "closed";
   return height >= expiry ? "closed" : "open";
 }
 
