@@ -222,12 +222,21 @@ describe("Geocoin in words", () => {
     expect(fmtGeocoin(1_000_000n)).toBe("1 Geocoin");
     expect(fmtGeocoin(10_000_000n)).toBe("10 Geocoins");
   });
-  it("shares a record as a ?record= link, inside the X post too", () => {
-    const { url, x } = recordLinks("0xabc", 9690);
+  it("shares a record as a ?record= link, inside the X post too, with the expiry in UTC", () => {
+    const { url, x } = recordLinks("0xabc", 9690, Date.UTC(2026, 9, 13, 14, 5));
     expect(url).toMatch(/\?record=0xabc$/);
     expect(decodeURIComponent(x)).toContain(url);
-    expect(new URL(x).searchParams.get("text")).toBe("9690 points on GQ 😎\nInstall @joinbread & beat my record:");
+    const text = new URL(x).searchParams.get("text")!;
+    expect(text).toContain("9690");
+    expect(text).toContain("13 Oct 14:05 UTC");
+    expect(text).toContain("@joinbread");
     expect(new URL(x).searchParams.get("url")).toBe(url);
+  });
+  it("does not always say it the same way: the record picks the line", () => {
+    const at = Date.UTC(2026, 9, 13, 14, 5);
+    const texts = new Set(["0xa", "0xb", "0xc", "0xd"].map((id) => new URL(recordLinks(id, 9690, at).x).searchParams.get("text")));
+    expect(texts.size).toBeGreaterThan(1);
+    expect(recordLinks("0xa", 9690, at).x).toBe(recordLinks("0xa", 9690, at).x);
   });
 });
 

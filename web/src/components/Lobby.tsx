@@ -58,7 +58,7 @@ export function Lobby({ me, notes, height, onSettle, onCollect }: LobbyProps) {
             <>
               <p className="muted">Waiting for a rival…</p>
               <LostSoFar n={triesLost(p, notes, height)} />
-              <ShareButtons recordId={p.id} score={p.storage.target} />
+              <ShareButtons recordId={p.id} score={p.storage.target} expiresAt={Date.now() + (p.storage.expiryBlock - height) * BLOCK_SECONDS * 1000} />
             </>
           )}
         </section>

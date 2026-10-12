@@ -199,10 +199,26 @@ export function withoutRecord(href: string): string {
   return url.toString();
 }
 
-/** The shareable link to a record, and the X post that carries it. */
-export function recordLinks(recordId: string, score: number) {
+/** A moment in UTC, for readers anywhere: 13 Oct 14:05 UTC. */
+export function utcLabel(ms: number): string {
+  const d = new Date(ms);
+  const pad = (v: number) => String(v).padStart(2, "0");
+  return `${pad(d.getUTCDate())} ${d.toLocaleString("en", { month: "short", timeZone: "UTC" })} ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())} UTC`;
+}
+
+// the X post: one of these, the record picks which (so a record always shares the same line)
+const POSTS: ((score: number, until: string) => string)[] = [
+  (score, until) => `${score} points on GQ 😎\nInstall @joinbread & beat my record before ${until}:`,
+  (score, until) => `My GQ record: ${score} points, open until ${until}.\nInstall @joinbread & beat it:`,
+  (score, until) => `${score} points. One Geocoin says you can't beat it before ${until}.\nInstall @joinbread & prove me wrong:`,
+  (score, until) => `Know your geography? ${score} points to beat on GQ until ${until}.\nInstall @joinbread & take a shot:`,
+];
+
+/** The shareable link to a record, and the X post that carries it; `expiresAt` is the record's expiry, in ms. */
+export function recordLinks(recordId: string, score: number, expiresAt: number) {
   const url = `${location.origin}${location.pathname}?record=${recordId}`;
-  const text = `${score} points on GQ 😎\nInstall @joinbread & beat my record:`;
+  const pick = [...recordId].reduce((sum, c) => sum + c.charCodeAt(0), 0) % POSTS.length;
+  const text = POSTS[pick](score, utcLabel(expiresAt));
   return { url, x: `https://x.com/intent/post?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}` };
 }
 

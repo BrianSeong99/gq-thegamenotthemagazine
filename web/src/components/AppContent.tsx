@@ -37,7 +37,7 @@ type Mode =
   /** `track`: the music of the screen it came from, which keeps playing while it waits */
   | { kind: "busy"; text: string; back: Mode; stage: Stage; since: number; track: Track }
   /** `claimed`: the record is won, OK leaves it behind; after a round (`rows` or `share`) OK goes back to the splash screen */
-  | { kind: "done"; title?: string; text: string; rows?: ReportRow[]; txId?: string; share?: { recordId: string; score: number }; retry?: () => void; retryLabel?: string; claimed?: boolean;
+  | { kind: "done"; title?: string; text: string; rows?: ReportRow[]; txId?: string; share?: { recordId: string; score: number; expiresAt: number }; retry?: () => void; retryLabel?: string; claimed?: boolean;
       /** when a retried claim stops making sense: the shot's end, as a clock time (ms) */
       claimUntil?: number };
 
@@ -319,7 +319,7 @@ function GqApp() {
         return postRecord(client, wallet, storage, STAKE);
       },
       m,
-      ({ txId, noteIds }) => ({ kind: "done", title: "Record posted!", text: "Now find someone to beat you.", txId, share: { recordId: noteIds[0], score: m.result.score } }),
+      ({ txId, noteIds }) => ({ kind: "done", title: "Record posted!", text: "Now find someone to beat you.", txId, share: { recordId: noteIds[0], score: m.result.score, expiresAt: Date.now() + RECORD_LIFETIME_BLOCKS * BLOCK_SECONDS * 1000 } }),
     );
   }
 
@@ -711,7 +711,7 @@ function GqApp() {
           {mode.title && <h2>{mode.title}</h2>}
           <p>{mode.text}</p>
           {mode.rows && <Report rows={mode.rows} />}
-          {mode.share && <ShareButtons recordId={mode.share.recordId} score={mode.share.score} />}
+          {mode.share && <ShareButtons {...mode.share} />}
           {mode.retry &&
             (mode.claimUntil ? (
               <ClaimButton until={mode.claimUntil} label={mode.retryLabel ?? "Try again"} onClaim={mode.retry} />

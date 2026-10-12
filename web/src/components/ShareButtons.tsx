@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { recordLinks } from "@/lib/flow";
 
-export function ShareButtons({ recordId, score }: { recordId: string; score: number }) {
-  const { url, x } = recordLinks(recordId, score);
+export function ShareButtons({ recordId, score, expiresAt }: { recordId: string; score: number; expiresAt: number }) {
+  const { url, x } = recordLinks(recordId, score, expiresAt);
   const [copied, setCopied] = useState(false);
   return (
     <div className="share">
