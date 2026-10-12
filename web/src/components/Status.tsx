@@ -1,7 +1,7 @@
 // What the player sees when something is slow or goes wrong: one error box, one waiting panel.
 
 import { useEffect, useState } from "react";
-import type { Trouble } from "@/lib/flow";
+import { secondsToClock, type Trouble } from "@/lib/flow";
 
 /** A failure in plain words, the raw text one tap away, and a way forward. */
 export function ErrorBox({
@@ -62,6 +62,16 @@ export function ClaimButton({ until, label, onClaim }: { until: number; label: s
       </button>
     </>
   );
+}
+
+/** A live countdown to `until` (ms). */
+export function EndsIn({ until }: { until: number }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
+  return <>Ends in {secondsToClock(Math.max(0, Math.round((until - now) / 1000)))}</>;
 }
 
 export type Stage = "prepare" | "wallet" | "network";

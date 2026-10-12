@@ -376,6 +376,17 @@ describe("open challenges in Champion vs Rival", () => {
     expect(screen.queryByText(/3,[2-7]00/)).toBeNull();
   });
 
+  it("lists the lowest score first, each with a countdown to its expiry instead of the prize", async () => {
+    window.history.replaceState({}, "", "/");
+    chain.notes = [listed("0xb", 3300), listed("0xa", 3100, {}, 100 + 1_201)];
+    await start(/^champion vs rival$/i);
+    const rows = await screen.findAllByRole("button", { name: /view challenge/i });
+    expect(rows.map((b) => b.getAttribute("aria-label"))).toEqual(["View challenge, 3,100 pts", "View challenge, 3,300 pts"]);
+    expect(screen.getByText(/Ends in 1:00:0[0-3]/)).toBeInTheDocument();
+    expect(screen.getByText(/Ends in 23:1[45]:\d\d/)).toBeInTheDocument();
+    expect(screen.queryByText(/prize/i)).toBeNull();
+  });
+
   it("says so when there is none", async () => {
     window.history.replaceState({}, "", "/");
     await start(/^champion vs rival$/i);

@@ -23,7 +23,7 @@ import { Lobby } from "./Lobby";
 import { ShareButtons } from "./ShareButtons";
 import { Play, type PlayResult } from "./Play";
 import { Shell } from "./Shell";
-import { ClaimButton, ErrorBox, Waiting, type Stage } from "./Status";
+import { ClaimButton, EndsIn, ErrorBox, Waiting, type Stage } from "./Status";
 import { type Tab } from "@/lib/tabs";
 import { Welcome } from "./Welcome";
 import { WorldMap } from "./WorldMap";
@@ -452,8 +452,10 @@ function GqApp() {
     </section>
   );
 
-  // funded records a rival can still take a shot at, newest first
-  const openRecords = publicNotes.filter((n) => n.kind === "record" && n.amount > 0n && !shotRefusal(n, height, MIN_SHOT_WINDOW_BLOCKS));
+  // funded records a rival can still take a shot at, easiest first
+  const openRecords = publicNotes
+    .filter((n) => n.kind === "record" && n.amount > 0n && !shotRefusal(n, height, MIN_SHOT_WINDOW_BLOCKS))
+    .sort((a, b) => a.storage.target - b.storage.target);
   const cardRef = useRef<HTMLElement>(null);
   /** Opens a listed record like its link would, fresh from the node: the list may be a while old. */
   const viewChallenge = (n: ChallengeNote) => {
@@ -473,7 +475,9 @@ function GqApp() {
           <div key={n.id} className="row">
             <div>
               <div className="value">{n.storage.target.toLocaleString()} pts</div>
-              <div className="small muted">Prize: {fmtGeocoin(n.amount)}</div>
+              <div className="small muted">
+                <EndsIn until={Date.now() + (n.storage.expiryBlock - height) * BLOCK_SECONDS * 1000} />
+              </div>
             </div>
             <button className="btn" onClick={() => viewChallenge(n)} aria-label={`View challenge, ${n.storage.target.toLocaleString()} pts`}>
               View challenge

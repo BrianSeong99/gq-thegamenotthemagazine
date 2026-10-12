@@ -100,9 +100,14 @@ export function settlePlan(shots: ChallengeNote[], record: ChallengeNote | undef
 export const NOT_FINISHED = "It did not go through yet. Nothing is spent until it does, so try again.";
 
 /** A block count as m:ss, at testnet's ~3 s per block. */
-export const blocksToClock = (blocks: number) => {
-  const s = Math.max(0, blocks) * BLOCK_SECONDS;
-  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+export const blocksToClock = (blocks: number) => secondsToClock(Math.max(0, blocks) * BLOCK_SECONDS);
+
+/** m:ss, or h:mm:ss from an hour on. */
+export const secondsToClock = (s: number) => {
+  const pad = (v: number) => String(v).padStart(2, "0");
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  return `${h ? `${h}:${pad(m)}` : m}:${pad(s % 60)}`;
 };
 
 /**

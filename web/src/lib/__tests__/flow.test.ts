@@ -319,5 +319,7 @@ describe("before sending a claim", () => {
   it("shows block counts as a clock", () => {
     expect(blocksToClock(81)).toBe("4:03");
     expect(blocksToClock(-5)).toBe("0:00");
+    expect(blocksToClock(27_900)).toBe("23:15:00");
+    expect(blocksToClock(1_201)).toBe("1:00:03");
   });
 });
