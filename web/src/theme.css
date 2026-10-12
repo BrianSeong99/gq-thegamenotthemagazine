@@ -134,18 +134,20 @@ main { max-width: 1440px; margin: 0 auto; padding: 28px 4% 56px; }
 .hero { width: 100%; height: auto; border: 4px solid var(--cyan); outline: 4px solid var(--pink); outline-offset: -8px; }
 /* the slogan: one line where it fits, one word per line on narrow screens */
 .slogan span { white-space: nowrap; }
-/* VS: the arena fills the width; the boxes sit over the globe, below the title and the two characters */
+/* VS: the arena fills the width; the boxes sit over the globe, below the title and the two characters:
+   the code box with the Geocoins button under it on the left, the open challenges beside them on the right */
 .arena { position: relative; width: fit-content; max-width: 100%; margin: 0 auto; }
 .arena .hero { display: block; height: min(calc(100vh - 170px), 61vw); width: auto; max-width: none; }
-.arena .overlay { position: absolute; left: 50%; bottom: 5%; transform: translateX(-50%); width: min(440px, 46%); display: flex; flex-direction: column; gap: 14px; }
-.arena .overlay > .btn { margin: 0; width: 100%; }
+.arena .overlay { position: absolute; left: 50%; bottom: 5%; transform: translateX(-50%); width: min(900px, 72%); display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.arena .overlay .stack { display: flex; flex-direction: column; gap: 14px; }
+.arena .overlay .stack > .btn { margin: 0; width: 100%; }
 .arena .overlay input { width: 100%; margin: 0 0 8px; }
 .arena .overlay .big-score { font-size: 26px; margin-bottom: 10px; }
 .arena .overlay .panel { padding: 16px; }
 .arena .overlay .panel-title { margin: -16px -16px 12px; padding: 8px 16px; }
-/* the panels stay inside the hero: past its height the open challenges scroll */
-.arena .overlay { max-height: 90%; }
-.arena .open-challenges { min-height: 0; overflow-y: auto; }
+/* the open challenges are as tall as the code box and its button, whatever they hold: past that they scroll */
+.arena .overlay .beside { position: relative; }
+.arena .open-challenges { position: absolute; inset: 0; overflow-y: auto; }
 
 /* the world map */
 .map-frame { padding: 10px; }
@@ -207,6 +209,8 @@ table.report td:nth-child(2) { text-align: right; color: var(--muted); }
   .panel { padding: 16px; }
   .panel-title { margin: -16px -16px 12px; padding: 8px 16px; }
   .hud .city { font-size: 24px; }
+  .arena .overlay { grid-template-columns: 1fr; }
+  .arena .open-challenges { position: static; }
 }
 
 /* phones held upright: suggest landscape, where the map is big enough to aim */

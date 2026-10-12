@@ -416,6 +416,14 @@ describe("open challenges in Champion vs Rival", () => {
     expect(await screen.findByText("Open challenges")).toBeInTheDocument();
     expect(screen.getByText(/have a code\?/i)).toBeInTheDocument();
   });
+
+  it("the code box and the Geocoins button share a column, the open challenges stand beside it", async () => {
+    window.history.replaceState({}, "", "/");
+    await start(/^champion vs rival$/i);
+    const stack = screen.getByText(/have a code\?/i).closest(".stack");
+    expect(stack).toContainElement(screen.getByRole("button", { name: /get geocoins/i }));
+    expect(stack).not.toContainElement(await screen.findByText("Open challenges"));
+  });
 });
 
 describe("home, connected", () => {

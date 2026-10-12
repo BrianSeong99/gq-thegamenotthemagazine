@@ -609,9 +609,11 @@ function GqApp() {
         <div className="arena">
           <img className="hero" src="/brand/hero-arena.webp" alt="" width={1440} height={960} />
           <div className="overlay">
-            {recordCard() ?? codeBox}
-            {openList}
-            {geocoinButton}
+            <div className="stack">
+              {recordCard() ?? codeBox}
+              {geocoinButton}
+            </div>
+            <div className="beside">{openList}</div>
           </div>
         </div>
       )}
