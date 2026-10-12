@@ -212,6 +212,10 @@ const POSTS: ((score: number, until: string) => string)[] = [
   (score, until) => `My GQ record: ${score} points, open until ${until}.\nInstall @joinbread & beat it:`,
   (score, until) => `${score} points. One Geocoin says you can't beat it before ${until}.\nInstall @joinbread & prove me wrong:`,
   (score, until) => `Know your geography? ${score} points to beat on GQ until ${until}.\nInstall @joinbread & take a shot:`,
+  (score, until) => `10 cities, 15 seconds each, ${score} points. Your move, until ${until}.\nInstall @joinbread & play GQ:`,
+  (score, until) => `Champion of GQ with ${score} points, for now. Record expires ${until}.\nInstall @joinbread & come take it:`,
+  (score, until) => `I set ${score} points on GQ. Beat it before ${until} and my Geocoin is yours.\nInstall @joinbread & try:`,
+  (score, until) => `Rivals wanted: ${score} points on GQ, open until ${until} 🌍\nInstall @joinbread & take your shot:`,
 ];
 
 /** The shareable link to a record, and the X post that carries it; `expiresAt` is the record's expiry, in ms. */
