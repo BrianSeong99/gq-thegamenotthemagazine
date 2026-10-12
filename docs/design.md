@@ -161,7 +161,7 @@ a shot at a record with fewer than `MIN_SHOT_WINDOW_BLOCKS` left.
 
 ### Accounts and signer
 
-Players use **Bread** (0xMiden/wallet v1.17.1, SDK 0.17.1). A Bread account is
+Players use **Bread** (0xMiden/wallet v1.17.2, SDK 0.17.1). A Bread account is
 a private Guardian multisig (ECDSA, threshold 1 + Guardian) with the standard
 BasicWallet, so the standard `receive_asset` / `move_asset_to_note` /
 `create_note` the scripts call are present. The dApp builds every
@@ -228,7 +228,7 @@ Decision: validate on testnet only.
 | midenup channel | 0.16.0 | 0.17.0 (installed) |
 | miden-client / standards / testing | 0.16.0-rc | 0.17.2 / 0.17.1 / 0.17.1 |
 | `@miden-sdk/miden-sdk` / react / adapters | 0.16.2 | 0.17.1 / 0.17.0 / 0.17.0 |
-| Bread | | v1.17.1 |
+| Bread | | v1.17.2 |
 | Rust nightly | nightly-2026-09-01 | same |
 
 agentic-template `main` is still 0.16; the v0.17 migrations are
@@ -265,13 +265,13 @@ Bread specifics (found 2026-10-08, see `web/src/lib/bread.ts`):
   account never is. The app rebuilds `MultisigAuthArgs` itself (12 felts, Poseidon2
   commitment, `withAuthArg` + `extendAdviceMap` + `withBlockNumbers`); the browser
   commitment is checked against the Rust reference (`rules/auth_vectors.json`).
-- Bread checks the anchor again **after the user approves**, when its queue turns the request
-  into a Guardian proposal (`createCustomProposal` → `executeForSummary`): the transaction goes
-  through only if Bread's sync height then is exactly the block the request binds. The time spent
-  approving makes that rare. Bread has already answered the dApp at approval, so the dApp cannot see
-  the failure or retry. The app's answer: it waits for the effect on chain, returns to the screen
-  you came from with "Your wallet did not finish" when it never shows, and keeps a Back button on
-  the waiting screen. The dry run's own mismatch is swallowed; it is not the one users see.
+- Bread 1.17.2 runs the request at its own tip and refuses it only when its fresh sync has not
+  reached the block the request binds (`ChainBehindBoundBlockError`). The app binds the node's tip,
+  so Bread's sync is at least there, and rebuilds at the fresh tip when Bread's node was a block
+  behind. (1.17.1 wanted its sync height to equal the bound block exactly; 1.17.2 dropped that check.)
+- Bread can still fail after the user approves, in its own queue, without telling the dApp. The app
+  waits for the effect on chain, returns to the screen you came from with "Your wallet did not
+  finish" when it never shows, and keeps a Back button on the waiting screen.
 
 ## 5. Repository layout (one repo, no submodules)
 

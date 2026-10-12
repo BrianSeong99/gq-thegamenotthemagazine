@@ -9,16 +9,12 @@ import {
   NOT_FINISHED,
   withTimeout,
   shotRefusal,
-  isAnchorMismatch,
-  learnBreadOffset,
-  nextDelayIndex,
-  SEND_DELAYS_MS,
+  isChainBehind,
   myOpenShotsOn,
   fmtGeocoin,
   outcomeText,
   recordLinks,
   withoutRecord,
-  parseAnchorMismatch,
   parseCode,
   reportRows,
   settlePlan,
@@ -117,40 +113,23 @@ describe("outcome wording", () => {
 });
 
 describe("submitting through Bread", () => {
-  const mismatch = new Error("SummaryAnchorMismatchError: the transaction summary binds block commitment 0x1 but the captured chain anchor is 0x2");
+  const behind = new Error("ChainBehindBoundBlockError: the Miden client synced to block 5, below block 6 the proposal binds; its node has not reached that block yet");
 
-  it("retries only on an anchor mismatch, alternating the block offset", async () => {
-    const attempt = vi.fn<(offset: number, n: number) => Promise<string>>().mockRejectedValueOnce(mismatch).mockRejectedValueOnce(mismatch).mockResolvedValue("tx");
-    await expect(submitWithRetry(attempt, 1, 8)).resolves.toBe("tx");
-    expect(attempt.mock.calls.map(([offset]) => offset)).toEqual([1, 2, 1]);
-  });
-
-  it("gives up after the retry budget and rethrows other errors at once", async () => {
-    const always = vi.fn().mockRejectedValue(mismatch);
-    await expect(submitWithRetry(always, 0, 3)).rejects.toBe(mismatch);
+  it("retries only while Bread is behind the bound block, up to the budget", async () => {
+    const attempt = vi.fn<(n: number) => Promise<string>>().mockRejectedValueOnce(behind).mockResolvedValue("tx");
+    await expect(submitWithRetry(attempt, 3)).resolves.toBe("tx");
+    expect(attempt.mock.calls.map(([n]) => n)).toEqual([1, 2]);
+    const always = vi.fn().mockRejectedValue(behind);
+    await expect(submitWithRetry(always, 3)).rejects.toBe(behind);
     expect(always).toHaveBeenCalledTimes(3);
     const other = vi.fn().mockRejectedValue(new Error("You need 1 GC"));
-    await expect(submitWithRetry(other, 0, 3)).rejects.toThrow(/GC/);
+    await expect(submitWithRetry(other, 3)).rejects.toThrow(/GC/);
     expect(other).toHaveBeenCalledTimes(1);
   });
 
-  it("learns Bread's block from its error and corrects the next attempt by that offset", async () => {
-    const e = new Error("SummaryAnchorMismatchError: the transaction summary binds block commitment 0xAAA but the captured chain anchor is 0xBBB; retry");
-    expect(parseAnchorMismatch(e)).toEqual({ bound: "0xaaa", anchor: "0xbbb" });
-    expect(parseAnchorMismatch(new Error("other"))).toBeNull();
-    const headers: Record<number, string> = { 100: "0xaaa", 101: "0xccc", 102: "0xbbb" };
-    expect(await learnBreadOffset(100, "0xbbb", async (n) => headers[n] ?? null)).toBe(2);
-    expect(await learnBreadOffset(100, "0xzzz", async (n) => headers[n] ?? null)).toBeNull();
-
-    const attempt = vi.fn<(offset: number, n: number) => Promise<string>>().mockRejectedValueOnce(e).mockResolvedValue("tx");
-    await expect(submitWithRetry(attempt, 1, 5, async () => 2)).resolves.toBe("tx");
-    expect(attempt.mock.calls.map(([offset]) => offset)).toEqual([1, 3]);
-  });
-
-  it("recognises Bread's anchor errors", () => {
-    expect(isAnchorMismatch(mismatch)).toBe(true);
-    expect(isAnchorMismatch(new Error("ChainBehindBoundBlockError: synced to block 5, below block 7"))).toBe(true);
-    expect(isAnchorMismatch(new Error("insufficient balance"))).toBe(false);
+  it("recognises Bread being behind, and nothing else", () => {
+    expect(isChainBehind(behind)).toBe(true);
+    expect(isChainBehind(new Error("insufficient balance"))).toBe(false);
   });
 });
 
@@ -182,16 +161,6 @@ describe("a pasted code", () => {
   it("cannot read a posted X status and says what to do", () => {
     expect(parseCode("https://x.com/someone/status/1234567890")).toEqual({ hint: "Open the post and copy the GeoQuizz link." });
     expect(parseCode("hello")).toEqual({ hint: "That is not a GeoQuizz code." });
-  });
-});
-
-describe("when to hand a request to Bread", () => {
-  it("starts ~2 s into a block, keeps a delay that landed, tries earlier then later on failure", () => {
-    expect(SEND_DELAYS_MS[0]).toBe(2000);
-    expect(nextDelayIndex(0, true)).toBe(0);
-    const tried = [0];
-    for (let i = 0; i < 3; i++) tried.push(nextDelayIndex(tried.at(-1)!, false));
-    expect(tried.map((i) => SEND_DELAYS_MS[i])).toEqual([2000, 1000, 2700, 2000]);
   });
 });
 

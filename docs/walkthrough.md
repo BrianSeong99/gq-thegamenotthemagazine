@@ -55,7 +55,7 @@ cd web && yarn install && yarn dev          # http://localhost:5173
    the red rival and the shot clock sit in the HUD) → **Player Hub** (my records: TAKE IT BACK
    after expiry; my shots: PLAY; for you: TAKE IT after the deadline). SOUND OFF/ON in the toolbar
    plays the two tracks, off by default.
-1. Install Bread (latest release at https://www.miden.xyz/bread, v1.17.1+, testnet build), create a wallet, fund fees ("Fund your wallet": 0.01 USDCx).
+1. Install Bread (latest release at https://www.miden.xyz/bread, v1.17.2+, testnet build), create a wallet, fund fees ("Fund your wallet": 0.01 USDCx).
 2. Get Geocoins: once connected, "Empty pockets? Get Geocoins now!" mints 10 GC from the
    browser (the faucet has no key, anyone may mint); Bread auto-claims the public P2ID note.
    From the CLI: `cargo run --release --bin geocoin mint <your mtst1… address> 10`. One Geocoin per
@@ -103,9 +103,9 @@ waiting panel says which step it is at (getting ready, approve in your wallet, s
 network with a seconds counter) and always has Back. A failed background sync only shows a
 NETWORK SLOW tag in the ribbon.
 
-Troubleshooting: `SummaryAnchorMismatchError: the transaction summary binds block commitment …
-but the captured chain anchor is …` comes from Bread anchoring at its own sync height; the app
-retries with a fresh block automatically (see design.md, Bread specifics). A `You need N GC`
+Troubleshooting: `ChainBehindBoundBlockError: the Miden client synced to block …` means Bread had
+not synced up to the block the request binds yet; the app retries at the fresh tip automatically
+(see design.md, Bread specifics). `SummaryAnchorMismatchError` comes from Bread 1.17.1: update Bread. A `You need N GC`
 error means the wallet has no Geocoin yet: press "Get Geocoins". A transaction that fails with
 `assertion failed with error code: <number>` failed inside the note scripts;
 `cargo run --release --bin probe` prints the code of every message (for example

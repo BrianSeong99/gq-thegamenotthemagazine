@@ -62,45 +62,6 @@ export function settlePlan(shots: ChallengeNote[], record: ChallengeNote | undef
   return { won, claimPrize, text };
 }
 
-/** The two block commitments in Bread's anchor-mismatch message: the one we bound, the one it anchored. */
-export function parseAnchorMismatch(e: unknown): { bound: string; anchor: string } | null {
-  const m = /binds block commitment (0x[0-9a-f]+) but the captured chain anchor is (0x[0-9a-f]+)/i.exec(e instanceof Error ? e.message : String(e));
-  return m ? { bound: m[1].toLowerCase(), anchor: m[2].toLowerCase() } : null;
-}
-
-/**
- * Bread's height relative to the block we bound: the block near `boundBlock` whose commitment is
- * `anchor`. `commitmentOf(n)` reads a header from the node. Null when no nearby block matches.
- */
-export async function learnBreadOffset(
-  boundBlock: number,
-  anchor: string,
-  commitmentOf: (n: number) => Promise<string | null>,
-  radius = 8,
-): Promise<number | null> {
-  for (let d = 0; d <= radius; d++) {
-    for (const n of d === 0 ? [boundBlock] : [boundBlock + d, boundBlock - d]) {
-      if (n < 0) continue;
-      if ((await commitmentOf(n))?.toLowerCase() === anchor) return n - boundBlock;
-    }
-  }
-  return null;
-}
-
-/**
- * When to hand a Bread request over, in ms after the app sees a new block N; the request binds
- * block N + 1. Bread 1.17.1 fails a dApp request unless the bound block is the height its
- * pre-approval check synced to (its queue anchors there after approval, without syncing again),
- * and the dApp never hears of the failure. Measured 2026-10-09: blocks every 3.00 s (±40 ms);
- * sending right at a new block, Bread synced to that block once and to the next one three times,
- * so its sync lands ~2-3 s after the hand-over, on a block edge. Handing over ~2 s into block N
- * puts it in the middle of block N + 1. A delay that landed is kept; after one that never showed
- * on chain the next candidate is tried (earlier, then later), remembered per browser. A request
- * that ships notes (a claim) binds one block further: Bread imports them before it syncs.
- */
-export const SEND_DELAYS_MS = [2000, 1000, 2700];
-export const nextDelayIndex = (index: number, landed: boolean) => (landed ? index : (index + 1) % SEND_DELAYS_MS.length);
-
 /**
  * The wallet took the request but the chain never showed its effect. Bread answers a dApp as soon
  * as the user approves and can still fail afterwards in its own queue, without telling the dApp.
@@ -180,30 +141,16 @@ export function outcomeText(action: string, seenOnChain: boolean): string {
   return seenOnChain ? `${sentence} Done!` : `${action}… not done yet. Check your wallet.`;
 }
 
-/** Bread anchors its sync height a block or two after the dApp binds one; see bread.ts. */
-export const isAnchorMismatch = (e: unknown) =>
-  /SummaryAnchorMismatch|captured chain anchor|ChainBehindBoundBlock|has not reached that block/i.test(e instanceof Error ? e.message : String(e));
+/** Bread had not synced up to the block the request binds yet. */
+export const isChainBehind = (e: unknown) => /ChainBehindBoundBlock|has not reached that block/i.test(e instanceof Error ? e.message : String(e));
 
-/**
- * Submits with a fresh bound block per attempt, retrying only on Bread's anchor mismatch.
- * `attempt(offset, n)` builds at the fresh tip plus `offset`, submits, and must throw on failure.
- * After a mismatch, `offsetFromError(e)` may tell by how many blocks Bread was off; the next
- * attempt corrects by that amount, otherwise it alternates offset and offset + 1.
- */
-export async function submitWithRetry<T>(
-  attempt: (offset: number, n: number) => Promise<T>,
-  expectedLag: number,
-  retries: number,
-  offsetFromError: (e: unknown) => Promise<number | null> = async () => null,
-): Promise<T> {
-  let offset = expectedLag;
+/** Submits up to `retries` times, retrying only while Bread is behind; `attempt(n)` rebuilds at the fresh tip. */
+export async function submitWithRetry<T>(attempt: (n: number) => Promise<T>, retries: number): Promise<T> {
   for (let n = 1; ; n++) {
     try {
-      return await attempt(offset, n);
+      return await attempt(n);
     } catch (e) {
-      if (!isAnchorMismatch(e) || n >= retries) throw e;
-      const learned = await offsetFromError(e);
-      offset = learned === null ? expectedLag + (n % 2) : offset + learned;
+      if (!isChainBehind(e) || n >= retries) throw e;
     }
   }
 }

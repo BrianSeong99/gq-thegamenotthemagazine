@@ -66,7 +66,6 @@ vi.mock("@/lib/chain", () => ({
 
 vi.mock("@/lib/bread", () => ({
   ...bread,
-  reportBreadOutcome: () => undefined,
   setSubmitAttemptListener: () => undefined,
   setSubmitStageListener: () => undefined,
   waitFor: vi.fn(async () => true),

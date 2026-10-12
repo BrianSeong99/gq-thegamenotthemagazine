@@ -23,7 +23,7 @@ import { buildChallengeNote, endpoint, fetchNotesWithProof, feltArray, loadScrip
 import { SHOT_WINDOW_BLOCKS, GC_FAUCET, NETWORK_POLL_INTERVAL_MS, NETWORK_POLL_TIMEOUT_MS } from "@/config";
 import { encodeStorage, SHOT_DEADLINE_INDEX, shotStorage, ZERO_WORD, type AccountFelts, type ChallengeStorage, type GameAnswer } from "./notes";
 import { randomSeed, type Word4 } from "./quiz";
-import { fmtGeocoin, learnBreadOffset, nextDelayIndex, parseAnchorMismatch, SEND_DELAYS_MS, submitWithRetry, withTimeout } from "./flow";
+import { fmtGeocoin, submitWithRetry, withTimeout } from "./flow";
 
 /** What the app needs from a signer: Bread's adapter hook, or the local test wallet. */
 export type Wallet = Pick<ReturnType<typeof useMidenFiWallet>, "address" | "requestTransaction" | "requestAssets"> & { local?: boolean };
@@ -54,18 +54,6 @@ function breadBuilder(boundBlock: number, feeFaucet: AccountId): TransactionRequ
   const advice = new AdviceMap();
   advice.insert(commitment, feltArray(elements));
   return new TransactionRequestBuilder().withAuthArg(commitment).extendAdviceMap(advice).withBlockNumbers([boundBlock]);
-}
-
-/** The commitment of block `n` as the node reports it (null when the node has no such block yet). */
-async function blockCommitment(n: number): Promise<string | null> {
-  const rpc = new RpcClient(endpoint());
-  try {
-    return (await rpc.getBlockHeaderByNumber(n)).commitment().toHex();
-  } catch {
-    return null;
-  } finally {
-    rpc.free();
-  }
 }
 
 /** The wallet's own view of its Geocoin balance. */
@@ -107,66 +95,29 @@ export async function waitFor(client: Client, runExclusive: <T>(fn: () => Promis
 
 export type Submitted = { txId: string; noteIds: string[] };
 
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
-/**
- * Waits for the node's tip to move and returns the new block and when it was seen. A header call
- * (~60 ms) every 100 ms sees a block within ~0.15 s of its production; testnet makes one every 3 s.
- */
-async function nextBlock(): Promise<{ block: number; seenAt: number }> {
+/** The node's latest block. */
+async function tip(): Promise<number> {
   const rpc = new RpcClient(endpoint());
   try {
-    const start = (await rpc.getBlockHeaderByNumber(undefined)).blockNum();
-    const deadline = Date.now() + 6_000;
-    while (Date.now() < deadline) {
-      await sleep(100);
-      const block = (await rpc.getBlockHeaderByNumber(undefined)).blockNum();
-      if (block > start) return { block, seenAt: Date.now() };
-    }
-    return { block: start, seenAt: Date.now() };
+    return (await rpc.getBlockHeaderByNumber(undefined)).blockNum();
   } finally {
     rpc.free();
   }
 }
 
-const ANCHOR_RETRIES = 10;
+const RETRIES = 3;
 
-// The hand-over delay that last worked in this browser (an index into SEND_DELAYS_MS); see flow.ts.
-const DELAY_KEY = "gq:bread-send-delay";
-let delayIndex = (() => {
-  try {
-    return (Number(localStorage.getItem(DELAY_KEY)) || 0) % SEND_DELAYS_MS.length;
-  } catch {
-    return 0;
-  }
-})();
-let delayPending = false;
-
-/** After a Bread request: did its effect show on chain? Sets the hand-over delay for the next one. */
-export function reportBreadOutcome(landed: boolean) {
-  if (!delayPending) return;
-  delayPending = false;
-  delayIndex = nextDelayIndex(delayIndex, landed);
-  try {
-    localStorage.setItem(DELAY_KEY, String(delayIndex));
-  } catch {
-    /* private window */
-  }
-}
 /** Progress callback for the UI: which attempt is running. */
 export let onSubmitAttempt: (attempt: number, total: number) => void = () => {};
 export const setSubmitAttemptListener = (fn: typeof onSubmitAttempt) => (onSubmitAttempt = fn);
-/** Progress callback for the UI: "prepare" while the request is timed, "wallet" once the wallet has it. */
+/** Progress callback for the UI: "prepare" while the request is built, "wallet" once the wallet has it. */
 export let onSubmitStage: (stage: "prepare" | "wallet") => void = () => {};
 export const setSubmitStageListener = (fn: typeof onSubmitStage) => (onSubmitStage = fn);
 
 /**
- * Builds the request from a fresh builder and submits it to Bread, retrying on an anchor mismatch.
- *
- * Bread 1.17.1 anchors the request at its own sync height when its queue turns it into a Guardian
- * proposal, after the user approves, and fails it unless that is the bound block. It answers the
- * dApp at approval, so that failure never reaches us: the retry
- * below only covers a mismatch reported before approval. The fix belongs in the wallet.
+ * Builds the request from a fresh builder and submits it to Bread. Bread 1.17.2 runs it at its own
+ * tip and only refuses a bound block its sync has not reached, so it binds the node's tip: Bread's
+ * fresh sync is at least there. When Bread's node was a block behind ours, the next try rebuilds.
  */
 async function submit(
   client: Client,
@@ -179,42 +130,20 @@ async function submit(
   const address = wallet.address;
   const requestTransaction = wallet.requestTransaction;
   if (wallet.local) {
-    // single-signature account in our own store: the SDK's builder does the fee work, no anchor dance
+    // single-signature account in our own store: the SDK's builder does the fee work
     const builder = await client.feeAwareTransactionRequestBuilder(AccountId.fromHex(address));
     const tx = Transaction.createCustomTransaction(address, address, await build(builder), inputNoteIds, importNotes);
     onSubmitStage("wallet");
     return requestTransaction(tx);
   }
-  let lastBound = 0;
   const feeFaucet = await client.feeFaucetId();
-  const delay = SEND_DELAYS_MS[delayIndex];
-  // Bread imports shipped notes (with their proofs) before it syncs, a few seconds more: one block
-  // further. Measured 2026-10-09: a claim bound one block ahead and handed over 1 s into the block
-  // was anchored one block later still (86603 → 86604).
-  const offset = importNotes?.length ? 2 : 1;
-  const txId = await submitWithRetry(
-    async (shift, attempt) => {
-      onSubmitAttempt(attempt, ANCHOR_RETRIES);
-      onSubmitStage("prepare");
-      const { block, seenAt } = await nextBlock();
-      const boundBlock = block + shift;
-      lastBound = boundBlock;
-      const tx = Transaction.createCustomTransaction(address, address, await build(breadBuilder(boundBlock, feeFaucet)), inputNoteIds, importNotes);
-      await sleep(seenAt + delay - Date.now());
-      onSubmitStage("wallet");
-      return requestTransaction(tx);
-    },
-    offset,
-    ANCHOR_RETRIES,
-    async (e) => {
-      const parsed = parseAnchorMismatch(e);
-      const learned = parsed ? await learnBreadOffset(lastBound, parsed.anchor, blockCommitment) : null;
-      console.warn(`[gq] Bread anchored ${learned === null ? "at an unknown block" : `${learned} block(s) from the bound one`}; rebuilding`);
-      return learned;
-    },
-  );
-  delayPending = true;
-  return txId;
+  return submitWithRetry(async (attempt) => {
+    onSubmitAttempt(attempt, RETRIES);
+    onSubmitStage("prepare");
+    const tx = Transaction.createCustomTransaction(address, address, await build(breadBuilder(await tip(), feeFaucet)), inputNoteIds, importNotes);
+    onSubmitStage("wallet");
+    return requestTransaction(tx);
+  }, RETRIES);
 }
 
 /** Champion: post a record note. `storage.shotRoot` is filled from the loaded script. */

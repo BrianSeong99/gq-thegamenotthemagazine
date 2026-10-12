@@ -99,9 +99,8 @@ know how the answers were produced. See the trust list in [design.md](design.md)
 - **WASM handles are consumed.** A `Word`, `NoteArray` or `AccountId` passed to an SDK builder call
   is freed by it; build fresh ones per attempt and keep ids as hex.
 - **Bread (Guardian multisig) accounts** need the multisig auth args in every request
-  (`multisigAuthArgs` in `bread.ts`), and Bread 1.17.1 checks the request's bound block against
-  its own sync height after approval, without telling the dApp when it fails. The app's timing
-  workaround is in `bread.ts`.
+  (`multisigAuthArgs` in `bread.ts`), and Bread 1.17.2 refuses a request whose bound block is
+  above its own sync height: bind the node's tip (`submit` in `bread.ts`).
 
 ## 6. Test it
 
