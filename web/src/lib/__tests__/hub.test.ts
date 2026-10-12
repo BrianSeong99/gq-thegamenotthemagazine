@@ -145,7 +145,7 @@ describe("history", () => {
     const rows = history(notes, ME, 2000, name).map((h) => [h.result, h.detail, h.money, h.note]);
     expect(rows).toEqual([
       ["Defended", "1 try lost", "1 Geocoin back", ""],
-      ["Beaten", "1 try lost", "1 Geocoin won", "Prize went to KQX."],
+      ["Beaten", "1 try lost", "1 Geocoin won, 1 Geocoin lost", "Prize went to KQX."],
     ]);
   });
 });

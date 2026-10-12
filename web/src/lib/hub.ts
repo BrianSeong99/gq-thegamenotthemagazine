@@ -123,7 +123,8 @@ export function history(notes: ChallengeNote[], me: AccountFelts, height: number
       if (recordOutcome(n, height) === "smashed") {
         const w = winner(n, notes, height);
         const who = w ? name(w) : "Someone";
-        const money = won > 0n ? { money: `${fmtGeocoin(won)} won`, moneyTone: "mint" as const } : { money: `${fmtGeocoin(n.amount)} lost`, moneyTone: "pink" as const };
+        // the prize is lost either way; what earlier losers paid stands next to it, never instead of it
+        const money = won > 0n ? { money: `${fmtGeocoin(won)} won, ${fmtGeocoin(n.amount)} lost`, moneyTone: "" as const } : { money: `${fmtGeocoin(n.amount)} lost`, moneyTone: "pink" as const };
         items.push({ ...base, result: "Beaten", context: `${who} beat `, detail: tries, tone: "pink", note: `Prize went to ${who}.`, ...money });
       } else if (lost > 0) {
         const money = won > 0n ? { money: `${fmtGeocoin(won)} won`, moneyTone: "mint" as const, note: "Your Geocoin back." } : { money: `${fmtGeocoin(n.amount)} back`, moneyTone: "" as const };
