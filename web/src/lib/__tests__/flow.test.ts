@@ -232,6 +232,15 @@ describe("Geocoin in words", () => {
     expect(text).toContain("@joinbread");
     expect(new URL(x).searchParams.get("url")).toBe(url);
   });
+  it("brags about a hard city, teases with an easy one, says nothing about the rest", () => {
+    const at = Date.UTC(2026, 9, 13, 14, 5);
+    const text = (id: string, cities: string[]) => new URL(recordLinks(id, 9690, at, cities).x).searchParams.get("text")!;
+    expect(text("0xa", ["Paris", "Funafuti", "Lagos"])).toContain("Funafuti");
+    expect(text("0xa", ["Paris", "Lagos"])).toContain("Paris");
+    expect(text("0xa", ["Lagos", "Kigali"])).not.toMatch(/Lagos|Kigali/);
+    const hard = new Set(["0xa", "0xb", "0xc", "0xd"].map((id) => text(id, ["Funafuti"])));
+    expect(hard.size).toBeGreaterThan(1);
+  });
   it("does not always say it the same way: the record picks the line", () => {
     const at = Date.UTC(2026, 9, 13, 14, 5);
     const texts = new Set(["0xa", "0xb", "0xc", "0xd"].map((id) => new URL(recordLinks(id, 9690, at).x).searchParams.get("text")));

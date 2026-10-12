@@ -16,6 +16,12 @@ export function encodeGame(g: GqGame): bigint[] {
   return [...g.seed, ...g.dataset, ...g.cities.flatMap((c) => [c.idx, c.lat, c.lon, c.cos].map(BigInt))];
 }
 
+/** A record's cities, none when its game data is not GeoQuizz's. */
+export const recordCities = (game: bigint[]): City[] => (game.length === GAME_ITEMS ? decodeGame(game).cities : []);
+
+/** The cities' names, the ones the dataset knows. */
+export const cityNames = (cities: City[], places: Place[]): string[] => cities.flatMap((c) => (places[c.idx] ? [places[c.idx].name] : []));
+
 export function decodeGame(felts: bigint[]): GqGame {
   if (felts.length !== GAME_ITEMS) throw new Error(`not GeoQuizz game data (${felts.length} felts)`);
   const word = (at: number): Word4 => [felts[at], felts[at + 1], felts[at + 2], felts[at + 3]];

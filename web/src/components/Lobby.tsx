@@ -3,6 +3,7 @@
 import type { ChallengeNote } from "@/lib/chain";
 import { blocksToClock, fmtGeocoin } from "@/lib/flow";
 import { triesLost, whenLabel } from "@/lib/hub";
+import { cityNames, recordCities, type Place } from "@/lib/quiz";
 import { BLOCK_SECONDS, CLAIM_FUZZ } from "@/config";
 import { shotDeadline, type AccountFelts } from "@/lib/notes";
 import { ShareButtons } from "./ShareButtons";
@@ -12,11 +13,12 @@ export type LobbyProps = {
   me: AccountFelts | null;
   notes: ChallengeNote[];
   height: number;
+  places: Place[];
   onSettle: (shot: ChallengeNote, record: ChallengeNote | undefined) => void;
   onCollect: (notes: ChallengeNote[]) => void;
 };
 
-export function Lobby({ me, notes, height, onSettle, onCollect }: LobbyProps) {
+export function Lobby({ me, notes, height, places, onSettle, onCollect }: LobbyProps) {
   const records = notes.filter((n) => n.kind === "record" && !n.consumed);
   const shots = notes.filter((n) => n.kind === "shot" && !n.consumed);
   const recordById = (idWord: bigint[]) => notes.find((n) => n.kind === "record" && n.idWord.every((f, i) => f === idWord[i]));
@@ -58,7 +60,7 @@ export function Lobby({ me, notes, height, onSettle, onCollect }: LobbyProps) {
             <>
               <p className="muted">Waiting for a rival…</p>
               <LostSoFar n={triesLost(p, notes, height)} />
-              <ShareButtons recordId={p.id} score={p.storage.target} expiresAt={Date.now() + (p.storage.expiryBlock - height) * BLOCK_SECONDS * 1000} />
+              <ShareButtons recordId={p.id} score={p.storage.target} expiresAt={Date.now() + (p.storage.expiryBlock - height) * BLOCK_SECONDS * 1000} cities={cityNames(recordCities(p.storage.game), places)} />
             </>
           )}
         </section>
