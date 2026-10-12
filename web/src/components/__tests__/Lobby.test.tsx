@@ -69,6 +69,16 @@ describe("Lobby", () => {
     expect(screen.queryByRole("button", { name: /^play$/i })).toBeNull();
   });
 
+  it("lets me take back a shot I posted at my own record once its deadline + CLAIM_FUZZ passed", () => {
+    const h = handlers();
+    const own = { ...myChallenge, storage: { ...myChallenge.storage, rival: champion } };
+    const { rerender } = render(<Lobby me={champion} notes={[prize, own]} places={places} height={263} {...h} />);
+    expect(screen.queryByRole("button", { name: /take it/i })).toBeNull();
+    rerender(<Lobby me={champion} notes={[prize, own]} places={places} height={264} {...h} />);
+    fireEvent.click(screen.getByRole("button", { name: /take it/i }));
+    expect(h.onCollect).toHaveBeenCalledWith([own]);
+  });
+
   it("lets the champion collect a shot only from its deadline + CLAIM_FUZZ on", () => {
     const h = handlers();
     const { rerender } = render(<Lobby me={champion} notes={[prize, myChallenge]} places={places} height={263} {...h} />);

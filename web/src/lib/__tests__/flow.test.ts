@@ -90,6 +90,11 @@ describe("taking a shot", () => {
     expect(shotRefusal({ ...prize, consumed: true }, 100, 140)).toMatch(/over/);
   });
 
+  it("refuses my own record: the claim would run the champion's path, which only opens after expiry", () => {
+    expect(shotRefusal(prize, 100, 140, champion)).toBe("This one is yours.");
+    expect(shotRefusal(prize, 100, 140, me)).toBeNull();
+  });
+
   it("refuses a record whose terms the game could never produce", () => {
     const rigged = (storage: Partial<ChallengeStorage>) => shotRefusal({ ...prize, storage: { ...base, ...storage } }, 100, 140);
     expect(rigged({ target: 9999 })).toBeNull();

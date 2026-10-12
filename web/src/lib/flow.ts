@@ -37,8 +37,10 @@ export function sharedRecordState(record: ChallengeNote, me: AccountFelts | null
 }
 
 /** Why a shot cannot be taken right now, or null when it can. */
-export function shotRefusal(record: ChallengeNote, height: number, minWindow: number): string | null {
+export function shotRefusal(record: ChallengeNote, height: number, minWindow: number, me?: AccountFelts | null): string | null {
   if (record.consumed) return "This one is over.";
+  // the record script runs the champion's path for its own champion: a shot of theirs could never claim it
+  if (sameAccount(me, record.storage.champion)) return "This one is yours.";
   if (record.storage.expiryBlock - height < minWindow) return "Too late for this one.";
   const { target, minStake, expiryBlock } = record.storage;
   // terms this game never writes: an unbeatable target, another stake, a record that outlives its day

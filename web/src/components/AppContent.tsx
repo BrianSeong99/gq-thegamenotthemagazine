@@ -329,7 +329,7 @@ function GqApp() {
   async function takeShot(record: ChallengeNote) {
     if (!dataset) return;
     const rival = accountFelts(parseAccountId(wallet.address!));
-    const refusal = shotRefusal(record, height, MIN_SHOT_WINDOW_BLOCKS);
+    const refusal = shotRefusal(record, height, MIN_SHOT_WINDOW_BLOCKS, rival);
     if (refusal) return say(refusal);
     const open = openShotsOn(notes, rival, record, height);
     if (open.length > 0) {
