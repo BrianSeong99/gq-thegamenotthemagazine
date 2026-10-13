@@ -104,12 +104,12 @@ export const ZH: Record<string, string> = {
   // the shot's end
   "{score} points. You win!": "{score} 分。你赢了！",
   "{score} points. You beat it, but the prize is gone. Your Geocoin comes back.": "{score} 分。你超过了纪录，但奖金已被领走。你的地理币退回。",
+  "{score} points. Not enough.": "{score} 分。不够。",
   "{score} points. Not enough. Your Geocoin goes to the champion.": "{score} 分。不够。你的地理币归冠军。",
   "The record stands.": "纪录守住了。",
   "Record smashed!": "纪录被打破！",
   "Claim my prize": "领取奖金",
   "Get my Geocoin back": "取回我的地理币",
-  "Claim before your shot ends: {time}": "请在挑战结束前领取：{time}",
   "Too late: your shot has ended. The champion can take your Geocoin.": "太迟了：你的挑战已结束。冠军可以领走你的地理币。",
   "Too late: your shot ended before the claim. The champion can take your Geocoin.": "太迟了：你的挑战在领取前已结束。冠军可以领走你的地理币。",
 

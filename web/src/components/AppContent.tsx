@@ -402,12 +402,13 @@ function GqApp() {
   const settleAfterPlay = (shots: ChallengeNote[], record: ChallengeNote | undefined) => (r: PlayResult) => {
     const plan = settlePlan(shots, record, r.score, height, t);
     const rows = reportRows(decodeGame(shots[0].storage.game).cities, r.answers, shownPlaces);
+    const claimUntil = blockToMs(shotDeadline(shots[0].storage), height);
     if (!plan.won) {
-      // nothing to sign on a loss: the Geocoin waits for the champion at the deadline
-      setMode({ kind: "done", title: t("The record stands."), text: plan.text, rows });
+      // nothing to sign on a loss: the Geocoin waits for the champion at the deadline; until then the shot can be played again
+      const retry = plan.again ? () => setMode({ kind: "play-rival", shots, record }) : undefined;
+      setMode({ kind: "done", title: t("The record stands."), text: plan.text, rows, retry, claimUntil: retry && claimUntil });
       return;
     }
-    const claimUntil = blockToMs(shotDeadline(shots[0].storage), height);
     const claim = (): void =>
       void run(
         plan.text,

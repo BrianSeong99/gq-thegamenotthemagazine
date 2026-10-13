@@ -63,7 +63,7 @@ export function ClaimButton({ until, label, onClaim }: { until: number; label: s
   if (left === 0) return <p className="error-note">{t("Too late: your shot has ended. The champion can take your Geocoin.")}</p>;
   return (
     <>
-      <p className="deadline">{t("Claim before your shot ends: {time}", { time: secondsToClock(left) })}</p>
+      <p className="deadline">{t("Shot ends: {time}", { time: secondsToClock(left) })}</p>
       <button className="btn primary" onClick={onClaim}>
         {label}
       </button>

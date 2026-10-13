@@ -156,8 +156,11 @@ describe("settling after a play", () => {
   it("only recovers the stake when the prize is gone, and forfeits on a loss or a tie", () => {
     expect(settlePlan([challenge(me, 500)], { ...prize, consumed: true }, 2001, 100)).toMatchObject({ won: true, claimPrize: false });
     expect(settlePlan([challenge(me, 500)], undefined, 2001, 100).text).toMatch(/Geocoin comes back/);
-    expect(settlePlan([challenge(me, 500)], prize, 2000, 100)).toMatchObject({ won: false, claimPrize: false });
-    expect(settlePlan([challenge(me, 500)], prize, 1999, 100).text).toMatch(/goes to the champion/);
+    expect(settlePlan([challenge(me, 500)], prize, 2000, 100)).toMatchObject({ won: false, claimPrize: false, again: true });
+    expect(settlePlan([challenge(me, 500)], prize, 1999, 100).text).toMatch(/Not enough\.$/);
+    // the shot ended during the play: nothing to try again at
+    expect(settlePlan([challenge(me, 50)], prize, 1999, 100)).toMatchObject({ won: false, again: false });
+    expect(settlePlan([challenge(me, 50)], prize, 1999, 100).text).toMatch(/goes to the champion/);
     expect(() => settlePlan([], prize, 5000, 100)).toThrow();
   });
 });

@@ -275,6 +275,12 @@ describe("welcome and 1P World Tour", () => {
       fireEvent.click(await screen.findByRole("button", { name: /^play$/i }));
       await playRound();
       await screen.findByText(/the record stands/i);
+      // the shot is still open: the same quiz can be played again without paying
+      expect(screen.getByText(/shot ends: /i)).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: /try again/i }));
+      expect(bread.postShot).not.toHaveBeenCalled();
+      await playRound();
+      await screen.findByText(/the record stands/i);
       fireEvent.click(screen.getByRole("button", { name: /^ok$/i }));
       await screen.findByRole("button", { name: /click to start/i });
     } finally {

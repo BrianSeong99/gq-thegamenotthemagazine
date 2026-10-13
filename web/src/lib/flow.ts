@@ -1,7 +1,7 @@
 // The app's decisions, as pure functions so they can be tested without React, WASM or Bread.
 
 import type { ChallengeNote } from "./chain";
-import { noteDeadline, ZERO_WORD, type AccountFelts, type ChallengeStorage, type Word4 } from "./notes";
+import { noteDeadline, shotDeadline, ZERO_WORD, type AccountFelts, type ChallengeStorage, type Word4 } from "./notes";
 import type { Place } from "./quiz";
 import { BLOCK_SECONDS, CLAIM_FUZZ, GC_DECIMALS, GC_FAUCET, MIN_SHOT_WINDOW_BLOCKS, RECORD_LIFETIME_BLOCKS, STAKE, V1_ROOTS } from "@/config";
 import { QUIZ_MAX, roundScore, type Answer, type City } from "./rules";
@@ -73,7 +73,8 @@ export function acceptNote(n: { kind: "record" | "shot"; storage: ChallengeStora
   return sameAccount(n.sender, s.rival) && !sameWord(s.recordId, ZERO_WORD);
 }
 
-export type SettlePlan = { won: boolean; claimPrize: boolean; text: string };
+/** `again`: a lost shot still open, so the same quiz can be played once more for free. */
+export type SettlePlan = { won: boolean; claimPrize: boolean; again: boolean; text: string };
 
 /**
  * After a play: a win settles the open shots (and claims the prize if it is still there);
@@ -84,12 +85,15 @@ export function settlePlan(shots: ChallengeNote[], record: ChallengeNote | undef
   const target = shots[0].storage.target;
   const won = score > target;
   const claimPrize = won && !!record && !record.consumed && record.storage.expiryBlock > height;
+  const again = !won && height < shotDeadline(shots[0].storage);
   const text = claimPrize
     ? t("{score} points. You win!", { score })
     : won
       ? t("{score} points. You beat it, but the prize is gone. Your Geocoin comes back.", { score })
-      : t("{score} points. Not enough. Your Geocoin goes to the champion.", { score });
-  return { won, claimPrize, text };
+      : again
+        ? t("{score} points. Not enough.", { score })
+        : t("{score} points. Not enough. Your Geocoin goes to the champion.", { score });
+  return { won, claimPrize, again, text };
 }
 
 /**
