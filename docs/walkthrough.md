@@ -69,7 +69,7 @@ cd web && yarn install && yarn dev          # http://localhost:5173
    record, one per shot.
 3. Play the 1P World Tour, then "Post it" to post your record (1 GC). Another account opens the shared link
    and clicks "Insert Geocoin". A win settles (Geocoin back, plus the prize if you claimed first); a
-   loss signs nothing, the champion collects the Geocoin 64 blocks after the shot deadline (~6 min).
+   loss signs nothing, the champion collects the Geocoin 64 blocks after the shot deadline (~3 min).
 4. The Player Hub only ever shows your own notes: "My record" cards ("Take it back" 64 blocks after expiry),
    "My shot" cards ("Play" again on a loss while the deadline holds), "For you" cards (lost shots
    at your records, "Take it" 64 blocks after their deadline).
@@ -116,6 +116,6 @@ not synced up to the block the request binds yet; the app retries at the fresh t
 1 Geocoin and your wallet holds 0 Geocoins" error means the wallet has no Geocoin yet: press "Get Geocoins". A transaction that fails with
 `assertion failed with error code: <number>` failed inside the note scripts;
 `cargo run --release --bin probe` prints the code of every message (for example
-`14434107113890732517` = "challenge: the deadline has passed", normal after ~6 min;
+`14434107113890732517` = "challenge: the deadline has passed", normal after ~3 min;
 `gq: the advice map does not hold the answers the note argument commits to` when the answers
 and their commitment disagree).

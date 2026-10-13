@@ -13,9 +13,9 @@ export const STAKE: bigint = BigInt(import.meta.env.VITE_GC_STAKE ?? "1000000");
 export const BLOCK_SECONDS = 3;
 // A record stays open about a day: time for people to see the post and come play.
 export const RECORD_LIFETIME_BLOCKS = Math.round((24 * 3600) / BLOCK_SECONDS); // 28 800
-// A shot must be settled within ~2 plays of the game (10 cities x 15 s, plus proving), so a
+// A shot must be settled within ~1 play of the game (10 cities x 15 s, plus proving), so a
 // rival cannot sit on a stake and rehearse the same ten cities.
-export const SHOT_WINDOW_BLOCKS = Math.round((6 * 60) / BLOCK_SECONDS); // 120
+export const SHOT_WINDOW_BLOCKS = Math.round((3 * 60) / BLOCK_SECONDS); // 60
 // Refuse a shot at a record that will expire before the shot window ends.
 export const MIN_SHOT_WINDOW_BLOCKS = SHOT_WINDOW_BLOCKS + 20;
 

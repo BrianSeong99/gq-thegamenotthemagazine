@@ -106,7 +106,7 @@ hardcoded.
 
 A shot note is a copy of its record note's storage with `rival`,
 `shot_deadline` and `RECORD_ID` filled in. The deadline is short on purpose
-(~6 min = 120 blocks, about two plays of the game): once the Geocoin is down,
+(~3 min = 60 blocks, about one play of the game): once the Geocoin is down,
 the rival gets one sitting, not hours to rehearse the same ten cities.
 A shot settles before `min(shot_deadline, expiry_block)` and the
 champion collects from that block + `CLAIM_FUZZ` on, so a rival cannot pick a deadline
@@ -148,7 +148,7 @@ claim proved just before the deadline may land up to `CLAIM_FUZZ` blocks later,
 so the block a note was consumed in tells a win (up to deadline + `CLAIM_FUZZ`)
 from a take-back (after it).
 The record lives `RECORD_LIFETIME_BLOCKS` (~24 h); a shot must be settled
-within `SHOT_WINDOW_BLOCKS` (~6 min) of its creation; the client refuses
+within `SHOT_WINDOW_BLOCKS` (~3 min) of its creation; the client refuses
 a shot at a record with fewer than `MIN_SHOT_WINDOW_BLOCKS` left.
 
 ### Flow
@@ -161,7 +161,7 @@ a shot at a record with fewer than `MIN_SHOT_WINDOW_BLOCKS` left.
   shot note (settle, win): prize plus Geocoin back.
 - Later winners: settle their shot note alone (refund) before its deadline.
 - Loser: nothing to sign. A losing answer cannot settle; the champion collects
-  the Geocoin from the shot deadline (~6 min) + `CLAIM_FUZZ` on. Record closure never refunds
+  the Geocoin from the shot deadline (~3 min) + `CLAIM_FUZZ` on. Record closure never refunds
   shots.
 - Champion reclaims an unclaimed record from expiry + `CLAIM_FUZZ` on.
 

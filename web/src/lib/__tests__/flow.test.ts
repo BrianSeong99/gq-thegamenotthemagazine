@@ -2,7 +2,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { ChallengeNote } from "../chain";
 import type { ChallengeStorage, Word4 } from "../notes";
-import { GC_FAUCET, V1_ROOTS } from "@/config";
+import { GC_FAUCET, MIN_SHOT_WINDOW_BLOCKS, V1_ROOTS } from "@/config";
 import {
   acceptNote,
   blocksToClock,
@@ -86,7 +86,8 @@ describe("shared record page", () => {
 describe("taking a shot", () => {
   it("refuses a claimed record or one about to expire", () => {
     expect(shotRefusal(prize, 100)).toBeNull();
-    expect(shotRefusal(prize, 900)).toMatch(/too late/i);
+    expect(shotRefusal(prize, 1000 - MIN_SHOT_WINDOW_BLOCKS)).toBeNull();
+    expect(shotRefusal(prize, 1000 - MIN_SHOT_WINDOW_BLOCKS + 1)).toMatch(/too late/i);
     expect(shotRefusal({ ...prize, consumed: true }, 100)).toMatch(/over/);
   });
 
