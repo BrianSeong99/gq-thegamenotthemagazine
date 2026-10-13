@@ -3,7 +3,7 @@
 #! Paths:
 #! - claim:   anyone but the champion, before expiry, with a winning ANSWER as the note argument,
 #!            consuming their own shot note for this record in the same transaction.
-#! - reclaim: the champion, after expiry.
+#! - reclaim: the champion, from expiry + CLAIM_FUZZ on.
 #!
 #! Inputs:  [ANSWER]
 #! Outputs: []

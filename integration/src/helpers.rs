@@ -1,4 +1,4 @@
-//! Common helper functions for scripts and tests
+//! Testnet client setup, wallet creation and commit polling for the command-line tools.
 
 use std::{
     sync::Arc,
@@ -21,7 +21,7 @@ use rand::Rng;
 pub(crate) const NETWORK_TIMEOUT: Duration = Duration::from_secs(600);
 pub(crate) const POLL_INTERVAL: Duration = Duration::from_secs(5);
 
-/// Test setup configuration containing initialized client and keystore
+/// A testnet client over `store.sqlite3` and its keystore, both next to the repo root.
 pub struct ClientSetup {
     /// The configured Miden client instance.
     pub client: Client<FilesystemKeyStore>,
@@ -29,10 +29,7 @@ pub struct ClientSetup {
     pub keystore: Arc<FilesystemKeyStore>,
 }
 
-/// Initializes test infrastructure with client and keystore
-///
-/// # Returns
-/// A `ClientSetup` containing the initialized client and keystore
+/// Opens the testnet client and keystore.
 ///
 /// # Errors
 /// Returns an error if RPC connection fails, keystore initialization fails,
@@ -56,35 +53,14 @@ pub async fn setup_client() -> Result<ClientSetup> {
     Ok(ClientSetup { client, keystore })
 }
 
-/// Configuration for creating a wallet account.
-pub struct AccountCreationConfig {
-    /// The account type to create. The account type also encodes the
-    /// storage visibility (`AccountType::Public` / `AccountType::Private`).
-    pub account_type: AccountType,
-}
-
-impl Default for AccountCreationConfig {
-    fn default() -> Self {
-        Self { account_type: AccountType::Public }
-    }
-}
-
-/// Creates a basic wallet account with authentication
-///
-/// # Arguments
-/// * `client` - The Miden client instance
-/// * `keystore` - The keystore for storing authentication keys
-/// * `config` - Configuration for account creation
-///
-/// # Returns
-/// The created `Account` with basic wallet functionality
+/// Creates a basic wallet account (single Falcon signature) and stores its key.
 ///
 /// # Errors
 /// Returns an error if account creation, key generation, or keystore operations fail
 pub async fn create_basic_wallet_account(
     client: &mut Client<FilesystemKeyStore>,
     keystore: Arc<FilesystemKeyStore>,
-    config: AccountCreationConfig,
+    account_type: AccountType,
 ) -> Result<Account> {
     let mut init_seed = [0_u8; 32];
     client.rng().fill_bytes(&mut init_seed);
@@ -92,7 +68,7 @@ pub async fn create_basic_wallet_account(
     let key_pair = AuthSecretKey::new_falcon512_poseidon2_with_rng(client.rng());
 
     let builder = AccountBuilder::new(init_seed)
-        .account_type(config.account_type)
+        .account_type(account_type)
         .with_component(AuthSingleSig::from_public_key(key_pair.public_key()))
         .with_component(BasicWallet);
 

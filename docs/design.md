@@ -1,7 +1,8 @@
 # GQ (GeoQuizz) on Miden: design
 
 Status: approved direction, 2026-10-08; rules v2 and vocabulary v2 decided
-2026-10-09. Targets **Miden testnet v0.17** only. Note scripts are **MASM for
+2026-10-09; scripts v2 (the champion waits `CLAIM_FUZZ` blocks past a deadline)
+2026-10-12. Targets **Miden testnet v0.17** only. Note scripts are **MASM for
 now**; a Rust port is planned once the compiler release after 0.11.0 ships
 (see "Why MASM").
 
@@ -49,7 +50,7 @@ seed and refuses a shot at a record whose stored rounds don't match the bundled
 dataset. On-chain, only the stored coordinates are used.
 
 Dataset: Natural Earth populated places (public domain), ~240 cities, bundled
-as `cities.json`; `dataset = SHA-256(canonical json)` folded into 4 felts.
+as `cities.json`; `dataset` is the SHA-256 of the file bytes, first 16 bytes as four u32.
 Map: equirectangular SVG rendered from Natural Earth 110m country outlines
 (public domain). Click to lat/lon is a linear mapping. No map library.
 
@@ -68,15 +69,16 @@ record", so another game can use another token or amount.
 
 | artifact | paths | who consumes |
 |---|---|---|
-| `record.masm` | **claim** (rival, before expiry, winning answer, with their shot note in the same tx) / **reclaim** (champion, after expiry) | prize assets go to the consumer |
-| `shot.masm`   | **settle** (rival, before the shot deadline, winning answer only: Geocoin back) / **collect** (champion, from the deadline on) | |
+| `record.masm` | **claim** (rival, before expiry, winning answer, with their shot note in the same tx) / **reclaim** (champion, from expiry + `CLAIM_FUZZ` on) | prize assets go to the consumer |
+| `shot.masm`   | **settle** (rival, before the shot deadline, winning answer only: Geocoin back) / **collect** (champion, from the deadline + `CLAIM_FUZZ` on) | |
 
 Both include `challenge_core.masm` (storage layout, deadline checks, the
 "find my shot note" check, asset receipt) and call one game procedure,
 `beats_target(ANSWER, game_data_ptr, target) -> bool`, imported as
 `game::rules` (GeoQuizz: `games/gq_score.masm`). The core never sees a score;
-the game decides what beats the target. Game data is any whole number of words
-after the 16-felt header; the core reads the storage length at run time.
+the game decides what beats the target. Game data is whole words after the
+16-felt header, up to 240 felts (`MAX_STORAGE_ITEMS` = 256); the core reads the
+storage length at run time.
 Another game links another module (`scripts::scripts_for`); a six-line game in
 the MockChain tests proves it, and `docs/build-your-own-game.md` is the guide.
 Anything not matching a path aborts.
@@ -99,7 +101,7 @@ hardcoded.
  7      shot_deadline   block by which the rival must settle; zero in a record note
  8..11  RECORD_ID       zero in a record note
 12..15  SHOT_ROOT       shot.masm script root
-16..    GAME DATA       whole words, any length; GeoQuizz: SEED(4) DATASET(4) 10×{city,lat,lon,cos} = 48
+16..    GAME DATA       whole words, up to 240 felts; GeoQuizz: SEED(4) DATASET(4) 10×{city,lat,lon,cos} = 48
 ```
 
 A shot note is a copy of its record note's storage with `rival`,
@@ -107,7 +109,7 @@ A shot note is a copy of its record note's storage with `rival`,
 (~6 min = 120 blocks, about two plays of the game): once the Geocoin is down,
 the rival gets one sitting, not hours to rehearse the same ten cities.
 A shot settles before `min(shot_deadline, expiry_block)` and the
-champion collects from that block on, so a rival cannot pick a deadline
+champion collects from that block + `CLAIM_FUZZ` on, so a rival cannot pick a deadline
 past the record's own life. Both notes are **public**, tagged `NOTE_TAG` (one u32
 for the app), and carry Geocoin.
 
@@ -141,6 +143,10 @@ hashes differently and cannot claim.
 back-dated, so every before-expiry path calls
 `tx::update_expiration_block_delta(CLAIM_FUZZ)`; a back-dated block then buys
 at most `CLAIM_FUZZ` blocks. After-expiry paths cannot be forged forward.
+They open `CLAIM_FUZZ` (64) blocks after the deadline or expiry, not at it: a
+claim proved just before the deadline may land up to `CLAIM_FUZZ` blocks later,
+so the block a note was consumed in tells a win (up to deadline + `CLAIM_FUZZ`)
+from a take-back (after it).
 The record lives `RECORD_LIFETIME_BLOCKS` (~24 h); a shot must be settled
 within `SHOT_WINDOW_BLOCKS` (~6 min) of its creation; the client refuses
 a shot at a record with fewer than `MIN_SHOT_WINDOW_BLOCKS` left.
@@ -155,21 +161,22 @@ a shot at a record with fewer than `MIN_SHOT_WINDOW_BLOCKS` left.
   shot note (settle, win): prize plus Geocoin back.
 - Later winners: settle their shot note alone (refund) before its deadline.
 - Loser: nothing to sign. A losing answer cannot settle; the champion collects
-  the Geocoin from the shot deadline (~6 min) on. Record closure never refunds
+  the Geocoin from the shot deadline (~6 min) + `CLAIM_FUZZ` on. Record closure never refunds
   shots.
-- Champion reclaims an unclaimed record after expiry.
+- Champion reclaims an unclaimed record from expiry + `CLAIM_FUZZ` on.
 
 ### Accounts and signer
 
 Players use **Bread** (0xMiden/wallet v1.17.2, SDK 0.17.1). A Bread account is
 a private Guardian multisig (ECDSA, threshold 1 + Guardian) with the standard
-BasicWallet, so the standard `receive_asset` / `move_asset_to_note` /
-`create_note` the scripts call are present. The dApp builds every
+BasicWallet, so the standard `receive_asset` that the scripts'
+`move_note_assets_to_account` calls is present. The dApp builds every
 `TransactionRequest` itself and submits it through `requestTransaction`
 (custom); Bread executes it verbatim. Notes Bread has not synced are shipped
 as `importNotes` bytes (NoteFile with inclusion proof) and referenced with
-explicit input notes plus per-note args. A local read-only client syncs
-`NOTE_TAG` and reads strangers' public notes.
+explicit input notes plus per-note args. Strangers' public notes are read
+straight from the node by RPC (`NOTE_TAG`); the app's own client syncs and
+mints Geocoins.
 
 ### Lightweight safeguards
 
@@ -178,7 +185,7 @@ explicit input notes plus per-note args. A local read-only client syncs
 - `min_stake` in the record's asset checked onchain against the shot's initial assets.
 - The note argument commits to the answers; the script re-hashes the advice-map felts.
 - Expiration delta bounds reference-block back-dating.
-- Client-side: seed → cities check, dataset hash, rules version, and a
+- Client-side: seed → cities check, dataset hash, and a
   champion's client only counts a shot whose storage equals the record's.
 
 ### Remaining trust assumptions (honest list)
@@ -233,7 +240,7 @@ Decision: validate on testnet only.
 
 agentic-template `main` is still 0.16; the v0.17 migrations are
 **project-template PR #67** and **frontend-template PR #31** (both
-`pablo/migrate-v0.17`, expected to merge within hours). This project is based
+`pablo/migrate-v0.17`, open at the time of writing). This project is based
 on their heads (`upstream/project-template-v017`, `upstream/frontend-template-v017`).
 
 Toolchain commands that work on this machine:
@@ -248,9 +255,8 @@ Capability facts the design relies on (SDK/protocol 0.17.1, web SDK 0.17.1):
 note arg is one Word; `input_note::{get_script_root, get_storage_info,
 get_initial_assets, get_note_id, find_note}`, `tx::get_num_input_notes`,
 `note::compute_storage_commitment`, `tx::get_reference_block_number`,
-`tx::update_expiration_block_delta`; standards `basic::move_note_assets_to_account`,
-`basic::move_asset_to_note`, `p2id::create_output_note(target, tag, note_type,
-serial) -> note_idx`; P2ID storage `[suffix, prefix, 0, 0]`; web SDK
+`tx::update_expiration_block_delta`; standards `basic::move_note_assets_to_account`;
+P2ID storage `[suffix, prefix, 0, 0]`; web SDK
 `NoteScript` from package or bytes, `NoteRecipient.fromScript`, `NoteMetadata
 (sender, Public, NoteTag)`, `withOwnOutputNotes`, `NoteAndArgs`,
 `withExplicitInputNote`, `extendAdviceMap`, `client.addTag`, `NoteFilter
@@ -270,8 +276,8 @@ Bread specifics (found 2026-10-08, see `web/src/lib/bread.ts`):
   so Bread's sync is at least there, and rebuilds at the fresh tip when Bread's node was a block
   behind. (1.17.1 wanted its sync height to equal the bound block exactly; 1.17.2 dropped that check.)
 - Bread can still fail after the user approves, in its own queue, without telling the dApp. The app
-  waits for the effect on chain, returns to the screen you came from with "Your wallet did not
-  finish" when it never shows, and keeps a Back button on the waiting screen.
+  waits for the effect on chain, returns to the screen you came from with "It did not go through
+  yet" when it never shows, and keeps a Back button on the waiting screen.
 
 ## 5. Repository layout (one repo, no submodules)
 
@@ -280,7 +286,8 @@ gq/
   masm/challenge/        challenge_core.masm, record.masm, shot.masm   (reusable)
   masm/games/            gq_score.masm                                     (GeoQuizz)
   integration/           Rust: assemble scripts, rules reference + vectors, MockChain tests,
-                         bins: build_scripts, geocoin (deploy/mint), testnet_flow
+                         bins: build_scripts, geocoin (deploy/mint/fees), testnet_flow, list_gq, probe
+  rules/                 vectors shared by MASM, Rust and TypeScript
   web/                   React app from frontend-template PR #31 (SDK 0.17) + Bread adapter
   docs/                  design.md, walkthrough.md, build-your-own-game.md
   upstream/              gitignored clones used for verification + the spike

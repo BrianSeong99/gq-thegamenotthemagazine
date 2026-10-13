@@ -20,7 +20,9 @@ Where things are:
 | `src/lib/chain.ts` | reading records and shots from the chain, building notes |
 | `src/lib/bread.ts` | the four transactions (post a record, take a shot, claim, collect) and the wallet layer |
 | `src/lib/flow.ts` | the app's decisions as pure functions (tested), errors in plain words |
+| `src/lib/hub.ts` | history and leaderboards, read from the public notes alone |
+| `src/lib/geocoin.ts`, `src/lib/localWallet.ts` | the Geocoin faucet mint; the `?local=` test wallet |
 | `src/lib/rules.ts`, `src/lib/quiz.ts` | GeoQuizz itself: scoring, answers, city selection, game data |
 | `src/components/` | screens; `AppContent.tsx` wires them |
-| `public/scripts/` | the assembled note scripts (`cargo run --release --bin build_scripts`) |
+| `public/scripts/` | the assembled note scripts (`cargo run --release --bin build_scripts`); `v1/` is kept by hand and the app needs it (shots at v1 records run it) |
 | `public/brand/` | art, font, music |

@@ -12,8 +12,6 @@ use crate::helpers::{wait_for_commit, NETWORK_TIMEOUT, POLL_INTERVAL};
 
 /// Wait for public faucet notes and consume them to fund the accounts.
 ///
-/// Request tokens for the printed IDs at https://faucet.testnet.miden.io/.
-///
 /// # Errors
 /// Returns an error if registration is required, funding times out, or a
 /// client operation or funding transaction fails.
@@ -34,7 +32,6 @@ pub async fn ensure_accounts_funded(
         .await?
         .fee_asset_id();
 
-    println!("Request public funding notes for both accounts at https://faucet.testnet.miden.io/");
     println!("Waiting up to 10 minutes per account for funding.");
     for &account_id in account_ids {
         ensure_funded(client, account_id, fee_asset).await?;

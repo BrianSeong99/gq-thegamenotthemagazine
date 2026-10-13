@@ -4,7 +4,7 @@
 #! - settle:  the rival, before the shot deadline (and the record expiry), with a WINNING
 #!            ANSWER as the note argument: the stake comes back. A losing answer cannot settle;
 #!            the stake then simply waits for the champion.
-#! - collect: the champion, from the shot deadline on.
+#! - collect: the champion, from the shot deadline + CLAIM_FUZZ on.
 #!
 #! Inputs:  [ANSWER]
 #! Outputs: []
@@ -19,7 +19,7 @@ const ERR_SHOT_NOT_WON = "shot: the answer does not beat the target, the stake w
 pub proc main(args: NoteArgs)
     exec.core::load_storage
     exec.core::is_consumer_rival
-    # => [is_player, ANSWER]
+    # => [is_rival, ANSWER]
     if.true
         exec.core::assert_before_shot_deadline
         exec.core::answer_beats_target

@@ -3,24 +3,27 @@
 use anyhow::Result;
 use integration::helpers::setup_client;
 use miden_client::rpc::{Endpoint, GrpcClient, NodeRpcClient};
-use miden_protocol::errors::MasmError;
+use miden_protocol::assembly::mast::error_code_from_msg;
 
+// the ERR_* strings of masm/challenge/*.masm and masm/games/gq_score.masm, verbatim
 const MESSAGES: &[&str] = &[
-    "shot: note storage must hold the 16 header items plus game data in whole words",
-    "shot: the deadline has passed",
-    "shot: the deadline has not passed yet",
-    "shot: the note must hold exactly one asset",
-    "shot: the shot's stake is not in the record's asset",
-    "shot: the shot's stake is below min_stake",
-    "shot: no shot note bound to this record and consumer in the transaction",
+    "challenge: note storage must hold the 16 header items plus game data in whole words",
+    "challenge: the deadline has passed",
+    "challenge: the deadline has not passed yet",
+    "challenge: the note must hold exactly one asset",
+    "challenge: the shot's stake is not in the record's asset",
+    "challenge: the shot's stake is below min_stake",
+    "challenge: no shot note bound to this record and consumer in the transaction",
     "record: the answer does not beat the target score",
     "shot: only the rival or the champion may consume this note",
+    "shot: the answer does not beat the target, the stake waits for the champion",
+    "gq: the advice map does not hold the answers the note argument commits to",
 ];
 
 #[tokio::main]
 async fn main() -> Result<()> {
     for m in MESSAGES {
-        println!("{:>22}  {m}", MasmError::from_static_str(m).code().as_canonical_u64());
+        println!("{:>22}  {m}", error_code_from_msg(m));
     }
     if let Some(id) = std::env::args().nth(1) {
         let mut client = setup_client().await?.client;

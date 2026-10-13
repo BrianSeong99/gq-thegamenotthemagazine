@@ -7,9 +7,9 @@ use miden_client::note::NoteScript;
 use miden_standards::code_builder::CodeBuilder;
 
 pub const GQ_SCORE_MASM: &str = include_str!("../../masm/games/gq_score.masm");
-pub const CHALLENGE_CORE_MASM: &str = include_str!("../../masm/challenge/challenge_core.masm");
-pub const RECORD_MASM: &str = include_str!("../../masm/challenge/record.masm");
-pub const SHOT_MASM: &str = include_str!("../../masm/challenge/shot.masm");
+const CHALLENGE_CORE_MASM: &str = include_str!("../../masm/challenge/challenge_core.masm");
+const RECORD_MASM: &str = include_str!("../../masm/challenge/record.masm");
+const SHOT_MASM: &str = include_str!("../../masm/challenge/shot.masm");
 
 /// The record and shot scripts for the game in `game_masm`.
 pub fn scripts_for(game_masm: &str) -> Result<(NoteScript, NoteScript)> {

@@ -19,10 +19,10 @@
 #!   7      shot_deadline   block by which the rival must settle; zero in a record note
 #!   8..11  RECORD_ID       zero in a record note
 #!  12..15  SHOT_ROOT       script root of shot.masm
-#!  16..    GAME DATA       opaque here; any length in whole words; the game reads it
+#!  16..    GAME DATA       opaque here; whole words, up to 240 felts; the game reads it
 #!
 #! A shot settles before `min(shot_deadline, expiry_block)` and the champion collects from that
-#! block on, so a rival cannot pick a deadline past the record's own life.
+#! block + CLAIM_FUZZ on, so a rival cannot pick a deadline past the record's own life.
 #!
 #! The game plugs in one procedure, imported as `game::rules::beats_target` (link the game's module
 #! under that path; `integration/src/scripts.rs` shows how):
@@ -118,7 +118,7 @@ pub proc is_consumer_champion
 end
 
 #! Inputs:  []
-#! Outputs: [is_player]
+#! Outputs: [is_rival]
 pub proc is_consumer_rival
     mem_load.RIVAL_PREFIX_PTR mem_load.RIVAL_SUFFIX_PTR
     exec.active_account::get_id

@@ -160,6 +160,6 @@ fn parse_gc(s: &str) -> Result<u64> {
     if frac.len() > GC_DECIMALS as usize {
         bail!("at most {GC_DECIMALS} decimals");
     }
-    let frac = format!("{frac:0<6}");
-    Ok(int.parse::<u64>()? * 1_000_000 + frac.parse::<u64>()?)
+    let frac = format!("{frac:0<width$}", width = GC_DECIMALS as usize);
+    Ok(int.parse::<u64>()? * 10u64.pow(GC_DECIMALS as u32) + frac.parse::<u64>()?)
 }

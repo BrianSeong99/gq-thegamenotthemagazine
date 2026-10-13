@@ -19,7 +19,6 @@
 
 use miden_client::{note::NoteStorage, Felt, Word};
 
-pub const RULES_VERSION: u32 = 2;
 pub const ROUNDS: usize = 10;
 pub const LON_WRAP: u32 = 36000;
 pub const TIME_CAP: u32 = 1500;

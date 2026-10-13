@@ -38,24 +38,6 @@ pub fn pick_indices(seed: Word, dataset_size: u32) -> [u32; ROUNDS] {
     picked.try_into().unwrap()
 }
 
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
-pub struct Place {
-    pub name: String,
-    pub country: String,
-    pub lat: f64,
-    pub lon: f64,
-}
-
-pub fn lat_to_cd(lat: f64) -> u32 {
-    ((lat + 90.0) * 100.0).round() as u32
-}
-pub fn lon_to_cd(lon: f64) -> u32 {
-    ((((lon + 180.0) * 100.0).round() as i64 + 36000) % 36000) as u32
-}
-pub fn cos_x100(lat: f64) -> u32 {
-    (lat.to_radians().cos() * 100.0).round() as u32
-}
-
 /// GeoQuizz's game data in a note (48 felts): seed, dataset hash, then [idx, lat, lon, cos] per city.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct GqGameData {
@@ -76,18 +58,6 @@ impl GqGameData {
     }
 }
 
-/// Dataset identity: sha256 of the exact file bytes, first 16 bytes as four u32 little-endian.
-pub fn dataset_word(file_bytes: &[u8]) -> Word {
-    let d = Sha256::digest(file_bytes);
-    let u = |i: usize| felt(u32::from_le_bytes([d[i], d[i + 1], d[i + 2], d[i + 3]]) as u64);
-    Word::new([u(0), u(4), u(8), u(12)])
-}
-
-pub fn load_dataset() -> anyhow::Result<(Vec<Place>, Word)> {
-    let bytes = std::fs::read(concat!(env!("CARGO_MANIFEST_DIR"), "/../web/public/cities.json"))?;
-    Ok((serde_json::from_slice(&bytes)?, dataset_word(&bytes)))
-}
-
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct QuizVector {
     /// decimal strings: u64 seeds do not survive JSON number parsing in JavaScript
@@ -99,6 +69,37 @@ pub struct QuizVector {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // the host-side mirror of web/src/lib/quiz.ts, only checked here
+    #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+    struct Place {
+        name: String,
+        country: String,
+        lat: f64,
+        lon: f64,
+    }
+
+    fn lat_to_cd(lat: f64) -> u32 {
+        ((lat + 90.0) * 100.0).round() as u32
+    }
+    fn lon_to_cd(lon: f64) -> u32 {
+        ((((lon + 180.0) * 100.0).round() as i64 + 36000) % 36000) as u32
+    }
+    fn cos_x100(lat: f64) -> u32 {
+        (lat.to_radians().cos() * 100.0).round() as u32
+    }
+
+    /// Dataset identity: sha256 of the exact file bytes, first 16 bytes as four u32 little-endian.
+    fn dataset_word(file_bytes: &[u8]) -> Word {
+        let d = Sha256::digest(file_bytes);
+        let u = |i: usize| felt(u32::from_le_bytes([d[i], d[i + 1], d[i + 2], d[i + 3]]) as u64);
+        Word::new([u(0), u(4), u(8), u(12)])
+    }
+
+    fn load_dataset() -> anyhow::Result<(Vec<Place>, Word)> {
+        let bytes = std::fs::read(concat!(env!("CARGO_MANIFEST_DIR"), "/../web/public/cities.json"))?;
+        Ok((serde_json::from_slice(&bytes)?, dataset_word(&bytes)))
+    }
 
     fn w(a: [u64; 4]) -> Word {
         Word::new(a.map(felt))

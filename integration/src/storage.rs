@@ -9,7 +9,6 @@ use miden_client::{account::AccountId, note::NoteId, Felt, Word};
 
 use crate::felt;
 
-pub const HEADER_ITEMS: usize = 16;
 pub const SHOT_DEADLINE_INDEX: usize = 7;
 
 #[derive(Clone, Debug, PartialEq, Eq)]

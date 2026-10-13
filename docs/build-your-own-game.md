@@ -3,8 +3,8 @@
 The mechanic: a **champion** posts a **record** (a score to beat, with a prize). A **rival** pays a
 stake to take a **shot** at it, plays the same game, and the chain checks the result. The first
 rival who beats the record takes the prize and their stake back. A rival who fails signs nothing:
-their stake goes to the champion once the shot's short deadline passes. An unbeaten record goes
-back to the champion when it expires.
+their stake goes to the champion once the shot's short deadline has passed by `CLAIM_FUZZ` (64)
+blocks. An unbeaten record goes back to the champion the same way after it expires.
 
 All of that lives in three MASM files you do not touch (`masm/challenge/`). Your game is one
 procedure. GeoQuizz is the full example; a six-line game is in the tests.
@@ -50,7 +50,7 @@ your module to ship yours. Two games never share script roots, so their notes ne
 ## 2. The note storage
 
 A record and its shots share one layout: a 16-felt header the core owns, then your game's data in
-whole words (any length, GeoQuizz uses 48). The header table is in the [README](../README.md#note-storage-layout).
+whole words (up to 240 felts, GeoQuizz uses 48). The header table is in the [README](../README.md#note-storage-layout).
 A shot is its record's storage with three fields filled in: the rival, the shot's deadline and the
 record's id. The record recognises its shots by hashing that expected storage.
 
@@ -64,13 +64,14 @@ Host side: `ChallengeStorage` in `integration/src/storage.rs` (Rust) and `web/sr
 | champion | any time | nothing; creates the **record** note (record script, your data, the prize) | | | record posted |
 | rival | before the record expires | nothing; creates a **shot** note (shot script, `shotStorage(record, …)`, the stake) | | | shot posted |
 | rival | before the shot's deadline | the shot (and the record, to claim the prize) | your `ANSWER`, on every note | each shot's id → `[shot_deadline]`, plus your game's entries | win: prize and stake back (or stake only) |
-| champion | after the shot's deadline / the record's expiry | the shot / the record, any number in one transaction | zero | | collect a lost stake / take the record back |
+| champion | from the shot's deadline / the record's expiry + `CLAIM_FUZZ` on | the shot / the record, any number in one transaction | zero | | collect a lost stake / take the record back |
 
 A losing answer cannot consume anything, so a loss needs no transaction.
 
 Code to copy:
 
-- Rust, any client: `integration/src/bin/testnet_flow.rs` (post, consume with advice) and
+- Rust: `integration/tests/challenge_test.rs` (every path, on MockChain),
+  `integration/src/bin/testnet_flow.rs` (post, consume with advice, on testnet) and
   `integration::deadline_advice(shot_root, notes)`.
 - Web: `web/src/lib/bread.ts` (`postRecord`, `postShot`, `settle(…, answer)`, `collect`) with
   `GameAnswer = { arg, advice }` from `notes.ts`; GeoQuizz's is `gqAnswer` in `rules.ts`.
@@ -83,7 +84,7 @@ Code to copy:
   `CLAIM_FUZZ` (64 blocks) on only the champion can collect it. The record can be claimed before
   `expiry_block`, taken back from `expiry_block + CLAIM_FUZZ`.
 - A claim proved before a deadline expires `CLAIM_FUZZ` blocks after it (a back-dated reference
-  block buys no more). So no note can be used in the two blocks before `deadline + CLAIM_FUZZ`, and
+  block buys no more). So no note can be used in the two blocks ending at `deadline + CLAIM_FUZZ`, and
   the block a note was used in tells how it ended: earlier, a win; later, the champion took it.
 - The game's verdict is the only thing that decides a win.
 
@@ -124,5 +125,6 @@ the trust list in [design.md](design.md).
 5. Client: the four transactions, the answer's note argument and advice, deadlines on screen.
 6. Pick your own note tag and token.
 7. Check every note you read before trusting it: its sender is the account its storage names, it
-   carries exactly one asset (yours), its terms are ones your game writes (stake, target, expiry),
-   a record names your shot script (`acceptNote` in `web/src/lib/flow.ts`).
+   carries exactly one asset (yours), a record names your shot script (`acceptNote` in
+   `web/src/lib/flow.ts`), and its terms are ones your game writes: stake, target, expiry
+   (`shotRefusal` in the same file).

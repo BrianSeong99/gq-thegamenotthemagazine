@@ -143,13 +143,6 @@ pub fn setup_for(target: u32, game_masm: &str, game: Vec<miden_client::Felt>) ->
 }
 
 impl Setup {
-    fn account(&self, id: AccountId) -> &Account {
-        [&self.champion, &self.rival, &self.stranger]
-            .into_iter()
-            .find(|a| a.id() == id)
-            .expect("known account")
-    }
-
     /// A shot note by `rival` against the record, holding `amount` of `faucet`.
     pub fn shot_note(
         &mut self,
@@ -255,7 +248,6 @@ impl Setup {
 
     pub fn balance(&self, account: AccountId) -> u64 {
         let asset = FungibleAsset::new(self.faucet.id(), 1).unwrap();
-        let _ = self.account(account);
         self.chain
             .committed_account(account)
             .unwrap()

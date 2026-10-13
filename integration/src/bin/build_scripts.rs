@@ -1,4 +1,4 @@
-//! Assembles the prize and shot note scripts and writes them, serialized, where the web app
+//! Assembles the record and shot note scripts and writes them, serialized, where the web app
 //! loads them from (`web/public/scripts/`). Prints the script roots.
 //!
 //! Run from the repo root after editing anything under `masm/`:

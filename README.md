@@ -6,7 +6,7 @@ A small, complete reference for a **challenge mechanic** on Miden testnet v0.17:
 **record note** with a score to beat; rivals take a **shot** (a shot note holding one Geocoin), play
 the same quiz, and the chain recomputes the score from their answers. Beat the record and you take
 the prize (first come, first served) and your Geocoin back; fall short and your Geocoin goes to the
-champion once the shot's short deadline passes. A loser signs nothing.
+champion once the shot's short deadline has passed by 64 blocks. A loser signs nothing.
 
 GeoQuizz is the game plugged into it: a city name appears, you click the map, points for closeness
 and speed, ten cities per quiz. Players use the [Bread](https://www.miden.xyz/bread) wallet.
@@ -49,7 +49,7 @@ web/              React app (frontend-template v0.17 lineage) + Bread wallet ada
 ## Note storage layout
 
 Both notes carry the same layout: 16 header felts the core owns, then the game's data in whole
-words (GeoQuizz uses 48, so 64 felts in all). The record's facts come first, then the shot's own,
+words, up to 240 felts (GeoQuizz uses 48, so 64 felts in all). The record's facts come first, then the shot's own,
 then the script root and the game data. A shot note is its record note's storage with three fields
 filled in, which is how the record script recognises a legitimate shot: it rebuilds the 64 felts a
 shot at it must have and compares the storage hash.
@@ -67,7 +67,7 @@ shot at it must have and compares the storage hash.
 | 16-63 | game data      | seed(4), dataset(4), 10 × [city, lat, lon, cos] | copied                      |
 
 A shot settles before `min(shot_deadline, expiry_block)`; the champion collects from that block
-on. The note argument on settle or claim is the commitment to the ten packed answers
++ `CLAIM_FUZZ` (64 blocks, about 3 minutes) on. The note argument on settle or claim is the commitment to the ten packed answers
 (`lat_cd << 32 | (lon_cd * 2048 + t_10ms)` per round, hashed like a note storage); the answers
 themselves travel in the advice map under that key and the script re-hashes them. On a claim, the
 claimant also puts the shot's deadline in the advice map under the shot note id, and the hash
@@ -84,7 +84,7 @@ server sets the same ones). No environment variables are required for testnet.
 Toolchain (once): `cargo install --locked midenup && midenup install 0.17.0`.
 
 ```sh
-cargo test -p integration --release          # scoring reference, 24 MockChain tests (all four paths, their failures, deadlines, note order, answer commitment, a longer game tail, a second game)
+cargo test -p integration --release          # scoring reference, 28 MockChain tests (all four paths, their failures, deadlines, note order, answer commitment, a longer game tail, a second game)
 cargo run --release --bin build_scripts      # assembles the two note scripts into web/public/scripts/
 cd web && yarn install && yarn test && yarn dev
 ```
@@ -97,8 +97,16 @@ Geocoins: the faucet (`0x2a85bbc7c655b6d116381742015892` on testnet) has no auth
 anyone may mint. In the app, "Empty pockets? Get Geocoins now!" mints ten from the browser; from
 the CLI, `cargo run --release --bin geocoin mint <account> <GC>` (`geocoin deploy` creates a new
 faucet, `geocoin fees` tops up the fee balance it pays mints with).
-`cargo run --release --bin testnet_flow` runs champion / losing rival / winning rival with
-in-process wallets.
+`cargo run --release --bin testnet_flow` runs champion / a rival who never settles / winning rival
+with in-process wallets.
+
+## Script versions
+
+The first scripts (v1) let the champion collect at the deadline itself; since 2026-10-12 the
+scripts (v2) make the champion wait `CLAIM_FUZZ` blocks, so the block a note was consumed in tells
+a win from a take-back. Notes made with v1 are still live on testnet: the app recognises both
+roots (`V1_ROOTS` in `web/src/config.ts`) and keeps the v1 shot script in `web/public/scripts/v1/`
+by hand, since a shot at a v1 record runs it. New notes use v2.
 
 ## Another game on the same notes
 
@@ -106,7 +114,7 @@ Keep `masm/challenge/*` as is and write one procedure, `beats_target(ANSWER, dat
 `scripts::scripts_for(your_game)` builds the two note scripts around it. The step-by-step guide is
 [`docs/build-your-own-game.md`](docs/build-your-own-game.md).
 
-The note scripts are MASM today because the released Rust compiler (0.11.0) cannot yet call the
+The note scripts are MASM today because the released Rust compiler (0.11.0, as of 2026-10-08) cannot yet call the
 standards wallet from a note script; see `docs/design.md` §3 for the port plan.
 
 ## License
