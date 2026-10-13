@@ -9,6 +9,7 @@ export function Shell({
   onHome,
   walletLabel,
   netSlow,
+  hubAlert,
   onWallet,
   soundOn,
   onSound,
@@ -22,6 +23,8 @@ export function Shell({
   walletLabel: string | null;
   /** the last background sync failed */
   netSlow?: boolean;
+  /** the connected wallet has Geocoins to take in the Player Hub */
+  hubAlert?: boolean;
   onWallet: () => void;
   soundOn: boolean;
   onSound: () => void;
@@ -43,7 +46,7 @@ export function Shell({
         </a>
         <nav aria-label="Sections">
           {(Object.keys(TAB_LABEL) as Tab[]).map((t) => (
-            <button key={t} className={t === tab ? "active" : ""} onClick={() => onTab(t)} aria-current={t === tab ? "page" : undefined}>
+            <button key={t} className={t === tab ? "active" : t === "hub" && hubAlert ? "blink" : ""} onClick={() => onTab(t)} aria-current={t === tab ? "page" : undefined}>
               {TAB_LABEL[t]}
             </button>
           ))}

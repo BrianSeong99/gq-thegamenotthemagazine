@@ -113,7 +113,11 @@ main { max-width: 1440px; margin: 0 auto; padding: 28px 4% 56px; }
 .welcome img { display: block; height: min(100vh, 66.667vw); width: auto; max-width: none; border: 4px solid var(--cyan); outline: 4px solid var(--pink); outline-offset: -8px; }
 .welcome .start { position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%); text-align: center; text-transform: uppercase; font: clamp(18px, 3vw, 36px)/1.2 var(--display); color: var(--yellow); text-shadow: 3px 3px 0 var(--void), 5px 5px 0 var(--pink); animation: blink 1.1s steps(1) infinite; }
 @keyframes blink { 50% { opacity: 0; } }
-@media (prefers-reduced-motion: reduce) { .welcome .start { animation: none; } .btn:hover { transform: none; } }
+/* Geocoins waiting: the Player Hub tab blinks, its take buttons flash yellow and white */
+.blink { animation: blink 1.1s steps(1) infinite; }
+.btn.blink { animation-name: flash; }
+@keyframes flash { 50% { background: var(--white); } }
+@media (prefers-reduced-motion: reduce) { .welcome .start, .blink { animation: none; } .btn:hover { transform: none; } }
 
 /* two-column pages: stage left, panel right */
 .cols { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 24px; align-items: start; }

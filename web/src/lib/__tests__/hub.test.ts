@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest";
 import type { ChallengeNote } from "@/lib/chain";
 import type { AccountFelts, ChallengeStorage } from "@/lib/notes";
-import { boards, history, keyOf, lettersBackward, nicknames, playersInOrder, recordOutcome, shotOutcome, triesLost, whenLabel } from "../hub";
+import { boards, history, keyOf, lettersBackward, nicknames, owed, playersInOrder, recordOutcome, shotOutcome, triesLost, whenLabel } from "../hub";
 
 const ME = { suffix: 1n, prefix: 1n };
 const KQX = { suffix: 2n, prefix: 2n };
@@ -191,5 +191,19 @@ describe("history times", () => {
     expect(whenLabel(new Date(2026, 9, 8, 21, 10).getTime(), now)).toBe("YESTERDAY 21:10");
     expect(whenLabel(new Date(2026, 9, 7, 8, 5).getTime(), now)).toBe("07 OCT 08:05");
     expect(whenLabel(new Date(2026, 9, 10, 9, 5).getTime(), now)).toBe("TOMORROW 09:05");
+  });
+});
+
+describe("what the champion can take now", () => {
+  it("my expired records and lost shots at them, from deadline + CLAIM_FUZZ on, never a shot I posted myself", () => {
+    const r = record(ME, 4100, { expiry: 1000 });
+    const lost = shot(r, KQX, 500);
+    const own = shot(r, ME, 500);
+    const live = shot(r, MUD, 800);
+    const theirs = record(KQX, 4100, { expiry: 1000 });
+    expect(owed([r, lost, own, live, theirs], 563, ME)).toEqual([]);
+    expect(owed([r, lost, own, live, theirs], 564, ME)).toEqual([lost]);
+    expect(owed([r, lost, own, live, theirs], 1064, ME)).toEqual([r, lost, live]);
+    expect(owed([r, lost, own, live, theirs], 1064, null)).toEqual([]);
   });
 });

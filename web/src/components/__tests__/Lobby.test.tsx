@@ -94,6 +94,11 @@ describe("Lobby", () => {
     expect(h.onCollect).toHaveBeenCalledWith([prize, myShot, second]);
   });
 
+  it("blinks every take button: Geocoins are waiting", () => {
+    render(<Lobby me={champion} notes={[prize, myShot]} places={places} height={1064} {...handlers()} />);
+    for (const b of screen.getAllByRole("button", { name: /take/i })) expect(b.className).toContain("blink");
+  });
+
   it("counts the tries lost so far on my open record, never naming who lost", () => {
     const lost = { ...myShot, storage: { ...myShot.storage, rival: { suffix: 7n, prefix: 7n } } };
     const { rerender } = render(<Lobby me={champion} notes={[prize, lost]} places={places} height={199} {...handlers()} />);

@@ -11,7 +11,7 @@ import { GEOCOIN_GRANT, geocoinRefusal, GRANT_PENDING_MS, useGeocoin } from "@/l
 import { useSound, type Track } from "@/lib/useSound";
 import { CITIES_URL, RECORD_LIFETIME_BLOCKS, STAKE, TEST_ACCOUNTS } from "@/config";
 import { accountFelts, bech32Of, fetchChallengeNote, hexOf, knownNote, listChallengeNotes, loadScripts, parseAccountId, syncNotes, wordFromHex, type ChallengeNote } from "@/lib/chain";
-import { boards, history as pastGames, keyOf, lettersBackward, nicknames, playersInOrder } from "@/lib/hub";
+import { boards, history as pastGames, keyOf, lettersBackward, nicknames, owed, playersInOrder } from "@/lib/hub";
 import { gcBalance, postShot, postRecord, settle, collect, setSubmitAttemptListener, setSubmitStageListener, waitFor, type Submitted } from "@/lib/bread";
 import { shotDeadline, shotStorage, ZERO_WORD, type AccountFelts, type ChallengeStorage } from "@/lib/notes";
 import { blockToMs, claimVerdict, explain, fmtGeocoin, NOT_FINISHED, SHOT_LOST, shotRefusal, withoutRecord, withTimeout, type Trouble, myOpenShotsOn as openShotsOn, outcomeText, parseCode, reportRows, settlePlan, sharedRecordState, type ReportRow } from "@/lib/flow";
@@ -559,6 +559,7 @@ function GqApp() {
       onHome={goHome}
       walletLabel={walletLabel}
       netSlow={netSlow}
+      hubAlert={wallet.connected && owed(notes, height, me).length > 0}
       onWallet={() => (wallet.connected ? void wallet.disconnect() : connect())}
       soundOn={sound.on}
       onSound={sound.toggle}

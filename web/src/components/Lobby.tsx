@@ -2,7 +2,7 @@
 
 import type { ChallengeNote } from "@/lib/chain";
 import { blocksToClock, blockToMs, fmtGeocoin, sameAccount, sameWord } from "@/lib/flow";
-import { triesLost, whenLabel } from "@/lib/hub";
+import { owed, triesLost, whenLabel } from "@/lib/hub";
 import { cityNames, recordCities, type Place, type Word4 } from "@/lib/quiz";
 import { CLAIM_FUZZ } from "@/config";
 import { noteDeadline as deadline, type AccountFelts } from "@/lib/notes";
@@ -22,8 +22,9 @@ export function Lobby({ me, notes, height, places, onSettle, onCollect }: LobbyP
   const shots = notes.filter((n) => n.kind === "shot" && !n.consumed);
   const recordById = (idWord: Word4) => notes.find((n) => n.kind === "record" && sameWord(n.idWord, idWord));
   const expired = (n: ChallengeNote) => height >= deadline(n);
-  // the champion may take a note CLAIM_FUZZ blocks past its deadline: a claim proved just before it lands until then
-  const takeable = (n: ChallengeNote) => height >= deadline(n) + CLAIM_FUZZ;
+  // everything the champion can take now goes in one transaction: one wallet approval
+  const ready = owed(notes, height, me);
+  const takeable = (n: ChallengeNote) => ready.includes(n);
   // when the champion may take it, as a clock time: blocks left at testnet's pace
   const until = (n: ChallengeNote) => whenLabel(blockToMs(deadline(n) + CLAIM_FUZZ, height));
 
@@ -33,15 +34,13 @@ export function Lobby({ me, notes, height, places, onSettle, onCollect }: LobbyP
   const myShots = shots.filter((n) => sameAccount(me, n.storage.rival));
   const shotsAtMyRecords = shots.filter((n) => mine(n) && !sameAccount(me, n.storage.rival));
   const empty = myRecords.length + myShots.length + shotsAtMyRecords.length === 0;
-  // everything the champion can take now goes in one transaction: one wallet approval
-  const ready = [...myRecords, ...shotsAtMyRecords].filter(takeable);
 
   return (
     <div className="lobby">
       {empty && <p className="muted">Play the World Tour and post your record: rivals pay a Geocoin to try to beat it!</p>}
       {ready.length > 1 && (
         <p>
-          <button className="btn primary" onClick={() => onCollect(ready)}>
+          <button className="btn primary blink" onClick={() => onCollect(ready)}>
             Take all
           </button>
         </p>
@@ -51,7 +50,7 @@ export function Lobby({ me, notes, height, places, onSettle, onCollect }: LobbyP
           <div className="eyebrow">{takeable(p) ? "My record / over" : `My record / open until ${until(p)}`}</div>
           <div className="score">{p.storage.target.toLocaleString()} pts</div>
           {takeable(p) ? (
-            <button className="btn primary" onClick={() => onCollect([p])}>
+            <button className="btn primary blink" onClick={() => onCollect([p])}>
               Take it back
             </button>
           ) : (
@@ -90,7 +89,7 @@ export function Lobby({ me, notes, height, places, onSettle, onCollect }: LobbyP
             <div className="eyebrow">{takeable(c) ? "For you / ready" : "For you / in play"}</div>
             <div className="score">{fmtGeocoin(c.amount)}</div>
             {takeable(c) ? (
-              <button className="btn primary" onClick={() => onCollect([c])}>
+              <button className="btn primary blink" onClick={() => onCollect([c])}>
                 Take it
               </button>
             ) : (

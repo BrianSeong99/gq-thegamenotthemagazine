@@ -4,7 +4,7 @@
 
 import type { ChallengeNote } from "./chain";
 import { fmtGeocoin, sameAccount as same, toGc } from "./flow";
-import { isShotAt, shotDeadline, type AccountFelts } from "./notes";
+import { isShotAt, noteDeadline, shotDeadline, type AccountFelts } from "./notes";
 import { CLAIM_FUZZ } from "@/config";
 
 export const keyOf = (a: AccountFelts) => `${a.prefix}:${a.suffix}`;
@@ -70,6 +70,16 @@ export function shotOutcome(shot: ChallengeNote, height: number, record?: Challe
   if (!shot.v1) return shot.consumedAt <= deadline + CLAIM_FUZZ ? "won" : "lost";
   const claimedWithRecord = record?.consumedAt === shot.consumedAt && shot.consumedAt < record.storage.expiryBlock;
   return shot.consumedAt < deadline || claimedWithRecord ? "won" : "lost";
+}
+
+/**
+ * What the champion `me` can take now: their open records and the lost shots at them, CLAIM_FUZZ
+ * blocks past the deadline (a claim proved just before it lands until then). A shot I posted at
+ * my own record never: its script serves the rival first.
+ */
+export function owed(notes: ChallengeNote[], height: number, me: AccountFelts | null): ChallengeNote[] {
+  if (!me) return [];
+  return notes.filter((n) => !n.consumed && same(me, n.storage.champion) && !(n.kind === "shot" && same(me, n.storage.rival)) && height >= noteDeadline(n) + CLAIM_FUZZ);
 }
 
 /** How a record ended: smashed (consumed before the champion could take it back, which only a winner can do), closed (expired) or open. */
