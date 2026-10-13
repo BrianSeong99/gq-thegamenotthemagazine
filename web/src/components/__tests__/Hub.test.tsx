@@ -14,10 +14,10 @@ describe("History", () => {
   it("shows ten games, MORE adds the rest, then says that's all", async () => {
     render(<History items={Array.from({ length: 12 }, (_, i) => item(i))} />);
     expect(screen.getAllByRole("article")).toHaveLength(10);
-    expect(screen.queryByText(/that’s all/i)).toBeNull();
+    expect(screen.queryByText(/that's all/i)).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: /more/i }));
     expect(screen.getAllByRole("article")).toHaveLength(12);
-    expect(screen.getByText("That’s all your games.")).toBeInTheDocument();
+    expect(screen.getByText("That's all your games.")).toBeInTheDocument();
     expect(await screen.findAllByText(/^\d\d:\d\d$/)).toHaveLength(12);
   });
 

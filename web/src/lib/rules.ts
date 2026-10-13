@@ -9,7 +9,6 @@ import type { GameAnswer, Word4 } from "./notes";
 // The distance is the flat approximation sqrt(dlat² + (dlon * cos)²) in centi-degrees
 // (1 cd ≈ 1.112 km); `a` comes from a table of 128 bands of 25 cd (≈ 27.8 km).
 
-export const RULES_VERSION = 2;
 export const ROUNDS = 10;
 export const LON_WRAP = 36000;
 export const TIME_CAP = 1500; // 10 ms units = 15 s

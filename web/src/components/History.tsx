@@ -127,7 +127,7 @@ export function History({ items, connect }: { items: HistoryItem[] | null; conne
               </button>
             </p>
           ) : (
-            shown > PAGE && <p className="history-more muted">That’s all your games.</p>
+            shown > PAGE && <p className="history-more muted">That's all your games.</p>
           )}
         </>
       )}

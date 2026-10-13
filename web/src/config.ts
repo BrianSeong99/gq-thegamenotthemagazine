@@ -19,16 +19,16 @@ export const SHOT_WINDOW_BLOCKS = Math.round((6 * 60) / BLOCK_SECONDS); // 120
 // Refuse a shot at a record that will expire before the shot window ends.
 export const MIN_SHOT_WINDOW_BLOCKS = SHOT_WINDOW_BLOCKS + 20;
 
-// The two development wallets (?local=1 and ?local=2, 2026-10-09): their test rounds stay off the
-// leaderboards and out of the nickname order.
+// The two development wallets (?local=1 and ?local=2): their test rounds stay off the leaderboards
+// and out of the nickname order.
 export const TEST_ACCOUNTS = ["0x071d3da3ad56d88175b628f76073cb", "0x35b6665ae257d50144a45872cf5b50"];
 
 // Where the assembled note scripts live (written by `cargo run --bin build_scripts`).
 export const RECORD_SCRIPT_URL = "/scripts/record.bin";
 export const SHOT_SCRIPT_URL = "/scripts/shot.bin";
-// The first scripts (until 2026-10-12: collect opened at the deadline itself, not CLAIM_FUZZ later).
-// Their notes stay on the boards and in histories for good, so their roots stay here; the shot
-// script file is only needed while a v1 record is still open, to take a shot at it.
+// The v1 scripts: the champion collected at the deadline itself, not CLAIM_FUZZ blocks later. Their
+// notes stay on the boards and in histories for good, so their roots stay here; the v1 shot script
+// is what a shot at a v1 record runs, so the app serves it too.
 export const V1_ROOTS = {
   record: "0xf5c76231f25a67b72beb4044d34387ef9f54e163303c896a2ca7847ace21227f",
   shot: "0xc0dca0ae35c0f0aa35c48f388b282b08902399353405078742d5aba63f797367",
@@ -41,7 +41,7 @@ export const CITIES_URL = "/cities.json";
 export const NETWORK_POLL_INTERVAL_MS = 2_500;
 export const NETWORK_POLL_TIMEOUT_MS = 120_000;
 
-// Miden SDK configuration — override via environment variables
+// Miden SDK configuration, overridable through environment variables
 export const MIDEN_RPC_URL = import.meta.env.VITE_MIDEN_RPC_URL ?? "testnet";
 export const MIDEN_FAUCET_URL =
   import.meta.env.VITE_MIDEN_FAUCET_URL ?? (MIDEN_RPC_URL === "testnet" ? "https://faucet-api.testnet.miden.io" : "");

@@ -19,7 +19,6 @@ export default defineConfig({
     globals: true,
     setupFiles: ["./vitest.setup.ts"],
     include: ["src/**/*.{test,spec}.{ts,tsx}"],
-    passWithNoTests: true,
     server: {
       deps: {
         // Tests mock the wallet adapter at the module level, so externalizing is safe.

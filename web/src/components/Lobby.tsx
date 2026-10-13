@@ -1,15 +1,14 @@
 // The Player Hub: my records to take back, my shots to play, lost shots at my records to collect.
 
 import type { ChallengeNote } from "@/lib/chain";
-import { blocksToClock, fmtGeocoin } from "@/lib/flow";
+import { blocksToClock, blockToMs, fmtGeocoin, sameAccount, sameWord } from "@/lib/flow";
 import { triesLost, whenLabel } from "@/lib/hub";
-import { cityNames, recordCities, type Place } from "@/lib/quiz";
-import { BLOCK_SECONDS, CLAIM_FUZZ } from "@/config";
-import { shotDeadline, type AccountFelts } from "@/lib/notes";
+import { cityNames, recordCities, type Place, type Word4 } from "@/lib/quiz";
+import { CLAIM_FUZZ } from "@/config";
+import { noteDeadline as deadline, type AccountFelts } from "@/lib/notes";
 import { ShareButtons } from "./ShareButtons";
-const sameAccount = (a: AccountFelts | null, b: AccountFelts | null) => !!a && !!b && a.suffix === b.suffix && a.prefix === b.prefix;
 
-export type LobbyProps = {
+type LobbyProps = {
   me: AccountFelts | null;
   notes: ChallengeNote[];
   height: number;
@@ -21,13 +20,12 @@ export type LobbyProps = {
 export function Lobby({ me, notes, height, places, onSettle, onCollect }: LobbyProps) {
   const records = notes.filter((n) => n.kind === "record" && !n.consumed);
   const shots = notes.filter((n) => n.kind === "shot" && !n.consumed);
-  const recordById = (idWord: bigint[]) => notes.find((n) => n.kind === "record" && n.idWord.every((f, i) => f === idWord[i]));
-  const deadline = (n: ChallengeNote) => (n.kind === "shot" ? shotDeadline(n.storage) : n.storage.expiryBlock);
+  const recordById = (idWord: Word4) => notes.find((n) => n.kind === "record" && sameWord(n.idWord, idWord));
   const expired = (n: ChallengeNote) => height >= deadline(n);
   // the champion may take a note CLAIM_FUZZ blocks past its deadline: a claim proved just before it lands until then
   const takeable = (n: ChallengeNote) => height >= deadline(n) + CLAIM_FUZZ;
   // when the champion may take it, as a clock time: blocks left at testnet's pace
-  const until = (n: ChallengeNote) => whenLabel(Date.now() + (deadline(n) + CLAIM_FUZZ - height) * BLOCK_SECONDS * 1000);
+  const until = (n: ChallengeNote) => whenLabel(blockToMs(deadline(n) + CLAIM_FUZZ, height));
 
   const mine = (n: ChallengeNote) => sameAccount(me, n.storage.champion);
   // only mine here: other people's open records are listed in Champion vs Rival
@@ -60,7 +58,7 @@ export function Lobby({ me, notes, height, places, onSettle, onCollect }: LobbyP
             <>
               <p className="muted">Waiting for a rival…</p>
               <LostSoFar n={triesLost(p, notes, height)} />
-              <ShareButtons recordId={p.id} score={p.storage.target} expiresAt={Date.now() + (p.storage.expiryBlock - height) * BLOCK_SECONDS * 1000} cities={cityNames(recordCities(p.storage.game), places)} />
+              <ShareButtons recordId={p.id} score={p.storage.target} expiresAt={blockToMs(p.storage.expiryBlock, height)} cities={cityNames(recordCities(p.storage.game), places)} />
             </>
           )}
         </section>

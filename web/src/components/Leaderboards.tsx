@@ -3,7 +3,8 @@
 // Loserboard is its own section under them, on every screen.
 
 import { useState, type ReactNode } from "react";
-import { keyOf, type boards, type Ranked } from "@/lib/hub";
+import { sameAccount } from "@/lib/flow";
+import { type boards, type Ranked } from "@/lib/hub";
 import type { AccountFelts } from "@/lib/notes";
 
 type Boards = ReturnType<typeof boards>;
@@ -30,7 +31,7 @@ function Tabs<T extends string>({ items, value, onPick, className }: { items: [T
 export function Leaderboards({ data, me, name, action }: { data: Boards | null; me: AccountFelts | null; name: (a: AccountFelts) => string; action?: ReactNode }) {
   const [pick, setPick] = useState<"coins" | "records" | "wins">("coins");
   const [side, setSide] = useState<"defended" | "smashed">("defended");
-  const mine = (r: Ranked) => !!me && keyOf(r.who) === keyOf(me);
+  const mine = (r: Ranked) => sameAccount(me, r.who);
   const row = (r: Ranked) => (
     <tr key={r.key} className={mine(r) ? "mine" : undefined} aria-label={mine(r) ? "Your row" : undefined}>
       <td>{String(r.rank).padStart(2, "0")}</td>

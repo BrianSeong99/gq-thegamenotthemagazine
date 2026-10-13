@@ -5,7 +5,7 @@ import { WorldMap } from "./WorldMap";
 import type { LatLon } from "@/lib/map";
 import { latToCd, lonToCd, quizScore, roundScore, TIME_CAP, type Answer, type City } from "@/lib/rules";
 import type { Place } from "@/lib/quiz";
-import { blocksToClock } from "@/lib/flow";
+import { blocksToClock, secondsToClock } from "@/lib/flow";
 
 export type PlayResult = { answers: Answer[]; score: number };
 
@@ -134,7 +134,7 @@ export function Play({
           <div className="country">{place?.country ?? ""}</div>
           <div className="eyebrow">Round time</div>
           <div className="clock" aria-live="off">
-            {answered ? "Done" : `0:${String(Math.ceil(secondsLeft)).padStart(2, "0")}`}
+            {answered ? "Done" : secondsToClock(Math.ceil(secondsLeft))}
           </div>
           <div className="bar" aria-hidden="true">
             {Array.from({ length: BARS }, (_, i) => (

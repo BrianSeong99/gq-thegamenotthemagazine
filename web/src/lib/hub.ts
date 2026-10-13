@@ -1,14 +1,13 @@
 // Past games and the public leaderboards, read from the game's public notes: nobody reports a
 // result, the chain tells how each record and shot ended. Pure: notes (with the blocks they were
-// made and used in) come in, rows come out.
+// made and consumed in) come in, rows come out.
 
 import type { ChallengeNote } from "./chain";
-import { fmtGeocoin } from "./flow";
+import { fmtGeocoin, sameAccount as same, toGc } from "./flow";
 import { isShotAt, shotDeadline, type AccountFelts } from "./notes";
-import { CLAIM_FUZZ, GC_DECIMALS } from "@/config";
+import { CLAIM_FUZZ } from "@/config";
 
 export const keyOf = (a: AccountFelts) => `${a.prefix}:${a.suffix}`;
-const same = (a: AccountFelts | null, b: AccountFelts | null) => !!a && !!b && keyOf(a) === keyOf(b);
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
 /** Letters of an address read from its end: digits and the wallet's `_…` routing part left out. */
@@ -55,14 +54,14 @@ export function playersInOrder(notes: ChallengeNote[]): AccountFelts[] {
 }
 
 /**
- * How a shot ended. Before its deadline only its rival can use it, and only with a winning answer;
- * a claim proved before the deadline lands at most CLAIM_FUZZ blocks after it, and the champion may
- * only collect from deadline + CLAIM_FUZZ on. So the block it was used in tells: won up to there,
- * taken after. undefined while the node has not said when it was used.
+ * How a shot ended. Before its deadline only its rival can consume it, and only with a winning
+ * answer; a claim proved before the deadline lands at most CLAIM_FUZZ blocks after it, and the
+ * champion may only collect from deadline + CLAIM_FUZZ on. So the block it was consumed in tells:
+ * won up to there, taken after. undefined while the node has not said when it was consumed.
  *
- * v1 notes: the champion could collect from the deadline itself, so a late-landing claim (testnet,
- * 2026-10-09: deadline 82645, claim in 82650) is told apart by having taken the open `record` in the
- * same block. A v1 win without the prize that lands after the deadline reads as lost; kept as is.
+ * v1 notes: the champion could collect from the deadline itself, so a claim that landed late is
+ * told apart by having taken the open `record` in the same block. A v1 win without the prize that
+ * lands after the deadline reads as lost; kept as is.
  */
 export function shotOutcome(shot: ChallengeNote, height: number, record?: ChallengeNote): "won" | "lost" | "open" | undefined {
   const deadline = shotDeadline(shot.storage);
@@ -73,7 +72,7 @@ export function shotOutcome(shot: ChallengeNote, height: number, record?: Challe
   return shot.consumedAt < deadline || claimedWithRecord ? "won" : "lost";
 }
 
-/** How a record ended: smashed (used before the champion could take it back, which only a winner can do), closed (expired) or open. */
+/** How a record ended: smashed (consumed before the champion could take it back, which only a winner can do), closed (expired) or open. */
 export function recordOutcome(record: ChallengeNote, height: number): "smashed" | "closed" | "open" | undefined {
   const expiry = record.storage.expiryBlock;
   // v1: take-back opened at the expiry itself
@@ -92,13 +91,13 @@ export function triesLost(record: ChallengeNote, notes: ChallengeNote[], height:
   return outcomes.includes(undefined) ? null : outcomes.filter((o) => o === "lost").length;
 }
 
-/** Who smashed `record`: the rival of the winning shot used in the same transaction. */
+/** Who smashed `record`: the rival of the winning shot consumed in the same transaction. */
 function winner(record: ChallengeNote, notes: ChallengeNote[], height: number): AccountFelts | undefined {
   const shot = shotsAt(record, notes).find((s) => s.consumedAt === record.consumedAt && shotOutcome(s, height, record) === "won");
   return shot?.storage.rival ?? undefined;
 }
 
-/** Geocoins a champion took from shots lost at `record`: the lost ones already used. */
+/** Geocoins a champion took from shots lost at `record`: the lost ones already consumed. */
 const collected = (record: ChallengeNote, notes: ChallengeNote[], height: number) =>
   shotsAt(record, notes).reduce((sum, s) => (s.consumedAt !== undefined && shotOutcome(s, height, record) === "lost" ? sum + s.amount : sum), 0n);
 
@@ -109,7 +108,7 @@ type Tone = "pink" | "mint" | "";
  */
 export type HistoryItem = { id: string; kind: "record" | "shot"; at: number; result: string; context: string; score: number; detail: string; money: string; note: string; tone: Tone; moneyTone: Tone };
 
-/** My finished games, newest first: my records and my shots once used (live ones stay on the cards). */
+/** My finished games, newest first: my records and my shots once consumed (live ones stay on the cards). */
 export function history(notes: ChallengeNote[], me: AccountFelts, height: number, name: (a: AccountFelts) => string): HistoryItem[] {
   const items: HistoryItem[] = [];
   for (const n of notes) {
@@ -145,7 +144,7 @@ export function history(notes: ChallengeNote[], me: AccountFelts, height: number
 
 export type Ranked = { key: string; who: AccountFelts; value: number; at: number; rank: number };
 /** The top 10, and my best row when I am not among them. */
-export type Board = { top: Ranked[]; mine: Ranked | null };
+type Board = { top: Ranked[]; mine: Ranked | null };
 type Event = { who: AccountFelts; value: number; at: number };
 
 /** Totals per player; a total's `at` is the block it reached its final value. */
@@ -173,7 +172,6 @@ function rank(rows: Omit<Ranked, "rank">[], me: AccountFelts | null): Board {
  * lost, the other side of Defended.
  */
 export function boards(notes: ChallengeNote[], height: number, me: AccountFelts | null) {
-  const gc = (v: bigint) => Number(v) / 10 ** GC_DECIMALS;
   const coins: Event[] = [];
   const defended: Event[] = [];
   const smashed: Event[] = [];
@@ -184,13 +182,13 @@ export function boards(notes: ChallengeNote[], height: number, me: AccountFelts 
       if (!record || shotOutcome(n, height, record) !== "lost") continue;
       defended.push({ who: n.storage.champion, value: 1, at: shotDeadline(n.storage) });
       if (n.storage.rival) losers.push({ who: n.storage.rival, value: 1, at: shotDeadline(n.storage) });
-      if (n.consumedAt !== undefined) coins.push({ who: n.storage.champion, value: gc(n.amount), at: n.consumedAt });
+      if (n.consumedAt !== undefined) coins.push({ who: n.storage.champion, value: toGc(n.amount), at: n.consumedAt });
       continue;
     }
     const outcome = recordOutcome(n, height);
     const w = outcome === "smashed" ? winner(n, notes, height) : undefined;
     if (w) {
-      coins.push({ who: w, value: gc(n.amount), at: n.consumedAt! });
+      coins.push({ who: w, value: toGc(n.amount), at: n.consumedAt! });
       smashed.push({ who: w, value: 1, at: n.consumedAt! });
     }
   }

@@ -8,7 +8,7 @@ export type { Word4 };
 export type Place = { name: string; country: string; lat: number; lon: number };
 
 /** GeoQuizz's game data in a note: seed, dataset hash, then [idx, lat, lon, cos] per city (48 felts). */
-export type GqGame = { seed: Word4; dataset: Word4; cities: City[] };
+type GqGame = { seed: Word4; dataset: Word4; cities: City[] };
 const GAME_ITEMS = 8 + 4 * ROUNDS;
 
 export function encodeGame(g: GqGame): bigint[] {

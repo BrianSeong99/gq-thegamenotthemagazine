@@ -5,7 +5,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
-export const TRACKS = {
+const TRACKS = {
   home: "/brand/home.mp3",
   play: "/brand/play.mp3", // the 1P World Tour
   vs: "/brand/vs.mp3", // a shot at someone's record

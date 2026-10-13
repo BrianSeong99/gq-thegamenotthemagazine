@@ -9,12 +9,12 @@ import { useMidenFiWallet } from "@miden-sdk/miden-wallet-adapter-react";
 import { LOCAL_WALLET, useLocalWallet } from "@/lib/localWallet";
 import { GEOCOIN_GRANT, geocoinRefusal, GRANT_PENDING_MS, useGeocoin } from "@/lib/geocoin";
 import { useSound, type Track } from "@/lib/useSound";
-import { BLOCK_SECONDS, CITIES_URL, MIN_SHOT_WINDOW_BLOCKS, RECORD_LIFETIME_BLOCKS, STAKE, TEST_ACCOUNTS } from "@/config";
+import { CITIES_URL, RECORD_LIFETIME_BLOCKS, STAKE, TEST_ACCOUNTS } from "@/config";
 import { accountFelts, bech32Of, fetchChallengeNote, hexOf, knownNote, listChallengeNotes, loadScripts, parseAccountId, syncNotes, wordFromHex, type ChallengeNote } from "@/lib/chain";
 import { boards, history as pastGames, keyOf, lettersBackward, nicknames, playersInOrder } from "@/lib/hub";
 import { gcBalance, postShot, postRecord, settle, collect, setSubmitAttemptListener, setSubmitStageListener, waitFor, type Submitted } from "@/lib/bread";
-import { shotDeadline, type ChallengeStorage } from "@/lib/notes";
-import { claimVerdict, explain, fmtGeocoin, NOT_FINISHED, SHOT_LOST, shotRefusal, withoutRecord, withTimeout, type Trouble, myOpenShotsOn as openShotsOn, outcomeText, parseCode, reportRows, settlePlan, sharedRecordState, type ReportRow } from "@/lib/flow";
+import { shotDeadline, shotStorage, ZERO_WORD, type AccountFelts, type ChallengeStorage } from "@/lib/notes";
+import { blockToMs, claimVerdict, explain, fmtGeocoin, NOT_FINISHED, SHOT_LOST, shotRefusal, withoutRecord, withTimeout, type Trouble, myOpenShotsOn as openShotsOn, outcomeText, parseCode, reportRows, settlePlan, sharedRecordState, type ReportRow } from "@/lib/flow";
 import { cityNames, datasetWord, decodeGame, encodeGame, quizCities, randomSeed, type Place, type Word4 } from "@/lib/quiz";
 import { gqAnswer, type City } from "@/lib/rules";
 import { History } from "./History";
@@ -128,7 +128,7 @@ function GqApp() {
   const meKey = me && keyOf(me);
   // the boards and the nickname order leave the development wallets' test rounds out
   const publicNotes = useMemo(() => {
-    const test = (a: ChallengeStorage["rival"]) => !!a && TEST_ACCOUNTS.includes(hexOf(a));
+    const test = (a: AccountFelts | null) => !!a && TEST_ACCOUNTS.includes(hexOf(a));
     return notes.filter((n) => !test(n.storage.champion) && !test(n.storage.rival));
   }, [notes]);
   // arcade names for everyone who played, in the order they first did; a newcomer comes last
@@ -138,7 +138,7 @@ function GqApp() {
     return nicknames(players.map((p) => ({ key: keyOf(p), address: bech32Of(p) })));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [publicNotes, meKey]);
-  const nameOf = (a: Parameters<typeof keyOf>[0]) => names.get(keyOf(a)) ?? lettersBackward(bech32Of(a)).slice(0, 3);
+  const nameOf = (a: AccountFelts) => names.get(keyOf(a)) ?? lettersBackward(bech32Of(a)).slice(0, 3);
 
   /** A failure in plain words, with a way to try again when there is one. */
   const oops = (e: unknown, retry?: () => void) => setTrouble({ t: explain(e), retry });
@@ -239,11 +239,11 @@ function GqApp() {
    * `previous`: the attempt that never showed. Try again first looks whether it landed after all,
    * so a slow network never makes anyone post or pay twice.
    */
-  async function run(text: string, posted: boolean, fn: () => Promise<Submitted>, back: Mode, onConfirmed?: (s: Submitted) => Mode | void, previous?: Submitted) {
+  async function run<S extends Submitted>(text: string, posted: boolean, fn: () => Promise<S>, back: Mode, onConfirmed?: (s: S) => Mode | void, previous?: S) {
     const token = ++runToken.current;
     const live = () => runToken.current === token;
     const update = (patch: Partial<Extract<Mode, { kind: "busy" }>>) => setMode((m) => (live() && m.kind === "busy" ? { ...m, ...patch } : m));
-    const again = (attempt?: Submitted) => () => void run(text, posted, fn, back, onConfirmed, attempt);
+    const again = (attempt?: S) => () => void run(text, posted, fn, back, onConfirmed, attempt);
     const landed = async (ids: string[]) => {
       const records = await Promise.all(ids.map((id) => knownNote(id)));
       return posted ? records.every((r) => !!r) : records.every((r) => !!r?.consumed);
@@ -260,7 +260,7 @@ function GqApp() {
         setMode(back);
       }
     };
-    const finish = (s: Submitted) => {
+    const finish = (s: S) => {
       void refresh();
       setMode(onConfirmed?.(s) ?? { kind: "done", text: outcomeText(text, true), txId: s.txId });
     };
@@ -311,15 +311,15 @@ function GqApp() {
           minStake: STAKE,
           champion,
           rival: null,
-          recordId: [0n, 0n, 0n, 0n],
-          shotRoot: [0n, 0n, 0n, 0n], // filled from the loaded script
+          recordId: ZERO_WORD,
+          shotRoot: ZERO_WORD, // filled from the loaded script
           game: encodeGame({ seed: m.seed, dataset, cities: m.cities }),
           shotDeadline: 0,
         };
         return postRecord(client, wallet, storage, STAKE);
       },
       m,
-      ({ txId, noteIds }) => ({ kind: "done", title: "Record posted!", text: "Now find someone to beat you.", txId, share: { recordId: noteIds[0], score: m.result.score, expiresAt: Date.now() + RECORD_LIFETIME_BLOCKS * BLOCK_SECONDS * 1000, cities: cityNames(m.cities, places) } }),
+      ({ txId, noteIds }) => ({ kind: "done", title: "Record posted!", text: "Now find someone to beat you.", txId, share: { recordId: noteIds[0], score: m.result.score, expiresAt: blockToMs(height + RECORD_LIFETIME_BLOCKS, height), cities: cityNames(m.cities, places) } }),
     );
   }
 
@@ -329,7 +329,7 @@ function GqApp() {
   async function takeShot(record: ChallengeNote) {
     if (!dataset) return;
     const rival = accountFelts(parseAccountId(wallet.address!));
-    const refusal = shotRefusal(record, height, MIN_SHOT_WINDOW_BLOCKS, rival);
+    const refusal = shotRefusal(record, height, rival);
     if (refusal) return say(refusal);
     const open = openShotsOn(notes, rival, record, height);
     if (open.length > 0) {
@@ -357,7 +357,7 @@ function GqApp() {
             id: submitted.noteIds[0],
             idWord: wordFromHex(submitted.noteIds[0]),
             kind: "shot",
-            storage: { ...record.storage, rival, recordId: record.idWord, shotDeadline: (submitted as Submitted & { deadline: number }).deadline },
+            storage: shotStorage(record.storage, rival, record.idWord, submitted.deadline),
             amount: record.storage.minStake,
             consumed: false,
           },
@@ -374,7 +374,7 @@ function GqApp() {
       setMode({ kind: "done", title: "The record stands.", text: plan.text, rows });
       return;
     }
-    const claimUntil = Date.now() + (shotDeadline(shots[0].storage) - height) * BLOCK_SECONDS * 1000;
+    const claimUntil = blockToMs(shotDeadline(shots[0].storage), height);
     const claim = (): void =>
       void run(
         plan.text,
@@ -454,7 +454,7 @@ function GqApp() {
 
   // funded records a rival can still take a shot at, easiest first
   const openRecords = publicNotes
-    .filter((n) => n.kind === "record" && n.amount > 0n && !shotRefusal(n, height, MIN_SHOT_WINDOW_BLOCKS))
+    .filter((n) => n.kind === "record" && n.amount > 0n && !shotRefusal(n, height))
     .sort((a, b) => a.storage.target - b.storage.target);
   const cardRef = useRef<HTMLElement>(null);
   /** Opens a listed record like its link would, fresh from the node: the list may be a while old. */
@@ -476,7 +476,7 @@ function GqApp() {
             <div>
               <div className="value">{n.storage.target.toLocaleString()} pts</div>
               <div className="small muted">
-                <EndsIn until={Date.now() + (n.storage.expiryBlock - height) * BLOCK_SECONDS * 1000} />
+                <EndsIn until={blockToMs(n.storage.expiryBlock, height)} />
               </div>
             </div>
             <button className="btn" onClick={() => viewChallenge(n)} aria-label={`View challenge, ${n.storage.target.toLocaleString()} pts`}>
@@ -493,8 +493,7 @@ function GqApp() {
 
   const recordCard = () => {
     if (!record) return null;
-    const sharedRecord = record;
-    const state = sharedRecordState(sharedRecord, me, me ? myOpenShotsOn(sharedRecord) : [], height);
+    const state = sharedRecordState(record, me, me ? myOpenShotsOn(record) : [], height);
     if (state === "claimed" || state === "expired") {
       return (
         <section className="panel pink" ref={cardRef} tabIndex={-1}>
@@ -506,23 +505,23 @@ function GqApp() {
     return (
       <section className="panel pink" ref={cardRef} tabIndex={-1}>
         <div className="panel-title">Record</div>
-        <div className="big-score">{sharedRecord.storage.target.toLocaleString()} pts to beat</div>
+        <div className="big-score">{record.storage.target.toLocaleString()} pts to beat</div>
         <div className="row">
           <span>Prize</span>
-          <span className="value">{fmtGeocoin(sharedRecord.amount)}</span>
+          <span className="value">{fmtGeocoin(record.amount)}</span>
         </div>
         <div className="row">
           <span>One shot</span>
-          <span className="value">{fmtGeocoin(sharedRecord.storage.minStake)}</span>
+          <span className="value">{fmtGeocoin(record.storage.minStake)}</span>
         </div>
         {state === "mine" && <p className="muted">This is yours.</p>}
         {state === "already-challenged" && (
-          <button className="btn primary wide" onClick={() => withWallet({ kind: "shot", record: sharedRecord })}>
+          <button className="btn primary wide" onClick={() => withWallet({ kind: "shot", record: record })}>
             Play
           </button>
         )}
         {state === "open" && (
-          <button className="btn primary wide" onClick={() => withWallet({ kind: "shot", record: sharedRecord })}>
+          <button className="btn primary wide" onClick={() => withWallet({ kind: "shot", record: record })}>
             Insert Geocoin
           </button>
         )}
@@ -596,7 +595,7 @@ function GqApp() {
               <aside className="panel">
                 <div className="panel-title">1P World Tour</div>
                 <p>10 cities, 15 seconds each.</p>
-                <p className="muted">Free to play. Once you’re happy with your score, post it on X to challenge your rivals.</p>
+                <p className="muted">Free to play. Once you're happy with your score, post it on X to challenge your rivals.</p>
                 <button className="btn primary wide" onClick={startChampion} disabled={!dataset || places.length === 0}>
                   Locate first city
                 </button>

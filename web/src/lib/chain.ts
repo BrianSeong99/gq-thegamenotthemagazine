@@ -122,7 +122,7 @@ export async function syncNotes(client: Client): Promise<number> {
 
 // every GQ note the node has shown this page, decoded once: a note never changes, only whether it is used
 const known = new Map<string, ChallengeNote>();
-// the node answers the whole chain in one request (testnet 2026-10-09: 40 notes up to block 94 404)
+// the node answers the whole chain in one request
 let scannedTo = -1;
 let scanning: Promise<ChallengeNote[]> | null = null;
 

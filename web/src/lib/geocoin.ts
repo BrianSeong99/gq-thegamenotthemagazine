@@ -18,7 +18,7 @@ import type { Client } from "./chain";
 import { fmtGeocoin } from "./flow";
 
 /** The button is for empty pockets: nothing for a wallet holding more than 1 Geocoin. */
-export const GEOCOIN_MAX_HELD = 10n ** BigInt(GC_DECIMALS);
+const GEOCOIN_MAX_HELD = 10n ** BigInt(GC_DECIMALS);
 /** A grant counts as on its way this long: Bread takes the minted note by itself, a while later. */
 export const GRANT_PENDING_MS = 5 * 60_000;
 

@@ -40,7 +40,7 @@ const storage: ChallengeStorage = {
   shotDeadline: 0,
 };
 const prize: ChallengeNote = { id: "0xp", idWord: [9n, 9n, 9n, 9n], kind: "record", storage, amount: 1_000_000n, consumed: false };
-const myChallenge: ChallengeNote = {
+const myShot: ChallengeNote = {
   id: "0xc",
   idWord: [1n, 1n, 1n, 1n],
   kind: "shot",
@@ -129,7 +129,7 @@ describe("shared record link, connected as a stranger", () => {
   });
 
   it("does not post a second shot while one is open: it goes straight to the quiz", async () => {
-    chain.notes = [prize, myChallenge];
+    chain.notes = [prize, myShot];
     render(<AppContent />);
     fireEvent.click(await screen.findByRole("button", { name: /^play$/i }));
     await screen.findByText(/find c0!/i);
@@ -240,7 +240,7 @@ describe("welcome and 1P World Tour", () => {
       await screen.findByRole("button", { name: /click to start/i });
 
       // a shot at a record nobody can beat (score 0 is never above the target)
-      chain.notes = [prize, myChallenge];
+      chain.notes = [prize, myShot];
       fireEvent.click(screen.getByRole("button", { name: /click to start/i }));
       fireEvent.click(screen.getByRole("button", { name: /player hub/i }));
       fireEvent.click(screen.getByRole("button", { name: /^refresh$/i }));
@@ -365,7 +365,7 @@ describe("open challenges in Champion vs Rival", () => {
       listed("0xempty", 3300, { amount: 0n }),
       listed("0xover", 3400, {}, 100),
       listed("0xlate", 3500, {}, 100 + MIN_SHOT_WINDOW_BLOCKS - 1),
-      { ...myChallenge, storage: { ...myChallenge.storage, target: 3600 } },
+      { ...myShot, storage: { ...myShot.storage, target: 3600 } },
       listed("0xtest", 3700, { storage: { ...prize.storage, champion: me } }),
     ];
     vi.mocked(hexOf).mockImplementation((a) => (a === me ? "0x071d3da3ad56d88175b628f76073cb" : "0xreal"));
@@ -422,7 +422,7 @@ describe("open challenges in Champion vs Rival", () => {
   it("the 1P box says how to challenge rivals and links to Champion vs Rival", async () => {
     window.history.replaceState({}, "", "/");
     await start();
-    expect(screen.getByText("Free to play. Once you’re happy with your score, post it on X to challenge your rivals.")).toBeInTheDocument();
+    expect(screen.getByText("Free to play. Once you're happy with your score, post it on X to challenge your rivals.")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Find a challenge in CHAMPION VS RIVAL mode →" }));
     expect(await screen.findByText("Open challenges")).toBeInTheDocument();
     expect(screen.getByText(/have a code\?/i)).toBeInTheDocument();
@@ -474,8 +474,8 @@ describe("home, connected", () => {
 
   it("settles all my open shots at the record with one play", async () => {
     window.history.replaceState({}, "", "/");
-    const second = { ...myChallenge, id: "0xc2", idWord: [2n, 2n, 2n, 2n] as [bigint, bigint, bigint, bigint] };
-    chain.notes = [prize, myChallenge, second];
+    const second = { ...myShot, id: "0xc2", idWord: [2n, 2n, 2n, 2n] as [bigint, bigint, bigint, bigint] };
+    chain.notes = [prize, myShot, second];
     await start(/player hub/i);
     await screen.findAllByText(/my shot/i);
     // one "Play" per open shot

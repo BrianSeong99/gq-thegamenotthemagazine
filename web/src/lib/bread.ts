@@ -7,9 +7,6 @@
 import {
   AccountId,
   AdviceMap,
-  Felt,
-  NoteAndArgs,
-  NoteAndArgsArray,
   NoteArray,
   Poseidon2,
   RpcClient,
@@ -65,7 +62,7 @@ export async function gcBalance(wallet: Wallet): Promise<bigint> {
 }
 
 /** Throws a readable error when the wallet holds less than `needed` Geocoin. */
-export async function requireGc(wallet: Wallet, needed: bigint): Promise<void> {
+async function requireGc(wallet: Wallet, needed: bigint): Promise<void> {
   const balance = await gcBalance(wallet);
   if (balance < needed) {
     throw new Error(
@@ -74,7 +71,6 @@ export async function requireGc(wallet: Wallet, needed: bigint): Promise<void> {
   }
 }
 
-/** Polls the local client until `check` holds or the network timeout passes. */
 /**
  * Polls the local client until `check` holds or the network timeout passes. A sync that fails on a
  * slow or busy network is just a missed look: the next one tries again.
@@ -108,10 +104,10 @@ async function tip(): Promise<number> {
 const RETRIES = 3;
 
 /** Progress callback for the UI: which attempt is running. */
-export let onSubmitAttempt: (attempt: number, total: number) => void = () => {};
+let onSubmitAttempt: (attempt: number, total: number) => void = () => {};
 export const setSubmitAttemptListener = (fn: typeof onSubmitAttempt) => (onSubmitAttempt = fn);
 /** Progress callback for the UI: "prepare" while the request is built, "wallet" once the wallet has it. */
-export let onSubmitStage: (stage: "prepare" | "wallet") => void = () => {};
+let onSubmitStage: (stage: "prepare" | "wallet") => void = () => {};
 export const setSubmitStageListener = (fn: typeof onSubmitStage) => (onSubmitStage = fn);
 
 /**
@@ -200,14 +196,14 @@ export async function settle(client: Client, wallet: Wallet, shots: ChallengeNot
     const { inputs } = await fetchNotesWithProof(ids);
     const advice = new AdviceMap();
     // whatever the game reads besides the note argument (GeoQuizz: its ten answers)
-    for (const [key, felts] of answer.advice) advice.insert(wordOf(key), feltArray(felts));
+    for (const [key, felts] of answer.advice) advice.insert(wordFromFelts(key), feltArray(felts));
     for (const input of inputs) {
       // the record script learns each shot's deadline from the advice map and proves it by commitment
       if (shotScripts.has(input.note().recipient().script().root().toHex())) {
         const items = input.note().recipient().storage().items();
         advice.insert(Word.fromHex(input.id().toString()), feltArray([items[SHOT_DEADLINE_INDEX].asInt()]));
       }
-      b = b.withExplicitInputNote(input, wordOf(answer.arg));
+      b = b.withExplicitInputNote(input, wordFromFelts(answer.arg));
     }
     return b.extendAdviceMap(advice).build();
   };
@@ -220,13 +216,9 @@ export async function collect(client: Client, wallet: Wallet, notes: ChallengeNo
   const { files } = await fetchNotesWithProof(ids);
   const build = async (b: TransactionRequestBuilder) => {
     const { inputs } = await fetchNotesWithProof(ids);
-    for (const input of inputs) b = b.withExplicitInputNote(input, wordOf(ZERO_WORD));
+    for (const input of inputs) b = b.withExplicitInputNote(input, wordFromFelts(ZERO_WORD));
     return b.build();
   };
   return { txId: await submit(client, wallet, build, ids, files), noteIds: ids };
 }
 
-const wordOf = (w: Word4) => Word.newFromFelts(w.map((v) => new Felt(v)));
-
-// keep the unused-import linter honest about the types this file relies on
-export type { NoteAndArgs, NoteAndArgsArray };

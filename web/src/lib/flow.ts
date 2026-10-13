@@ -1,17 +1,15 @@
 // The app's decisions, as pure functions so they can be tested without React, WASM or Bread.
-// Every rule here was once a bug in the component.
 
 import type { ChallengeNote } from "./chain";
-import { shotDeadline, ZERO_WORD, type AccountFelts, type ChallengeStorage, type Word4 } from "./notes";
+import { noteDeadline, ZERO_WORD, type AccountFelts, type ChallengeStorage, type Word4 } from "./notes";
 import type { Place } from "./quiz";
-import { BLOCK_SECONDS, CLAIM_FUZZ, GC_DECIMALS, GC_FAUCET, RECORD_LIFETIME_BLOCKS, STAKE, V1_ROOTS } from "@/config";
+import { BLOCK_SECONDS, CLAIM_FUZZ, GC_DECIMALS, GC_FAUCET, MIN_SHOT_WINDOW_BLOCKS, RECORD_LIFETIME_BLOCKS, STAKE, V1_ROOTS } from "@/config";
 import { QUIZ_MAX, roundScore, type Answer, type City } from "./rules";
 
 export const sameAccount = (a: AccountFelts | null | undefined, b: AccountFelts | null | undefined) =>
   !!a && !!b && a.suffix === b.suffix && a.prefix === b.prefix;
 
-export const isOpen = (n: ChallengeNote, height: number) =>
-  !n.consumed && height < (n.kind === "shot" ? shotDeadline(n.storage) : n.storage.expiryBlock);
+const isOpen = (n: ChallengeNote, height: number) => !n.consumed && height < noteDeadline(n);
 
 /** My unconsumed, unexpired shot notes at `record`: one play settles all of them. */
 export function myOpenShotsOn(notes: ChallengeNote[], me: AccountFelts | null, record: ChallengeNote, height: number): ChallengeNote[] {
@@ -20,7 +18,7 @@ export function myOpenShotsOn(notes: ChallengeNote[], me: AccountFelts | null, r
     (n) =>
       n.kind === "shot" &&
       sameAccount(me, n.storage.rival) &&
-      n.storage.recordId.every((f, i) => f === record.idWord[i]) &&
+      sameWord(n.storage.recordId, record.idWord) &&
       isOpen(n, height),
   );
 }
@@ -37,18 +35,18 @@ export function sharedRecordState(record: ChallengeNote, me: AccountFelts | null
 }
 
 /** Why a shot cannot be taken right now, or null when it can. */
-export function shotRefusal(record: ChallengeNote, height: number, minWindow: number, me?: AccountFelts | null): string | null {
+export function shotRefusal(record: ChallengeNote, height: number, me?: AccountFelts | null): string | null {
   if (record.consumed) return "This one is over.";
   // the record script runs the champion's path for its own champion: a shot of theirs could never claim it
   if (sameAccount(me, record.storage.champion)) return "This one is yours.";
-  if (record.storage.expiryBlock - height < minWindow) return "Too late for this one.";
+  if (record.storage.expiryBlock - height < MIN_SHOT_WINDOW_BLOCKS) return "Too late for this one.";
   const { target, minStake, expiryBlock } = record.storage;
   // terms this game never writes: an unbeatable target, another stake, a record that outlives its day
   if (target >= QUIZ_MAX || minStake !== STAKE || expiryBlock > height + RECORD_LIFETIME_BLOCKS) return "This one is rigged.";
   return null;
 }
 
-const sameWord = (a: Word4, b: Word4) => a.every((f, i) => f === b[i]);
+export const sameWord = (a: Word4, b: Word4) => a.every((f, i) => f === b[i]);
 
 export type NoteKind = { kind: "record"; shotRoot: string; v1?: true } | { kind: "shot"; v1?: true };
 
@@ -102,9 +100,13 @@ export const NOT_FINISHED = "It did not go through yet. Nothing is spent until i
 /** A block count as m:ss, at testnet's ~3 s per block. */
 export const blocksToClock = (blocks: number) => secondsToClock(Math.max(0, blocks) * BLOCK_SECONDS);
 
+/** When `block` lands, in ms, counting from `height` (the chain's current block) at testnet's pace. */
+export const blockToMs = (block: number, height: number) => Date.now() + (block - height) * BLOCK_SECONDS * 1000;
+
+const pad = (v: number) => String(v).padStart(2, "0");
+
 /** m:ss, or h:mm:ss from an hour on. */
 export const secondsToClock = (s: number) => {
-  const pad = (v: number) => String(v).padStart(2, "0");
   const h = Math.floor(s / 3600);
   const m = Math.floor((s % 3600) / 60);
   return `${h ? `${h}:${pad(m)}` : m}:${pad(s % 60)}`;
@@ -112,11 +114,11 @@ export const secondsToClock = (s: number) => {
 
 /**
  * Before sending a claim: what the chain already says about the shot(s). Before its deadline only
- * the rival can use a shot, and only with a winning answer; from the deadline on only the champion.
- * So a shot used before its deadline was claimed by its rival, one used later was taken.
+ * the rival can consume a shot, and only with a winning answer; from deadline + CLAIM_FUZZ on only
+ * the champion. So a shot consumed up to there was claimed by its rival, one consumed later was taken.
  */
 export function claimVerdict(shots: { consumedAt?: number; deadline: number; v1?: true }[]): "open" | "claimed" | "lost" {
-  // the champion collects from deadline + CLAIM_FUZZ (v1: from the deadline); a shot used earlier was ours
+  // the champion collects from deadline + CLAIM_FUZZ (v1: from the deadline); a shot consumed earlier was ours
   if (shots.some((s) => s.consumedAt !== undefined && s.consumedAt >= s.deadline + (s.v1 ? 0 : CLAIM_FUZZ + 1))) return "lost";
   if (shots.length > 0 && shots.every((s) => s.consumedAt !== undefined)) return "claimed";
   return "open";
@@ -192,9 +194,12 @@ export async function submitWithRetry<T>(attempt: (n: number) => Promise<T>, ret
   }
 }
 
+/** Base units to Geocoins: 1_000_000n is 1. */
+export const toGc = (v: bigint) => Number(v) / 10 ** GC_DECIMALS;
+
 /** An amount of Geocoin in words: "1 Geocoin", "10 Geocoins". */
 export function fmtGeocoin(v: bigint): string {
-  const n = Number(v) / 10 ** GC_DECIMALS;
+  const n = toGc(v);
   return `${n.toLocaleString(undefined, { maximumFractionDigits: GC_DECIMALS })} Geocoin${n === 1 ? "" : "s"}`;
 }
 
@@ -207,9 +212,8 @@ export function withoutRecord(href: string): string {
 }
 
 /** A moment in UTC, for readers anywhere: 13 Oct 14:05 UTC. */
-export function utcLabel(ms: number): string {
+function utcLabel(ms: number): string {
   const d = new Date(ms);
-  const pad = (v: number) => String(v).padStart(2, "0");
   return `${pad(d.getUTCDate())} ${d.toLocaleString("en", { month: "short", timeZone: "UTC" })} ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())} UTC`;
 }
 

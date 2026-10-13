@@ -43,19 +43,25 @@ export function ErrorBox({
   );
 }
 
-/** The claim after a won shot: a live countdown to the shot's end, and the claim button until then. */
-export function ClaimButton({ until, label, onClaim }: { until: number; label: string; onClaim: () => void }) {
+/** The time, once a second. */
+function useNow() {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(t);
   }, []);
+  return now;
+}
+
+/** The claim after a won shot: a live countdown to the shot's end, and the claim button until then. */
+export function ClaimButton({ until, label, onClaim }: { until: number; label: string; onClaim: () => void }) {
+  const now = useNow();
   const left = Math.max(0, Math.floor((until - now) / 1000));
   if (left === 0) return <p className="error-note">Too late: your shot has ended. The champion can take your Geocoin.</p>;
   return (
     <>
       <p className="deadline">
-        Claim before your shot ends: {Math.floor(left / 60)}:{String(left % 60).padStart(2, "0")}
+        Claim before your shot ends: {secondsToClock(left)}
       </p>
       <button className="btn primary" onClick={onClaim}>
         {label}
@@ -66,11 +72,7 @@ export function ClaimButton({ until, label, onClaim }: { until: number; label: s
 
 /** A live countdown to `until` (ms). */
 export function EndsIn({ until }: { until: number }) {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(t);
-  }, []);
+  const now = useNow();
   return <>Ends in {secondsToClock(Math.max(0, Math.round((until - now) / 1000)))}</>;
 }
 
@@ -81,11 +83,7 @@ const SLOW_AFTER_S = 30;
 
 /** Says which step a transaction is at, counts the seconds on the network, and always offers Back. */
 export function Waiting({ text, stage, since, local, onBack }: { text: string; stage: Stage; since: number; local: boolean; onBack: () => void }) {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(t);
-  }, []);
+  const now = useNow();
   const seconds = Math.max(0, Math.floor((now - since) / 1000));
   const step =
     stage === "prepare" ? "Getting ready…" : stage === "wallet" ? (local ? "Signing…" : "Approve it in your wallet.") : `Sending it to the Miden network… ${seconds} s`;

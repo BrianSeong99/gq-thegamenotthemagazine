@@ -85,18 +85,18 @@ describe("shared record page", () => {
 
 describe("taking a shot", () => {
   it("refuses a claimed record or one about to expire", () => {
-    expect(shotRefusal(prize, 100, 140)).toBeNull();
-    expect(shotRefusal(prize, 900, 140)).toMatch(/too late/i);
-    expect(shotRefusal({ ...prize, consumed: true }, 100, 140)).toMatch(/over/);
+    expect(shotRefusal(prize, 100)).toBeNull();
+    expect(shotRefusal(prize, 900)).toMatch(/too late/i);
+    expect(shotRefusal({ ...prize, consumed: true }, 100)).toMatch(/over/);
   });
 
   it("refuses my own record: the claim would run the champion's path, which only opens after expiry", () => {
-    expect(shotRefusal(prize, 100, 140, champion)).toBe("This one is yours.");
-    expect(shotRefusal(prize, 100, 140, me)).toBeNull();
+    expect(shotRefusal(prize, 100, champion)).toBe("This one is yours.");
+    expect(shotRefusal(prize, 100, me)).toBeNull();
   });
 
   it("refuses a record whose terms the game could never produce", () => {
-    const rigged = (storage: Partial<ChallengeStorage>) => shotRefusal({ ...prize, storage: { ...base, ...storage } }, 100, 140);
+    const rigged = (storage: Partial<ChallengeStorage>) => shotRefusal({ ...prize, storage: { ...base, ...storage } }, 100);
     expect(rigged({ target: 9999 })).toBeNull();
     expect(rigged({ target: 10_000 })).toMatch(/rigged/);
     expect(rigged({ minStake: 999_999n })).toMatch(/rigged/);

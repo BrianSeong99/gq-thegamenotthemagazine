@@ -17,7 +17,6 @@ export async function requestFaucetTokens(
     return response.json();
   };
   const metadata = await get("get_metadata");
-  // metadata.id is the distribution account, not the fee-asset issuer in v0.17.
   const amount = String(metadata.base_amount);
   if (!/^\d+$/.test(amount) || BigInt(amount) <= 0n) {
     throw new Error("Faucet returned an invalid token amount.");

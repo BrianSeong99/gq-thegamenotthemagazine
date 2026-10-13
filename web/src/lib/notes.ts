@@ -72,8 +72,11 @@ export function decodeStorage(felts: bigint[]): ChallengeStorage {
   };
 }
 
-/** The block a shot stops being settleable (and the champion may collect). */
+/** The block a shot stops being settleable (the champion collects from CLAIM_FUZZ blocks later). */
 export const shotDeadline = (s: ChallengeStorage) => Math.min(s.shotDeadline, s.expiryBlock);
+
+/** The block a note stops being playable: a shot's deadline, a record's expiry. */
+export const noteDeadline = (n: { kind: "record" | "shot"; storage: ChallengeStorage }) => (n.kind === "shot" ? shotDeadline(n.storage) : n.storage.expiryBlock);
 
 /** The shot note's storage for `rival` at the record note `recordId`, settleable until `deadline`. */
 export function shotStorage(record: ChallengeStorage, rival: AccountFelts, recordId: Word4, deadline: number): ChallengeStorage {
