@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { secondsToClock, type Trouble } from "@/lib/flow";
+import { useT } from "@/lib/i18n";
 
 /** A failure in plain words, the raw text one tap away, and a way forward. */
 export function ErrorBox({
@@ -15,28 +16,29 @@ export function ErrorBox({
   onGeocoins?: () => void;
   onClose: () => void;
 }) {
+  const t = useT();
   return (
     <section className="panel red error-box" role="alert">
-      <p className="title">{trouble.title}</p>
+      <p className="title">{t(trouble.title)}</p>
       {trouble.detail && (
         <details>
-          <summary>What happened?</summary>
+          <summary>{t("What happened?")}</summary>
           <code>{trouble.detail}</code>
         </details>
       )}
       <div className="actions">
         {onRetry && (
           <button className="btn primary" onClick={onRetry}>
-            Try again
+            {t("Try again")}
           </button>
         )}
         {trouble.kind === "funds" && onGeocoins && (
           <button className="btn primary" onClick={onGeocoins}>
-            Get Geocoins
+            {t("Get Geocoins")}
           </button>
         )}
         <button className="btn" onClick={onClose}>
-          OK
+          {t("OK")}
         </button>
       </div>
     </section>
@@ -55,14 +57,13 @@ function useNow() {
 
 /** The claim after a won shot: a live countdown to the shot's end, and the claim button until then. */
 export function ClaimButton({ until, label, onClaim }: { until: number; label: string; onClaim: () => void }) {
+  const t = useT();
   const now = useNow();
   const left = Math.max(0, Math.floor((until - now) / 1000));
-  if (left === 0) return <p className="error-note">Too late: your shot has ended. The champion can take your Geocoin.</p>;
+  if (left === 0) return <p className="error-note">{t("Too late: your shot has ended. The champion can take your Geocoin.")}</p>;
   return (
     <>
-      <p className="deadline">
-        Claim before your shot ends: {secondsToClock(left)}
-      </p>
+      <p className="deadline">{t("Claim before your shot ends: {time}", { time: secondsToClock(left) })}</p>
       <button className="btn primary" onClick={onClaim}>
         {label}
       </button>
@@ -72,8 +73,9 @@ export function ClaimButton({ until, label, onClaim }: { until: number; label: s
 
 /** A live countdown to `until` (ms). */
 export function EndsIn({ until }: { until: number }) {
+  const t = useT();
   const now = useNow();
-  return <>Ends in {secondsToClock(Math.max(0, Math.round((until - now) / 1000)))}</>;
+  return <>{t("Ends in {time}", { time: secondsToClock(Math.max(0, Math.round((until - now) / 1000))) })}</>;
 }
 
 export type Stage = "prepare" | "wallet" | "network";
@@ -83,19 +85,20 @@ const SLOW_AFTER_S = 30;
 
 /** Says which step a transaction is at, counts the seconds on the network, and always offers Back. */
 export function Waiting({ text, stage, since, local, onBack }: { text: string; stage: Stage; since: number; local: boolean; onBack: () => void }) {
+  const t = useT();
   const now = useNow();
   const seconds = Math.max(0, Math.floor((now - since) / 1000));
   const step =
-    stage === "prepare" ? "Getting ready…" : stage === "wallet" ? (local ? "Signing…" : "Approve it in your wallet.") : `Sending it to the Miden network… ${seconds} s`;
+    stage === "prepare" ? t("Getting ready…") : stage === "wallet" ? (local ? t("Signing…") : t("Approve it in your wallet.")) : t("Sending it to the Miden network… {s} s", { s: seconds });
   return (
     <section className="panel waiting" aria-live="polite">
       <h2>{text}</h2>
       <p>{step}</p>
       {stage === "network" && seconds >= SLOW_AFTER_S && (
-        <p className="muted">The network is slow right now. You can keep waiting, or go back: if it goes through, you will find it in the Player Hub.</p>
+        <p className="muted">{t("The network is slow right now. You can keep waiting, or go back: if it goes through, you will find it in the Player Hub.")}</p>
       )}
       <button className="btn" onClick={onBack}>
-        Back
+        {t("Back")}
       </button>
     </section>
   );

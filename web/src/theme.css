@@ -6,6 +6,13 @@
   src: url("/brand/geoquizz-pixel.ttf") format("truetype");
   font-display: swap;
 }
+/* Chinese display text: Fusion Pixel 12 px (zh_hans), cut down to the characters the game shows.
+   Crisp at 12, 24 and 36 px. Latin and digits keep the GeoQuizz face before it in the stack. */
+@font-face {
+  font-family: "GQ Chinese Pixel";
+  src: url("/brand/gq-chinese-pixel.woff2") format("woff2");
+  font-display: swap;
+}
 
 :root {
   --void: #0c0827;
@@ -21,10 +28,20 @@
   --red: #ff3449;
   --rule: #596ccd;
   --shadow: #07052a;
-  --display: "GeoQuizz Pixel", monospace;
+  --display: "GeoQuizz Pixel", "GQ Chinese Pixel", monospace;
   --body: Verdana, sans-serif;
   color-scheme: dark;
 }
+/* Simplified Chinese: the system's own CJK face for body copy, pixel sizes on the 12 px grid for display text */
+html[lang="zh-Hans"] {
+  --body: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+}
+html[lang="zh-Hans"] h1, html[lang="zh-Hans"] .big-score { font-size: 36px; }
+html[lang="zh-Hans"] h2, html[lang="zh-Hans"] h3, html[lang="zh-Hans"] .btn, html[lang="zh-Hans"] .banner, html[lang="zh-Hans"] .card .score, html[lang="zh-Hans"] .history-score, html[lang="zh-Hans"] .history-item .money-label, html[lang="zh-Hans"] .history-filters button { font-size: 24px; }
+html[lang="zh-Hans"] .hud .city { font-size: 36px; }
+html[lang="zh-Hans"] .eyebrow, html[lang="zh-Hans"] .panel-title, html[lang="zh-Hans"] .masthead nav button, html[lang="zh-Hans"] .masthead .sound, html[lang="zh-Hans"] .masthead .wallet, html[lang="zh-Hans"] .masthead .testnet, html[lang="zh-Hans"] .masthead .net, html[lang="zh-Hans"] .history-item .eyebrow, html[lang="zh-Hans"] .history-day-title, html[lang="zh-Hans"] .rotate-hint, html[lang="zh-Hans"] .hud .rival .bubble, html[lang="zh-Hans"] .panel .deadline, html[lang="zh-Hans"] .hud .deadline, html[lang="zh-Hans"] .loader-label, html[lang="zh-Hans"] .panel-title .btn, html[lang="zh-Hans"] .board-tabs .btn, html[lang="zh-Hans"] .record-tabs .btn { font-size: 12px; }
+html[lang="zh-Hans"] .history-item p { font-size: 16px; }
+html[lang="zh-Hans"] .small, html[lang="zh-Hans"] .history-item .history-detail, html[lang="zh-Hans"] .history-item .money-note, html[lang="zh-Hans"] .text-link { font-size: 14px; }
 
 * { box-sizing: border-box; }
 html, body { margin: 0; background: var(--void); color: var(--white); }
@@ -83,7 +100,9 @@ p { margin: 0 0 12px; }
 .panel.yellow { border-color: var(--yellow); }
 .panel.mint { border-color: var(--mint); }
 .panel.red { border-color: var(--red); }
-.panel-title { margin: -20px -20px 16px; padding: 10px 20px; background: var(--cobalt); border-bottom: 3px solid var(--cyan); font: 14px/1.6 var(--display); text-transform: uppercase; color: var(--yellow); }
+.panel-title { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: -20px -20px 16px; padding: 10px 20px; background: var(--cobalt); border-bottom: 3px solid var(--cyan); font: 14px/1.6 var(--display); text-transform: uppercase; color: var(--yellow); }
+/* an action in a panel title (Refresh): small, no margin */
+.panel-title .btn { min-height: 30px; margin: -4px 0; padding: 2px 10px; font-size: 11px; }
 .card { margin-bottom: 20px; }
 .card .score { font: 32px/1.2 var(--display); color: var(--yellow); margin: 4px 0 8px; }
 .row { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 2px solid var(--rule); }
@@ -103,15 +122,21 @@ p { margin: 0 0 12px; }
 .masthead nav button.active::before { content: "▶ "; color: var(--pink); }
 .masthead .wallet { display: block; margin: 0; min-height: 44px; padding: 10px 12px; font-size: 12px; max-width: 280px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .masthead .sound { background: none; border: 0; padding: 6px 0; font: 12px/1.6 var(--display); text-transform: uppercase; color: var(--cyan); white-space: nowrap; }
+/* the other language, one small framed button */
+.masthead .lang { min-width: 44px; min-height: 44px; padding: 8px 5px; background: var(--void); border: 2px solid var(--rule); font: 12px/1.4 var(--display); color: var(--muted); white-space: nowrap; }
+.masthead .lang:hover { border-color: var(--cyan); color: var(--yellow); }
 .share { display: flex; flex-wrap: wrap; gap: 4px 0; margin-top: 8px; }
 
 main { max-width: 1440px; margin: 0 auto; padding: 28px 4% 56px; }
 
-/* welcome: full-image attract screen with a blinking start line */
+/* welcome: full-image attract screen with two blinking start lines, one per language, flags beside them */
 .welcome-screen { min-height: 100vh; display: grid; place-items: center; }
-.welcome { position: relative; margin: 0; cursor: pointer; border: 0; padding: 0; background: var(--void); display: block; max-width: 100%; }
-.welcome img { display: block; height: min(100vh, 66.667vw); width: auto; max-width: none; border: 4px solid var(--cyan); outline: 4px solid var(--pink); outline-offset: -8px; }
-.welcome .start { position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%); text-align: center; text-transform: uppercase; font: clamp(18px, 3vw, 36px)/1.2 var(--display); color: var(--yellow); text-shadow: 3px 3px 0 var(--void), 5px 5px 0 var(--pink); animation: blink 1.1s steps(1) infinite; }
+.welcome { position: relative; margin: 0; padding: 0; background: var(--void); display: block; max-width: 100%; }
+.welcome > img { display: block; height: min(100vh, 66.667vw); width: auto; max-width: none; border: 4px solid var(--cyan); outline: 4px solid var(--pink); outline-offset: -8px; }
+.welcome .start-options { position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.welcome .start { display: flex; align-items: center; gap: 0.5em; min-height: 44px; padding: 4px 12px; background: none; border: 0; cursor: pointer; text-transform: uppercase; font: clamp(18px, 3vw, 36px)/1.2 var(--display); color: var(--yellow); text-shadow: 3px 3px 0 var(--void), 5px 5px 0 var(--pink); animation: blink 1.1s steps(1) infinite; }
+.welcome .start img { width: 1em; height: auto; image-rendering: pixelated; }
+.welcome .start:hover { animation: none; }
 @keyframes blink { 50% { opacity: 0; } }
 /* Geocoins waiting: the Player Hub tab blinks, its take buttons flash yellow and white */
 .blink { animation: blink 1.1s steps(1) infinite; }
@@ -209,13 +234,22 @@ table.report td:nth-child(2) { text-align: right; color: var(--muted); }
 
 /* phones held upright: suggest landscape, where the map is big enough to aim */
 .rotate-hint { display: none; margin: 0 0 16px; padding: 10px 14px; border: 3px solid var(--yellow); background: var(--void); color: var(--yellow); font: 13px/1.5 var(--display); text-transform: uppercase; text-align: center; }
-@media (orientation: portrait) and (max-width: 640px) { .rotate-hint { display: block; } .welcome-screen .rotate-hint { margin: 16px; } }
+@media (orientation: portrait) and (max-width: 640px) {
+  .rotate-hint { display: block; }
+  .welcome-screen .rotate-hint { margin: 16px; }
+  /* the whole picture, the start lines under it, the wordmark never cut */
+  .welcome-screen { align-content: center; }
+  .welcome > img { height: auto; width: 100%; }
+  .welcome .start-options { position: static; transform: none; margin-top: 16px; gap: 8px; }
+  .welcome .start { font-size: 24px; }
+}
 /* phones held sideways: map beside a slim HUD, everything inside the screen height */
 @media (orientation: landscape) and (max-height: 500px) {
   .masthead { padding: 6px 12px; gap: 12px; flex-wrap: nowrap; }
   .masthead .brand img { width: 110px; }
   .masthead nav { gap: 12px; }
   .masthead nav button, .masthead .sound { font-size: 10px; padding: 2px 0; }
+  .masthead .lang { min-width: 32px; min-height: 32px; padding: 4px; font-size: 10px; }
   .masthead .wallet { min-height: 32px; padding: 4px 8px; font-size: 10px; max-width: 150px; }
   main { padding: 8px 12px 16px; }
   /* 1P World Tour: slogan on one line, the start button beside the map */
@@ -308,6 +342,8 @@ table.report td:nth-child(2) { text-align: right; color: var(--muted); }
 .arcade td:first-child { width: 51px; font-size: 14px; color: var(--muted); }
 .arcade td:last-child { width: 40%; text-align: right; color: var(--yellow); }
 .arcade tr:last-child td { border: 0; }
+/* ten rows show; a longer board (Best records) scrolls inside */
+.arcade .rows { max-height: 380px; overflow-y: auto; }
 .arcade tr.mine { background: #143c50; }
 .arcade tr.mine td:first-child { box-shadow: inset 4px 0 var(--mint); }
 .arcade tr.mine td:first-child, .arcade tr.mine td:nth-child(2) { color: var(--mint); }

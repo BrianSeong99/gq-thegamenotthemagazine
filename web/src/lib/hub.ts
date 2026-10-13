@@ -6,9 +6,9 @@ import type { ChallengeNote } from "./chain";
 import { fmtGeocoin, sameAccount as same, toGc } from "./flow";
 import { isShotAt, noteDeadline, shotDeadline, type AccountFelts } from "./notes";
 import { CLAIM_FUZZ } from "@/config";
+import { en, type T } from "./i18n";
 
 export const keyOf = (a: AccountFelts) => `${a.prefix}:${a.suffix}`;
-const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
 /** Letters of an address read from its end: digits and the wallet's `_…` routing part left out. */
 export function lettersBackward(address: string): string {
@@ -118,42 +118,52 @@ type Tone = "pink" | "mint" | "";
  */
 export type HistoryItem = { id: string; kind: "record" | "shot"; at: number; result: string; context: string; score: number; detail: string; money: string; note: string; tone: Tone; moneyTone: Tone };
 
-/** My finished games, newest first: my records and my shots once consumed (live ones stay on the cards). */
-export function history(notes: ChallengeNote[], me: AccountFelts, height: number, name: (a: AccountFelts) => string): HistoryItem[] {
+/** My finished games, newest first: my records and my shots once consumed (live ones stay on the cards). Lines in the language of `t`. */
+export function history(notes: ChallengeNote[], me: AccountFelts, height: number, name: (a: AccountFelts) => string, t: T = en): HistoryItem[] {
   const items: HistoryItem[] = [];
+  const gc = (v: bigint) => fmtGeocoin(v, t);
   for (const n of notes) {
+    // a shot of mine past its deadline is lost before anyone touches it: history from the deadline on
+    const lostOnTable = n.kind === "shot" && !n.consumed && same(n.storage.rival, me) && shotOutcome(n, height) === "lost";
+    if (lostOnTable) {
+      const who = name(n.storage.champion);
+      // the shot script serves its rival first: a shot at my own record stays locked past its deadline
+      const note = same(n.storage.champion, me) ? t("Locked: this shot was at your own record.") : t("{who} can take the coin.", { who });
+      items.push({ id: n.id, kind: "shot", at: shotDeadline(n.storage), score: n.storage.target, result: t("You lost"), context: t("{who}'s record: ", { who }), detail: "", money: t("{gc} lost", { gc: gc(n.amount) }), note, tone: "pink", moneyTone: "pink" });
+      continue;
+    }
     if (n.consumedAt === undefined) continue;
     const base = { id: n.id, kind: n.kind, at: n.consumedAt, score: n.storage.target, context: "", detail: "", note: "" };
     if (n.kind === "record" && same(n.storage.champion, me)) {
       const lost = triesLost(n, notes, height);
       if (lost === null) continue;
       const won = collected(n, notes, height);
-      const tries = plural(lost, "try lost", "tries lost");
+      const tries = lost === 1 ? t("1 try lost") : t("{n} tries lost", { n: lost });
       if (recordOutcome(n, height) === "smashed") {
         const w = winner(n, notes, height);
-        const who = w ? name(w) : "Someone";
+        const who = w ? name(w) : t("Someone");
         // the prize is lost either way; what earlier losers paid stands next to it, never instead of it
-        const money = won > 0n ? { money: `${fmtGeocoin(won)} won, ${fmtGeocoin(n.amount)} lost`, moneyTone: "" as const } : { money: `${fmtGeocoin(n.amount)} lost`, moneyTone: "pink" as const };
-        items.push({ ...base, result: "Beaten", context: `${who} beat `, detail: tries, tone: "pink", note: `Prize went to ${who}.`, ...money });
+        const money = won > 0n ? { money: t("{won} won, {lost} lost", { won: gc(won), lost: gc(n.amount) }), moneyTone: "" as const } : { money: t("{gc} lost", { gc: gc(n.amount) }), moneyTone: "pink" as const };
+        items.push({ ...base, result: t("Beaten"), context: t("{who} beat ", { who }), detail: tries, tone: "pink", note: t("Prize went to {who}.", { who }), ...money });
       } else if (lost > 0) {
-        const money = won > 0n ? { money: `${fmtGeocoin(won)} won`, moneyTone: "mint" as const, note: "Your Geocoin back." } : { money: `${fmtGeocoin(n.amount)} back`, moneyTone: "" as const };
-        items.push({ ...base, result: "Defended", detail: tries, tone: "mint", ...money });
-      } else items.push({ ...base, result: "Taken back", detail: shotsAt(n, notes).length === 0 ? "Nobody tried." : "", money: `${fmtGeocoin(n.amount)} back`, tone: "", moneyTone: "" });
+        const money = won > 0n ? { money: t("{gc} won", { gc: gc(won) }), moneyTone: "mint" as const, note: t("Your Geocoin back.") } : { money: t("{gc} back", { gc: gc(n.amount) }), moneyTone: "" as const };
+        items.push({ ...base, result: t("Defended"), detail: tries, tone: "mint", ...money });
+      } else items.push({ ...base, result: t("Taken back"), detail: shotsAt(n, notes).length === 0 ? t("Nobody tried.") : "", money: t("{gc} back", { gc: gc(n.amount) }), tone: "", moneyTone: "" });
     } else if (n.kind === "shot" && same(n.storage.rival, me)) {
       const who = name(n.storage.champion);
       const record = recordOf(n, notes);
-      const shot = { ...base, context: `${who}'s record: ` };
-      if (shotOutcome(n, height, record) === "lost") items.push({ ...shot, result: "You lost", money: `${fmtGeocoin(n.amount)} lost`, note: `Went to ${who}.`, tone: "pink", moneyTone: "pink" });
+      const shot = { ...base, context: t("{who}'s record: ", { who }) };
+      if (shotOutcome(n, height, record) === "lost") items.push({ ...shot, result: t("You lost"), money: t("{gc} lost", { gc: gc(n.amount) }), note: t("Went to {who}.", { who }), tone: "pink", moneyTone: "pink" });
       // the prize comes with the shot in one transaction: same block
-      else if (record && record.consumedAt === n.consumedAt) items.push({ ...shot, result: "You won", money: `${fmtGeocoin(record.amount)} won`, note: "Your Geocoin back.", tone: "mint", moneyTone: "mint" });
-      else items.push({ ...shot, result: "You won", detail: record && record.consumedAt !== undefined && record.consumedAt < n.consumedAt ? "Prize already taken." : "", money: `${fmtGeocoin(n.amount)} back`, tone: "mint", moneyTone: "" });
+      else if (record && record.consumedAt === n.consumedAt) items.push({ ...shot, result: t("You won"), money: t("{gc} won", { gc: gc(record.amount) }), note: t("Your Geocoin back."), tone: "mint", moneyTone: "mint" });
+      else items.push({ ...shot, result: t("You won"), detail: record && record.consumedAt !== undefined && record.consumedAt < n.consumedAt ? t("Prize already taken.") : "", money: t("{gc} back", { gc: gc(n.amount) }), tone: "mint", moneyTone: "" });
     }
   }
   return items.sort((a, b) => b.at - a.at);
 }
 
 export type Ranked = { key: string; who: AccountFelts; value: number; at: number; rank: number };
-/** The top 10, and my best row when I am not among them. */
+/** The top rows (10, 100 records), and my best row when I am not among them. */
 type Board = { top: Ranked[]; mine: Ranked | null };
 type Event = { who: AccountFelts; value: number; at: number };
 
@@ -167,17 +177,17 @@ function tally(events: Event[]): Omit<Ranked, "rank">[] {
   return [...rows.values()];
 }
 
-/** High to low; a tie goes to whoever got there first. */
-function rank(rows: Omit<Ranked, "rank">[], me: AccountFelts | null): Board {
+/** High to low, the first `limit` rows; a tie goes to whoever got there first. */
+function rank(rows: Omit<Ranked, "rank">[], me: AccountFelts | null, limit = 10): Board {
   const sorted = [...rows].sort((a, b) => b.value - a.value || a.at - b.at || (a.key < b.key ? -1 : 1)).map((r, i) => ({ ...r, rank: i + 1 }));
-  const top = sorted.slice(0, 10);
+  const top = sorted.slice(0, limit);
   const mine = top.some((r) => same(r.who, me)) ? null : (sorted.find((r) => same(r.who, me)) ?? null);
   return { top, mine };
 }
 
 /**
  * The four boards. Geocoins won: lost shots a champion took, plus prizes (a winner's own Geocoin
- * coming back is not a win). Best records: every record posted, by its score. Defended: every rival who lost at
+ * coming back is not a win). Best records: every record posted, by its score, a hundred of them. Defended: every rival who lost at
  * one of the champion's records, open or not. Smashed: records a rival took. Losers: shots a rival
  * lost, the other side of Defended.
  */
@@ -203,18 +213,18 @@ export function boards(notes: ChallengeNote[], height: number, me: AccountFelts 
     }
   }
   const records = notes.filter((n) => n.kind === "record").map((n) => ({ key: n.id, who: n.storage.champion, value: n.storage.target, at: n.createdAt ?? Infinity }));
-  return { coins: rank(tally(coins), me), records: rank(records, me), defended: rank(tally(defended), me), smashed: rank(tally(smashed), me), losers: rank(tally(losers), me) };
+  return { coins: rank(tally(coins), me), records: rank(records, me, 100), defended: rank(tally(defended), me), smashed: rank(tally(smashed), me), losers: rank(tally(losers), me) };
 }
 
-/** A time, arcade style and local: TODAY 18:42, YESTERDAY 21:10, TOMORROW 09:05, 08 OCT 20:14. */
-export function whenLabel(ms: number, now = Date.now()): string {
+/** A time, arcade style and local: TODAY 18:42, YESTERDAY 21:10, TOMORROW 09:05, 08 OCT 20:14 (in Chinese 10月08日 20:14). */
+export function whenLabel(ms: number, now = Date.now(), t: T = en): string {
   const d = new Date(ms);
   const pad = (v: number) => String(v).padStart(2, "0");
   const time = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
-  const midnight = (t: Date) => new Date(t.getFullYear(), t.getMonth(), t.getDate()).getTime();
+  const midnight = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
   const days = Math.round((midnight(new Date(now)) - midnight(d)) / 86_400_000);
-  if (days === 0) return `TODAY ${time}`;
-  if (days === 1) return `YESTERDAY ${time}`;
-  if (days === -1) return `TOMORROW ${time}`;
-  return `${pad(d.getDate())} ${d.toLocaleString("en", { month: "short" }).toUpperCase()} ${time}`;
+  if (days === 0) return t("TODAY {time}", { time });
+  if (days === 1) return t("YESTERDAY {time}", { time });
+  if (days === -1) return t("TOMORROW {time}", { time });
+  return t("{dd} {MMM} {time}", { dd: pad(d.getDate()), MMM: d.toLocaleString("en", { month: "short" }).toUpperCase(), mm: d.getMonth() + 1, time });
 }

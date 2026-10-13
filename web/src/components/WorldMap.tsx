@@ -3,6 +3,7 @@
 
 import type { MouseEvent } from "react";
 import { latLonToPixel, MAP_H, MAP_W, pixelToLatLon, type LatLon } from "@/lib/map";
+import { useT } from "@/lib/i18n";
 
 // a graticule every 30°: meridians from 150°W to 150°E, parallels from 60°N to 60°S
 const MERIDIANS = Array.from({ length: 11 }, (_, i) => latLonToPixel({ lat: 0, lon: -150 + 30 * i }).x);
@@ -17,6 +18,7 @@ export function WorldMap({
   marks?: { at: LatLon; color: string; label?: string }[];
   disabled?: boolean;
 }) {
+  const t = useT();
   const handleClick = (e: MouseEvent<SVGSVGElement>) => {
     if (disabled || !onPick) return;
     const rect = e.currentTarget.getBoundingClientRect();
@@ -30,7 +32,7 @@ export function WorldMap({
       viewBox={`0 0 ${MAP_W} ${MAP_H}`}
       className="world-map"
       role="img"
-      aria-label="World map"
+      aria-label={t("World map")}
       onClick={handleClick}
       style={{ cursor: disabled || !onPick ? "default" : "crosshair" }}
     >

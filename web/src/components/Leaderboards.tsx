@@ -6,13 +6,11 @@ import { useState, type ReactNode } from "react";
 import { sameAccount } from "@/lib/flow";
 import { type boards, type Ranked } from "@/lib/hub";
 import type { AccountFelts } from "@/lib/notes";
+import { useT } from "@/lib/i18n";
 
 type Boards = ReturnType<typeof boards>;
 type Name = keyof Boards;
 
-const TITLE: Record<Name, string> = { coins: "Most Geocoins won", records: "Best records", defended: "Defended", smashed: "Smashed", losers: "Most lost shots" };
-const UNIT: Record<Name, string> = { coins: "Geocoins won", records: "Record", defended: "Rivals beaten", smashed: "Records smashed", losers: "Shots lost" };
-const EMPTY: Record<Name, string> = { coins: "No wins yet.", records: "No records yet.", defended: "No rivals beaten yet.", smashed: "No records yet.", losers: "No losers yet." };
 const COLOR: Record<Name, string> = { coins: "yellow", records: "pink", defended: "mint", smashed: "mint", losers: "red" };
 
 function Tabs<T extends string>({ items, value, onPick, className }: { items: [T, string][]; value: T; onPick: (v: T) => void; className: string }) {
@@ -29,11 +27,15 @@ function Tabs<T extends string>({ items, value, onPick, className }: { items: [T
 
 /** `data`: null while the chain is still being read. `action`: beside the title (Refresh). */
 export function Leaderboards({ data, me, name, action }: { data: Boards | null; me: AccountFelts | null; name: (a: AccountFelts) => string; action?: ReactNode }) {
+  const t = useT();
   const [pick, setPick] = useState<"coins" | "records" | "wins">("coins");
   const [side, setSide] = useState<"defended" | "smashed">("defended");
+  const TITLE: Record<Name, string> = { coins: t("Most Geocoins won"), records: t("Best records"), defended: t("Defended|board"), smashed: t("Smashed"), losers: t("Most lost shots") };
+  const UNIT: Record<Name, string> = { coins: t("Geocoins won"), records: t("Record"), defended: t("Rivals beaten"), smashed: t("Records smashed"), losers: t("Shots lost") };
+  const EMPTY: Record<Name, string> = { coins: t("No wins yet."), records: t("No records yet."), defended: t("No rivals beaten yet."), smashed: t("No records yet."), losers: t("No losers yet.") };
   const mine = (r: Ranked) => sameAccount(me, r.who);
   const row = (r: Ranked) => (
-    <tr key={r.key} className={mine(r) ? "mine" : undefined} aria-label={mine(r) ? "Your row" : undefined}>
+    <tr key={r.key} className={mine(r) ? "mine" : undefined} aria-label={mine(r) ? t("Your row") : undefined}>
       <td>{String(r.rank).padStart(2, "0")}</td>
       <td>{name(r.who)}</td>
       <td>{r.value.toLocaleString()}</td>
@@ -47,7 +49,7 @@ export function Leaderboards({ data, me, name, action }: { data: Boards | null; 
         {!b ? (
           <div aria-busy="true">
             <p className="loader-label" role="status">
-              Loading
+              {t("Loading")}
             </p>
             {[0, 1, 2, 3, 4].map((i) => (
               <div key={i} className="loading-board" aria-hidden="true">
@@ -61,11 +63,13 @@ export function Leaderboards({ data, me, name, action }: { data: Boards | null; 
           <p className="empty-copy">{EMPTY[k]}</p>
         ) : (
           <>
-            <table aria-label={`${TITLE[k]}: rank, nickname, ${UNIT[k]}`}>
-              <tbody>{b.top.map(row)}</tbody>
-            </table>
+            <div className="rows">
+              <table aria-label={t("{title}: rank, nickname, {unit}", { title: TITLE[k], unit: UNIT[k] })}>
+                <tbody>{b.top.map(row)}</tbody>
+              </table>
+            </div>
             {b.mine && (
-              <table className="own-row" aria-label="Your rank">
+              <table className="own-row" aria-label={t("Your rank")}>
                 <tbody>{row(b.mine)}</tbody>
               </table>
             )}
@@ -78,17 +82,17 @@ export function Leaderboards({ data, me, name, action }: { data: Boards | null; 
   return (
     <>
       <div className="page-head">
-        <h1>Leaderboards</h1>
+        <h1>{t("Leaderboards")}</h1>
         {action}
       </div>
       <section className="high-scores" data-pick={pick}>
-        <Tabs items={[["coins", "Geocoins"], ["records", "Records"], ["wins", "Wins"]]} value={pick} onPick={setPick} className="board-tabs" />
+        <Tabs items={[["coins", t("Geocoins")], ["records", t("Records")], ["wins", t("Wins")]]} value={pick} onPick={setPick} className="board-tabs" />
         <div className="boards-grid">
           {board("coins")}
           {board("records")}
           <section className="wins-module" data-side={side}>
-            <h3>Defended / smashed</h3>
-            <Tabs items={[["defended", "Defended"], ["smashed", "Smashed"]]} value={side} onPick={setSide} className="record-tabs" />
+            <h3>{t("Defended / smashed")}</h3>
+            <Tabs items={[["defended", t("Defended|board")], ["smashed", t("Smashed")]]} value={side} onPick={setSide} className="record-tabs" />
             <div className="wins-pair">
               {board("defended")}
               {board("smashed")}
@@ -97,7 +101,7 @@ export function Leaderboards({ data, me, name, action }: { data: Boards | null; 
         </div>
       </section>
       <section className="loserboard">
-        <h1>Loserboard</h1>
+        <h1>{t("Loserboard")}</h1>
         <div className="boards-grid">{board("losers")}</div>
       </section>
     </>

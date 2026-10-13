@@ -3,6 +3,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { blockTime } from "@/lib/chain";
 import { whenLabel, type HistoryItem } from "@/lib/hub";
+import { useT } from "@/lib/i18n";
 
 const PAGE = 10;
 const FILTERS = [
@@ -14,6 +15,7 @@ type Filter = (typeof FILTERS)[number][0];
 
 /** `items`: null while the chain is still being read. `connect`: shown instead when no wallet is connected. */
 export function History({ items, connect }: { items: HistoryItem[] | null; connect?: ReactNode }) {
+  const t = useT();
   const [filter, setFilter] = useState<Filter>("all");
   const [shown, setShown] = useState(PAGE);
   const [times, setTimes] = useState<Record<number, number>>({});
@@ -45,7 +47,7 @@ export function History({ items, connect }: { items: HistoryItem[] | null; conne
   // games grouped by the day they ended; a game whose block time is still unknown stays in the group before it
   const days: { day: string; rows: { h: HistoryItem; time: string; when?: Date }[] }[] = [];
   for (const h of visible) {
-    const label = times[h.at] ? whenLabel(times[h.at]) : "";
+    const label = times[h.at] ? whenLabel(times[h.at], Date.now(), t) : "";
     const cut = label.lastIndexOf(" ");
     const day = label.slice(0, cut);
     const last = days[days.length - 1];
@@ -55,13 +57,13 @@ export function History({ items, connect }: { items: HistoryItem[] | null; conne
 
   return (
     <section className="history" aria-labelledby="history-title">
-      <h2 id="history-title">History</h2>
+      <h2 id="history-title">{t("History")}</h2>
       {connect ? (
         connect
       ) : items === null ? (
         <div aria-busy="true">
           <p className="loader-label" role="status">
-            Loading
+            {t("Loading")}
           </p>
           {[0, 1, 2].map((i) => (
             <div key={i} className="loading-history" aria-hidden="true">
@@ -72,18 +74,18 @@ export function History({ items, connect }: { items: HistoryItem[] | null; conne
           ))}
         </div>
       ) : items.length === 0 ? (
-        <p className="panel empty-copy">No past games yet.</p>
+        <p className="panel empty-copy">{t("No past games yet.")}</p>
       ) : (
         <>
-          <div className="history-filters" role="tablist" aria-label="Past game type" onKeyDown={onKey}>
+          <div className="history-filters" role="tablist" aria-label={t("Past game type")} onKeyDown={onKey}>
             {FILTERS.map(([key, label]) => (
               <button key={key} role="tab" aria-selected={filter === key} aria-controls="past-games" tabIndex={filter === key ? 0 : -1} onClick={() => pick(key)}>
-                {label}
+                {t(label)}
               </button>
             ))}
           </div>
           <div id="past-games" role="tabpanel">
-            {rows.length === 0 && <p className="panel empty-copy">No past {filter === "record" ? "records" : "shots"} yet.</p>}
+            {rows.length === 0 && <p className="panel empty-copy">{filter === "record" ? t("No past records yet.") : t("No past shots yet.")}</p>}
             {days.map((d, i) => (
               <section key={d.day || i} className="history-day" aria-labelledby={d.day ? `day-${i}` : undefined}>
                 {d.day && (
@@ -95,7 +97,7 @@ export function History({ items, connect }: { items: HistoryItem[] | null; conne
                   {d.rows.map(({ h, time, when }) => (
                     <article key={`${h.kind}:${h.id}`} className={`history-item ${h.tone}`} aria-labelledby={`result-${h.kind}-${h.id}`}>
                       <div className="history-meta">
-                        <span className="eyebrow">My {h.kind}</span>
+                        <span className="eyebrow">{h.kind === "record" ? t("My record") : t("My shot")}</span>
                         <time dateTime={when?.toISOString()} aria-label={when?.toLocaleString()}>
                           {time}
                         </time>
@@ -105,7 +107,7 @@ export function History({ items, connect }: { items: HistoryItem[] | null; conne
                           <h3 id={`result-${h.kind}-${h.id}`}>{h.result}</h3>
                           <p className="history-context">
                             {h.context}
-                            <span className="history-score">{h.score.toLocaleString()} pts</span>
+                            <span className="history-score">{t("{n} pts", { n: h.score.toLocaleString() })}</span>
                           </p>
                           {h.detail && <p className="history-detail">{h.detail}</p>}
                         </div>
@@ -123,11 +125,11 @@ export function History({ items, connect }: { items: HistoryItem[] | null; conne
           {shown < rows.length ? (
             <p className="history-more">
               <button className="btn" onClick={() => setShown(shown + PAGE)}>
-                More
+                {t("More")}
               </button>
             </p>
           ) : (
-            shown > PAGE && <p className="history-more muted">That's all your games.</p>
+            shown > PAGE && <p className="history-more muted">{t("That's all your games.")}</p>
           )}
         </>
       )}

@@ -1,6 +1,7 @@
-// The arcade chrome around every screen: one ribbon with the wordmark, the tabs, sound and wallet.
+// The arcade chrome around every screen: one ribbon with the wordmark, the tabs, sound, language and wallet.
 
 import type { ReactNode } from "react";
+import { useLang, useT } from "@/lib/i18n";
 import { TAB_LABEL, type Tab } from "@/lib/tabs";
 
 export function Shell({
@@ -30,13 +31,15 @@ export function Shell({
   onSound: () => void;
   children: ReactNode;
 }) {
+  const t = useT();
+  const { lang, setLang } = useLang();
   return (
     <>
       <header className="masthead">
         <a
           className="brand"
           href="/"
-          aria-label="GeoQuizz home"
+          aria-label={t("GeoQuizz home")}
           onClick={(e) => {
             e.preventDefault();
             onHome();
@@ -44,32 +47,42 @@ export function Shell({
         >
           <img src="/brand/geoquizz-wordmark.svg" alt="GeoQuizz" width={840} height={205} />
         </a>
-        <nav aria-label="Sections">
-          {(Object.keys(TAB_LABEL) as Tab[]).map((t) => (
-            <button key={t} className={t === tab ? "active" : t === "hub" && hubAlert ? "blink" : ""} onClick={() => onTab(t)} aria-current={t === tab ? "page" : undefined}>
-              {TAB_LABEL[t]}
+        <nav aria-label={t("Sections")}>
+          {(Object.keys(TAB_LABEL) as Tab[]).map((k) => (
+            <button key={k} className={k === tab ? "active" : k === "hub" && hubAlert ? "blink" : ""} onClick={() => onTab(k)} aria-current={k === tab ? "page" : undefined}>
+              {t(TAB_LABEL[k])}
             </button>
           ))}
         </nav>
         {netSlow && (
-          <span className="net" title="The last sync with the Miden network failed; it retries by itself.">
-            Network slow
+          <span className="net" title={t("The last sync with the Miden network failed; it retries by itself.")}>
+            {t("Network slow")}
           </span>
         )}
         <button className="sound" onClick={onSound} aria-pressed={soundOn}>
-          Sound {soundOn ? "on" : "off"}
+          {soundOn ? t("Sound on") : t("Sound off")}
         </button>
+        {/* the other language, in place: the screen, the quiz and the wallet stay as they are */}
+        {lang === "en" ? (
+          <button className="lang" lang="zh-Hans" aria-label="切换至中文" onClick={() => setLang("zh-Hans")}>
+            中文
+          </button>
+        ) : (
+          <button className="lang" lang="en" aria-label="Switch to English" onClick={() => setLang("en")}>
+            EN
+          </button>
+        )}
         <div className="account">
           <button className="btn wallet" onClick={onWallet}>
-            {walletLabel ?? "Connect wallet"}
+            {walletLabel ?? t("Connect wallet")}
           </button>
-          <span className="testnet" title="Miden testnet: Geocoins are play money.">
-            Testnet
+          <span className="testnet" title={t("Miden testnet: Geocoins are play money.")}>
+            {t("Testnet")}
           </span>
         </div>
       </header>
       <main>
-        <p className="rotate-hint">Turn your phone sideways: the map is much easier to play.</p>
+        <p className="rotate-hint">{t("Turn your phone sideways: the map is much easier to play.")}</p>
         {children}
       </main>
     </>

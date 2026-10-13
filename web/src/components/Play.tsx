@@ -6,6 +6,7 @@ import type { LatLon } from "@/lib/map";
 import { latToCd, lonToCd, quizScore, roundScore, TIME_CAP, type Answer, type City } from "@/lib/rules";
 import type { Place } from "@/lib/quiz";
 import { blocksToClock, secondsToClock } from "@/lib/flow";
+import { useT } from "@/lib/i18n";
 
 export type PlayResult = { answers: Answer[]; score: number };
 
@@ -27,6 +28,7 @@ export function Play({
   /** Playing a shot: the rival sprite and the shot clock (blocks left) show in the HUD. */
   rival?: { blocksLeft: number };
 }) {
+  const t = useT();
   const [round, setRound] = useState(0);
   const [answers, setAnswers] = useState<Answer[]>([]);
   const [lastPick, setLastPick] = useState<LatLon | null>(null);
@@ -92,8 +94,8 @@ export function Play({
 
   return (
     <section className="play" ref={section}>
-      <h1>{answered ? (points ? "Nice shot!" : "Missed!") : `Find ${name}!`}</h1>
-      <div className="chips" aria-label={`Round ${round + 1} of ${cities.length}`}>
+      <h1>{answered ? (points ? t("Nice shot!") : t("Missed!")) : t("Find {city}!", { city: name })}</h1>
+      <div className="chips" aria-label={t("Round {n} of {total}", { n: round + 1, total: cities.length })}>
         {cities.map((_, i) => (
           <span key={i} className={i < round ? "done" : i === round ? "now" : ""}>
             {i + 1}
@@ -108,7 +110,7 @@ export function Play({
             marks={
               lastPick && answered
                 ? [
-                    { at: lastPick, color: "#ff2c9c", label: "you" },
+                    { at: lastPick, color: "#ff2c9c", label: t("you") },
                     { at: cdToLatLon(current), color: "#ffe83b", label: name },
                   ]
                 : []
@@ -116,7 +118,7 @@ export function Play({
           />
           {answered && (
             <div className={`banner${points ? "" : " miss"}`}>
-              {points ? "Nice shot!" : "Missed!"} +{points}
+              {points ? t("Nice shot!") : t("Missed!")} +{points}
             </div>
           )}
         </div>
@@ -124,26 +126,24 @@ export function Play({
           {rival && (
             <div className="rival">
               <img src="/brand/rival.svg" alt="" width={130} height={160} />
-              <div className="bubble">Beat my record!</div>
+              <div className="bubble">{t("Beat my record!")}</div>
             </div>
           )}
-          <div className="eyebrow">
-            City {String(round + 1).padStart(2, "0")} / {cities.length}
-          </div>
+          <div className="eyebrow">{t("City {n} / {total}", { n: String(round + 1).padStart(2, "0"), total: cities.length })}</div>
           <div className="city">{name}</div>
           <div className="country">{place?.country ?? ""}</div>
-          <div className="eyebrow">Round time</div>
+          <div className="eyebrow">{t("Round time")}</div>
           <div className="clock" aria-live="off">
-            {answered ? "Done" : secondsToClock(Math.ceil(secondsLeft))}
+            {answered ? t("Done") : secondsToClock(Math.ceil(secondsLeft))}
           </div>
           <div className="bar" aria-hidden="true">
             {Array.from({ length: BARS }, (_, i) => (
               <i key={i} className={i < Math.ceil(secondsLeft) ? "on" : ""} />
             ))}
           </div>
-          <div className="eyebrow">Total score</div>
+          <div className="eyebrow">{t("Total score")}</div>
           <div className="total">{total.toLocaleString()}</div>
-          {rival && <div className="deadline">Shot ends: {blocksToClock(rival.blocksLeft)}</div>}
+          {rival && <div className="deadline">{t("Shot ends: {time}", { time: blocksToClock(rival.blocksLeft) })}</div>}
         </aside>
       </div>
     </section>

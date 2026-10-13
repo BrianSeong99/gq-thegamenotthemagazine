@@ -60,20 +60,19 @@ describe("Lobby", () => {
     expect(h.onCollect).toHaveBeenCalledWith([prize]);
   });
 
-  it("offers Play & settle on my open shot with its record, and nothing once its deadline passed", () => {
+  it("offers Play & settle on my open shot with its record; once its deadline passed the card is gone (it is history)", () => {
     const h = handlers();
     const { rerender } = render(<Lobby me={me} notes={[prize, myShot]} places={places} height={100} {...h} />);
     fireEvent.click(screen.getByRole("button", { name: /^play$/i }));
     expect(h.onSettle).toHaveBeenCalledWith(myShot, prize);
     rerender(<Lobby me={me} notes={[prize, myShot]} places={places} height={200} {...h} />);
-    expect(screen.queryByRole("button", { name: /^play$/i })).toBeNull();
+    expect(screen.queryByText(/my shot/i)).toBeNull();
   });
 
   it("never offers to take a shot I posted at my own record: the script serves its rival first, so it stays locked", () => {
     const own = { ...myShot, storage: { ...myShot.storage, rival: champion } };
     render(<Lobby me={champion} notes={[prize, own]} places={places} height={1000} {...handlers()} />);
     expect(screen.queryByRole("button", { name: /take it/i })).toBeNull();
-    expect(screen.getByText("Locked: this shot was at your own record.")).toBeInTheDocument();
   });
 
   it("lets the champion collect a shot only from its deadline + CLAIM_FUZZ on", () => {

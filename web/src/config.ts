@@ -37,6 +37,8 @@ export const SHOT_SCRIPT_V1_URL = "/scripts/v1/shot.bin";
 // masm/challenge/challenge_core.masm CLAIM_FUZZ: how late a claim proved before a deadline may land.
 export const CLAIM_FUZZ = 64;
 export const CITIES_URL = "/cities.json";
+// The cities' Simplified Chinese names and countries, by index of cities.json (shown, never hashed).
+export const PLACES_ZH_URL = "/places.zh-Hans.json";
 
 export const NETWORK_POLL_INTERVAL_MS = 2_500;
 export const NETWORK_POLL_TIMEOUT_MS = 120_000;

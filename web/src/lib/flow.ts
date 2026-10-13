@@ -5,6 +5,7 @@ import { noteDeadline, ZERO_WORD, type AccountFelts, type ChallengeStorage, type
 import type { Place } from "./quiz";
 import { BLOCK_SECONDS, CLAIM_FUZZ, GC_DECIMALS, GC_FAUCET, MIN_SHOT_WINDOW_BLOCKS, RECORD_LIFETIME_BLOCKS, STAKE, V1_ROOTS } from "@/config";
 import { QUIZ_MAX, roundScore, type Answer, type City } from "./rules";
+import { en, type T } from "./i18n";
 
 export const sameAccount = (a: AccountFelts | null | undefined, b: AccountFelts | null | undefined) =>
   !!a && !!b && a.suffix === b.suffix && a.prefix === b.prefix;
@@ -78,16 +79,16 @@ export type SettlePlan = { won: boolean; claimPrize: boolean; text: string };
  * After a play: a win settles the open shots (and claims the prize if it is still there);
  * a loss sends nothing to the chain, the Geocoin waits for the champion at the deadline.
  */
-export function settlePlan(shots: ChallengeNote[], record: ChallengeNote | undefined, score: number, height: number): SettlePlan {
+export function settlePlan(shots: ChallengeNote[], record: ChallengeNote | undefined, score: number, height: number, t: T = en): SettlePlan {
   if (shots.length === 0) throw new Error("no shot note to settle");
   const target = shots[0].storage.target;
   const won = score > target;
   const claimPrize = won && !!record && !record.consumed && record.storage.expiryBlock > height;
   const text = claimPrize
-    ? `${score} points. You win!`
+    ? t("{score} points. You win!", { score })
     : won
-      ? `${score} points. You beat it, but the prize is gone. Your Geocoin comes back.`
-      : `${score} points. Not enough. Your Geocoin goes to the champion.`;
+      ? t("{score} points. You beat it, but the prize is gone. Your Geocoin comes back.", { score })
+      : t("{score} points. Not enough. Your Geocoin goes to the champion.", { score });
   return { won, claimPrize, text };
 }
 
@@ -146,23 +147,23 @@ const message = (e: unknown) => (e instanceof Error ? `${e.name !== "Error" ? `$
 /** Turns any failure into words a player understands. The raw text stays in `detail`. */
 export function explain(e: unknown): Trouble {
   const raw = message(e);
-  const t = (kind: TroubleKind, title: string, withDetail = true): Trouble => (withDetail && raw && raw !== title ? { kind, title, detail: raw } : { kind, title });
-  if (raw.includes(NOT_FINISHED)) return t("not-finished", NOT_FINISHED, false);
-  if (/NOT_GRANTED|reject|declin|denied|cancel/i.test(raw)) return t("said-no", "You said no in your wallet. Nothing was sent.");
-  if (/WalletNotReady|not installed/i.test(raw)) return t("no-wallet", "We can't find the Bread wallet. Install it, then try again.");
-  if (/WalletNotConnected|not connected|WalletDisconnected/i.test(raw)) return t("no-wallet", "Connect your wallet first.");
-  if (/^(\w+: )?You need .*Geocoin/.test(raw)) return t("funds", raw.replace(/^\w+: /, ""), false);
+  const trouble = (kind: TroubleKind, title: string, withDetail = true): Trouble => (withDetail && raw && raw !== title ? { kind, title, detail: raw } : { kind, title });
+  if (raw.includes(NOT_FINISHED)) return trouble("not-finished", NOT_FINISHED, false);
+  if (/NOT_GRANTED|reject|declin|denied|cancel/i.test(raw)) return trouble("said-no", "You said no in your wallet. Nothing was sent.");
+  if (/WalletNotReady|not installed/i.test(raw)) return trouble("no-wallet", "We can't find the Bread wallet. Install it, then try again.");
+  if (/WalletNotConnected|not connected|WalletDisconnected/i.test(raw)) return trouble("no-wallet", "Connect your wallet first.");
+  if (/^(\w+: )?You need .*Geocoin/.test(raw)) return trouble("funds", "Not enough Geocoins in your wallet. Get Geocoins first.");
   if (/SummaryAnchorMismatch|chain anchor|ChainBehindBoundBlock|block header for block \d+ not found/i.test(raw))
-    return t("out-of-step", "Your wallet was out of step with the network. Try again.");
-  if (/^Too late: /.test(raw)) return t("too-late", raw, false);
-  if (/already been consumed|already consumed/i.test(raw)) return t("already-done", "This was already done.");
-  if (/deadline has passed|too late|is over/i.test(raw)) return t("too-late", "Too late: this one is over.");
-  if (/quiz does not match|dataset/i.test(raw)) return t("other-cities", "This record uses another city list. It can't be played here.");
-  if (/not found on chain|is not public|not a record or shot|not GeoQuizz game data|Not found/i.test(raw)) return t("not-found", "We can't find that record. Check the link.");
-  if (/assertion failed|error code/i.test(raw)) return t("refused", "The game said no to this move.");
+    return trouble("out-of-step", "Your wallet was out of step with the network. Try again.");
+  if (/^Too late: /.test(raw)) return trouble("too-late", raw, false);
+  if (/already been consumed|already consumed/i.test(raw)) return trouble("already-done", "This was already done.");
+  if (/deadline has passed|too late|is over/i.test(raw)) return trouble("too-late", "Too late: this one is over.");
+  if (/quiz does not match|dataset/i.test(raw)) return trouble("other-cities", "This record uses another city list. It can't be played here.");
+  if (/not found on chain|is not public|not a record or shot|not GeoQuizz game data|Not found/i.test(raw)) return trouble("not-found", "We can't find that record. Check the link.");
+  if (/assertion failed|error code/i.test(raw)) return trouble("refused", "The game said no to this move.");
   if (/fetch|network|timed out|timeout|deadline exceeded|unavailable|transport|ECONN|50[234]|load failed|faucet|mempool/i.test(raw))
-    return t("network", "The Miden network is slow or busy right now. Try again in a moment.");
-  return t("unknown", "Something went wrong.");
+    return trouble("network", "The Miden network is slow or busy right now. Try again in a moment.");
+  return trouble("unknown", "Something went wrong.");
 }
 
 /** Rejects with "<what> timed out" (a network trouble) when `p` takes longer than `ms`. */
@@ -175,9 +176,9 @@ export function withTimeout<T>(p: Promise<T>, ms: number, what: string): Promise
 }
 
 /** The outcome line after Bread accepted a request: only a chain-confirmed effect is "confirmed". */
-export function outcomeText(action: string, seenOnChain: boolean): string {
+export function outcomeText(action: string, seenOnChain: boolean, t: T = en): string {
   const sentence = /[.!?]$/.test(action) ? action : `${action}.`;
-  return seenOnChain ? `${sentence} Done!` : `${action}… not done yet. Check your wallet.`;
+  return seenOnChain ? t("{sentence} Done!", { sentence }) : t("{action}… not done yet. Check your wallet.", { action });
 }
 
 /** Bread had not synced up to the block the request binds yet. */
@@ -198,9 +199,9 @@ export async function submitWithRetry<T>(attempt: (n: number) => Promise<T>, ret
 export const toGc = (v: bigint) => Number(v) / 10 ** GC_DECIMALS;
 
 /** An amount of Geocoin in words: "1 Geocoin", "10 Geocoins". */
-export function fmtGeocoin(v: bigint): string {
+export function fmtGeocoin(v: bigint, t: T = en): string {
   const n = toGc(v);
-  return `${n.toLocaleString(undefined, { maximumFractionDigits: GC_DECIMALS })} Geocoin${n === 1 ? "" : "s"}`;
+  return t(n === 1 ? "{n} Geocoin" : "{n} Geocoins", { n: n.toLocaleString(undefined, { maximumFractionDigits: GC_DECIMALS }) });
 }
 
 /** The page's address without the record it was opened for (other parameters, like ?local=, stay). */
@@ -241,9 +242,13 @@ const EASY_POSTS: ((score: number, until: string, city: string) => string)[] = [
   (score, until, city) => `My run had ${city} in it. ${score} points on GQ, open until ${until}.\nInstall @joinbread & do better:`,
 ];
 
+// the Weibo post, one line: Chinese players share there, not on X
+const WEIBO_POST = (score: number) => `我在 GeoQuizz 得了 ${score} 分。来挑战我的纪录！`;
+
 /**
- * The shareable link to a record, and the X post that carries it; `expiresAt` is the record's expiry
- * in ms, `cities` the names of its run. A hard city gets bragged about, an easy one teased with.
+ * The shareable link to a record, and the X post that carries it (the Weibo one too); `expiresAt`
+ * is the record's expiry in ms, `cities` the names of its run. A hard city gets bragged about, an
+ * easy one teased with.
  */
 export function recordLinks(recordId: string, score: number, expiresAt: number, cities: string[] = []) {
   const url = `${location.origin}${location.pathname}?record=${recordId}`;
@@ -256,7 +261,11 @@ export function recordLinks(recordId: string, score: number, expiresAt: number, 
     : easy.length
       ? EASY_POSTS[pick % EASY_POSTS.length](score, until, easy[pick % easy.length])
       : POSTS[pick % POSTS.length](score, until);
-  return { url, x: `https://x.com/intent/post?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}` };
+  return {
+    url,
+    x: `https://x.com/intent/post?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`,
+    weibo: `https://service.weibo.com/share/share.php?url=${encodeURIComponent(url)}&title=${encodeURIComponent(WEIBO_POST(score))}`,
+  };
 }
 
 export type ReportRow = { name: string; seconds: string; points: number };

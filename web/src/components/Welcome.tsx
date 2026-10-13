@@ -1,15 +1,25 @@
-// The attract screen: the city hero, and a blinking CLICK TO START in the middle.
+// The attract screen: the city hero, and two blinking start lines in the middle, one per language.
 
-export function Welcome({ onStart }: { onStart: () => void }) {
+import { useT, type Lang } from "@/lib/i18n";
+
+export function Welcome({ onStart }: { onStart: (lang: Lang) => void }) {
+  const t = useT();
   return (
     <div className="welcome-screen">
-      <button className="welcome" onClick={onStart} aria-label="Click to start">
+      <div className="welcome">
         <img src="/brand/hero-city.webp" alt="" width={1440} height={960} />
-        <span className="start" aria-hidden="true">
-          Click to start
-        </span>
-      </button>
-      <p className="rotate-hint">Turn your phone sideways: the map is much easier to play.</p>
+        <div className="start-options">
+          <button className="start" lang="en" onClick={() => onStart("en")}>
+            <img src="/brand/flag-us.svg" alt="" width={36} height={24} />
+            Click to start
+          </button>
+          <button className="start" lang="zh-Hans" onClick={() => onStart("zh-Hans")}>
+            <img src="/brand/flag-cn.svg" alt="" width={36} height={24} />
+            点击开始
+          </button>
+        </div>
+      </div>
+      <p className="rotate-hint">{t("Turn your phone sideways: the map is much easier to play.")}</p>
     </div>
   );
 }

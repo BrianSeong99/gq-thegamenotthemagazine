@@ -227,10 +227,12 @@ describe("Geocoin in words", () => {
     expect(fmtGeocoin(1_000_000n)).toBe("1 Geocoin");
     expect(fmtGeocoin(10_000_000n)).toBe("10 Geocoins");
   });
-  it("shares a record as a ?record= link, inside the X post too, with the expiry in UTC", () => {
-    const { url, x } = recordLinks("0xabc", 9690, Date.UTC(2026, 9, 13, 14, 5));
+  it("shares a record as a ?record= link, inside the X post too, with the expiry in UTC; the Weibo post carries the same link", () => {
+    const { url, x, weibo } = recordLinks("0xabc", 9690, Date.UTC(2026, 9, 13, 14, 5));
     expect(url).toMatch(/\?record=0xabc$/);
     expect(decodeURIComponent(x)).toContain(url);
+    expect(new URL(weibo).searchParams.get("url")).toBe(url);
+    expect(new URL(weibo).searchParams.get("title")).toBe("我在 GeoQuizz 得了 9690 分。来挑战我的纪录！");
     const text = new URL(x).searchParams.get("text")!;
     expect(text).toContain("9690");
     expect(text).toContain("13 Oct 14:05 UTC");
@@ -283,9 +285,10 @@ describe("errors in plain words", () => {
     expect(t.kind).toBe(kind);
     expect(t.title).not.toMatch(/0x|Error:|NOT_GRANTED/);
   });
-  it("keeps the raw text for 'What happened?', but not when the sentence is already the message", () => {
+  it("keeps the raw text for 'What happened?' (the amounts of a funds refusal live there), but not when the sentence is already the message", () => {
     expect(explain(new TypeError("Failed to fetch")).detail).toBe("TypeError: Failed to fetch");
-    expect(explain(new Error("You need 1 Geocoin and your wallet holds 0 Geocoins.")).detail).toBeUndefined();
+    expect(explain(new Error("You need 1 Geocoin and your wallet holds 0 Geocoins.")).detail).toBe("You need 1 Geocoin and your wallet holds 0 Geocoins.");
+    expect(explain(new Error(NOT_FINISHED)).detail).toBeUndefined();
   });
   it("times out a read that hangs, as a network trouble", async () => {
     vi.useFakeTimers();

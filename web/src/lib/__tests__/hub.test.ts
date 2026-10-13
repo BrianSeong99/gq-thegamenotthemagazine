@@ -2,6 +2,7 @@
 import { describe, expect, it } from "vitest";
 import type { ChallengeNote } from "@/lib/chain";
 import type { AccountFelts, ChallengeStorage } from "@/lib/notes";
+import { translator } from "@/lib/i18n";
 import { boards, history, keyOf, lettersBackward, nicknames, owed, playersInOrder, recordOutcome, shotOutcome, triesLost, whenLabel } from "../hub";
 
 const ME = { suffix: 1n, prefix: 1n };
@@ -138,6 +139,17 @@ describe("history", () => {
     ]);
   });
 
+  it("a lost shot the champion has not taken yet is history already, at its deadline: the champion can take the coin; one at my own record stays locked", () => {
+    const theirs = record(MUD, 6200);
+    const mine = record(ME, 4100);
+    const notes = [theirs, shot(theirs, ME, 450), shot(theirs, ME, 900), mine, shot(mine, ME, 300)];
+    const rows = history(notes, ME, 600, name).map((h) => [h.result, h.at, h.money, h.note]);
+    expect(rows).toEqual([
+      ["You lost", 450, "1 Geocoin lost", "MUD can take the coin."],
+      ["You lost", 300, "1 Geocoin lost", "Locked: this shot was at your own record."],
+    ]);
+  });
+
   it("a beaten record still counts what its champion collected from earlier losers; a defended one with nothing collected yet only has its Geocoin back", () => {
     const beaten = record(ME, 4100, { consumedAt: 300 });
     const defended = record(ME, 6800, { consumedAt: 1200 });
@@ -173,14 +185,17 @@ describe("boards", () => {
     expect(boards(notes, 400, ME).losers.top.map((r) => [name(r.who), r.value])).toEqual([["MUD", 2], ["KQX", 1]]);
   });
 
-  it("best records: top 10 by score, names may repeat, a tie goes to the first posted, my best row below with its real rank", () => {
+  it("best records: up to 100 by score, names may repeat, a tie goes to the first posted, my best row below only past them", () => {
     const notes = [record(ME, 50), ...Array.from({ length: 11 }, (_, i) => record(i % 2 ? KQX : MUD, 1000 - i * 10)), record(ME, 40)];
     notes.push(record(MUD, 1000, { createdAt: 999 }));
     const { records } = boards(notes, 0, ME);
-    expect(records.top).toHaveLength(10);
+    expect(records.top).toHaveLength(14);
     expect(records.top.slice(0, 3).map((r) => [name(r.who), r.value])).toEqual([["MUD", 1000], ["MUD", 1000], ["KQX", 990]]);
     expect(records.top[1].at).toBe(999);
-    expect(records.mine && [records.mine.rank, records.mine.value]).toEqual([13, 50]);
+    expect(records.top[12].rank).toBe(13);
+    expect(records.mine).toBeNull();
+    const many = Array.from({ length: 101 }, (_, i) => record(KQX, 5000 - i));
+    expect(boards([...many, record(ME, 1)], 0, ME).records).toMatchObject({ top: expect.objectContaining({ length: 100 }), mine: { rank: 102, value: 1 } });
   });
 });
 
@@ -191,6 +206,9 @@ describe("history times", () => {
     expect(whenLabel(new Date(2026, 9, 8, 21, 10).getTime(), now)).toBe("YESTERDAY 21:10");
     expect(whenLabel(new Date(2026, 9, 7, 8, 5).getTime(), now)).toBe("07 OCT 08:05");
     expect(whenLabel(new Date(2026, 9, 10, 9, 5).getTime(), now)).toBe("TOMORROW 09:05");
+    const zh = translator("zh-Hans");
+    expect(whenLabel(new Date(2026, 9, 9, 18, 42).getTime(), now, zh)).toBe("今天 18:42");
+    expect(whenLabel(new Date(2026, 9, 7, 8, 5).getTime(), now, zh)).toBe("10月07日 08:05");
   });
 });
 

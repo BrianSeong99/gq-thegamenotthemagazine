@@ -94,7 +94,7 @@ beforeEach(() => {
     vi.fn(async (url: string) => ({
       ok: true,
       arrayBuffer: async () => new TextEncoder().encode(url.includes("cities") ? JSON.stringify(cities.map((c) => ({ name: `c${c.idx}`, country: "x", lat: 0, lon: 0 }))) : "[]").buffer,
-      json: async () => [],
+      json: async () => (url.includes("places.zh") ? cities.map((c) => [`城${c.idx}`, "国"]) : []),
     })),
   );
   window.history.replaceState({}, "", "/?record=0xp");
@@ -212,6 +212,34 @@ describe("shared record link, connected as a stranger", () => {
     render(<AppContent />);
     await screen.findByText(/this one is over/i);
     expect(screen.queryByRole("button", { name: /insert geocoin|^play$/i })).toBeNull();
+  });
+});
+
+describe("Simplified Chinese", () => {
+  it("点击开始 starts in Chinese: tabs, cities and history dates in Chinese, the Weibo share, and EN switches back in place", async () => {
+    window.history.replaceState({}, "", "/");
+    localStorage.removeItem("gq.lang");
+    render(<AppContent />);
+    fireEvent.click(await screen.findByRole("button", { name: /点击开始/ }));
+    expect(document.documentElement.lang).toBe("zh-Hans");
+    expect(localStorage.getItem("gq.lang")).toBe("zh-Hans");
+    expect(screen.getByRole("button", { name: "玩家中心" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "定位第一座城市" }));
+    // the quiz names the city in Chinese (places.zh-Hans.json), the dataset untouched
+    expect(await screen.findByText(/找到城\d！/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /switch to english/i }));
+    expect(document.documentElement.lang).toBe("en");
+    expect(await screen.findByText(/find c\d!/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /player hub/i })).toBeInTheDocument();
+  });
+
+  it("remembers the language on the next visit, and the Chinese start button stays on the splash", async () => {
+    window.history.replaceState({}, "", "/");
+    localStorage.setItem("gq.lang", "zh-Hans");
+    render(<AppContent />);
+    expect(await screen.findByRole("button", { name: /click to start/i })).toBeInTheDocument();
+    expect(screen.getByText("横着拿手机，地图更好玩。")).toBeInTheDocument();
+    localStorage.removeItem("gq.lang");
   });
 });
 
@@ -387,10 +415,13 @@ describe("open challenges in Champion vs Rival", () => {
     expect(screen.queryByText(/prize/i)).toBeNull();
   });
 
-  it("says so when there is none", async () => {
+  it("says so when there is none, and reads the notes again on its Refresh button", async () => {
     window.history.replaceState({}, "", "/");
     await start(/^champion vs rival$/i);
     expect(await screen.findByText("No open challenges yet.")).toBeInTheDocument();
+    expect(listChallengeNotes).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole("button", { name: /^refresh$/i }));
+    await waitFor(() => expect(listChallengeNotes).toHaveBeenCalledTimes(2));
   });
 
   it("View challenge opens the record card at once, in focus, then as the node has it now", async () => {

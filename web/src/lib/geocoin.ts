@@ -16,6 +16,7 @@ import { useCallback } from "react";
 import { GC_DECIMALS, GC_FAUCET } from "@/config";
 import type { Client } from "./chain";
 import { fmtGeocoin } from "./flow";
+import { en, type T } from "./i18n";
 
 /** The button is for empty pockets: nothing for a wallet holding more than 1 Geocoin. */
 const GEOCOIN_MAX_HELD = 10n ** BigInt(GC_DECIMALS);
@@ -27,9 +28,9 @@ export const GRANT_PENDING_MS = 5 * 60_000;
  * ponytail: the app asks before minting, but the faucet has no key, so one's own code can still mint;
  * a captcha or a faucet with a server-held key enforces it for everyone.
  */
-export function geocoinRefusal(balance: bigint, grantPending: boolean): string | null {
-  if (grantPending) return "Your Geocoins are on their way. Open your wallet to take them.";
-  if (balance > GEOCOIN_MAX_HELD) return `You still have ${fmtGeocoin(balance)}. Get more when you have 1 or less.`;
+export function geocoinRefusal(balance: bigint, grantPending: boolean, t: T = en): string | null {
+  if (grantPending) return t("Your Geocoins are on their way. Open your wallet to take them.");
+  if (balance > GEOCOIN_MAX_HELD) return t("You still have {gc}. Get more when you have 1 or less.", { gc: fmtGeocoin(balance, t) });
   return null;
 }
 

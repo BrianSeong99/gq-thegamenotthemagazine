@@ -2,7 +2,7 @@
 // link, code or from the open list, take a shot) / Player Hub (my records, my shots, what rivals left me).
 // The app's own Miden client only reads the chain (and mints Geocoins); the wallet signs the rest.
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { useMidenClient, useMiden } from "@miden-sdk/react";
 import { useMidenFiWallet } from "@miden-sdk/miden-wallet-adapter-react";
@@ -16,6 +16,7 @@ import { gcBalance, postShot, postRecord, settle, collect, setSubmitAttemptListe
 import { shotDeadline, shotStorage, ZERO_WORD, type AccountFelts, type ChallengeStorage } from "@/lib/notes";
 import { blockToMs, claimVerdict, explain, fmtGeocoin, NOT_FINISHED, SHOT_LOST, shotRefusal, withoutRecord, withTimeout, type Trouble, myOpenShotsOn as openShotsOn, outcomeText, parseCode, reportRows, settlePlan, sharedRecordState, type ReportRow } from "@/lib/flow";
 import { cityNames, datasetWord, decodeGame, encodeGame, quizCities, randomSeed, type Place, type Word4 } from "@/lib/quiz";
+import { LangContext, storedLang, storeLang, useT, type Lang } from "@/lib/i18n";
 import { gqAnswer, type City } from "@/lib/rules";
 import { History } from "./History";
 import { Leaderboards } from "./Leaderboards";
@@ -25,6 +26,7 @@ import { Play, type PlayResult } from "./Play";
 import { Shell } from "./Shell";
 import { ClaimButton, EndsIn, ErrorBox, Waiting, type Stage } from "./Status";
 import { type Tab } from "@/lib/tabs";
+import { PLACES_ZH_URL } from "@/config";
 import { Welcome } from "./Welcome";
 import { WorldMap } from "./WorldMap";
 
@@ -62,12 +64,30 @@ const trackOf = (m: Mode): Track =>
 type Intent = { kind: "post"; m: Extract<Mode, { kind: "post-record" }> } | { kind: "shot"; record: ChallengeNote } | { kind: "geocoins" };
 
 export function AppContent() {
+  // the language: the device remembers it; the splash and the ribbon change it
+  const [lang, setLangState] = useState<Lang>(storedLang);
+  const setLang = (l: Lang) => {
+    storeLang(l);
+    setLangState(l);
+  };
+  useEffect(() => {
+    document.documentElement.lang = lang;
+  }, [lang]);
+  return (
+    <LangContext.Provider value={{ lang, setLang }}>
+      <Gate />
+    </LangContext.Provider>
+  );
+}
+
+function Gate() {
+  const t = useT();
   // `useMidenClient()` throws until the provider has created the client, so gate on readiness first.
   const { isReady, error } = useMiden();
   const [slow, setSlow] = useState(false);
   useEffect(() => {
-    const t = setTimeout(() => setSlow(true), 20_000);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setSlow(true), 20_000);
+    return () => clearTimeout(timer);
   }, []);
   if (!isReady) {
     return (
@@ -76,12 +96,12 @@ export function AppContent() {
           <ErrorBox trouble={{ ...explain(error), title: "The game could not start." }} onRetry={() => location.reload()} onClose={() => location.reload()} />
         ) : (
           <>
-            <p className="muted">Loading…</p>
+            <p className="muted">{t("Loading…")}</p>
             {slow && (
               <p className="muted">
-                This is taking long. Check your connection, or{" "}
+                {t("This is taking long. Check your connection, or")}{" "}
                 <button className="btn" onClick={() => location.reload()}>
-                  Reload
+                  {t("Reload")}
                 </button>
               </p>
             )}
@@ -94,6 +114,8 @@ export function AppContent() {
 }
 
 function GqApp() {
+  const t = useT();
+  const { lang, setLang } = useContext(LangContext);
   const client = useMidenClient();
   const { runExclusive, isReady } = useMiden();
   const bread = useMidenFiWallet();
@@ -107,6 +129,17 @@ function GqApp() {
   const [started, setStarted] = useState(!!sharedRecordId);
   const [tab, setTab] = useState<Tab>(sharedRecordId ? "vs" : "1p");
   const [places, setPlaces] = useState<Place[]>([]);
+  // the cities' Chinese names, by dataset index, fetched the first time Chinese is on; the dataset itself stays as hashed
+  const [placesZh, setPlacesZh] = useState<[string, string][] | null>(null);
+  useEffect(() => {
+    if (lang !== "zh-Hans" || placesZh) return;
+    fetch(PLACES_ZH_URL)
+      .then((r) => r.json())
+      .then(setPlacesZh)
+      .catch((e) => console.warn("[gq] place names", e));
+  }, [lang, placesZh]);
+  /** The cities as the player reads them: Chinese names when Chinese is on and loaded. */
+  const shownPlaces = useMemo(() => (lang === "zh-Hans" && placesZh ? places.map((p, i) => (placesZh[i] ? { ...p, name: placesZh[i][0], country: placesZh[i][1] } : p)) : places), [lang, placesZh, places]);
   const [dataset, setDataset] = useState<Word4 | null>(null);
   const [notes, setNotes] = useState<ChallengeNote[]>([]);
   // the first read of every game's notes, history and boards wait for it
@@ -262,13 +295,13 @@ function GqApp() {
     };
     const finish = (s: S) => {
       void refresh();
-      setMode(onConfirmed?.(s) ?? { kind: "done", text: outcomeText(text, true), txId: s.txId });
+      setMode(onConfirmed?.(s) ?? { kind: "done", text: outcomeText(text, true, t), txId: s.txId });
     };
     setTrouble(null);
     // waiting keeps the song of the screen it came from; after a quiz, the song of what comes next
     const track = mode.kind === "play-champion" || mode.kind === "play-rival" ? trackOf(back) : trackOf(mode);
     setMode({ kind: "busy", text, back, stage: previous ? "network" : "prepare", since: Date.now(), track });
-    setSubmitAttemptListener((attempt) => update({ text: attempt > 1 ? `${text} (try ${attempt})` : text }));
+    setSubmitAttemptListener((attempt) => update({ text: attempt > 1 ? t("{text} (try {n})", { text, n: attempt }) : text }));
     setSubmitStageListener((stage) => update({ stage, since: Date.now() }));
     try {
       if (previous) {
@@ -290,7 +323,7 @@ function GqApp() {
   }
 
   function startChampion() {
-    if (!dataset || places.length === 0) return say("Still loading the cities, try again in a second.");
+    if (!dataset || places.length === 0) return say(t("Still loading the cities, try again in a second."));
     setTrouble(null);
     const seed = randomSeed();
     quizCities(seed, places)
@@ -302,7 +335,7 @@ function GqApp() {
     if (!dataset) return;
     const champion = accountFelts(parseAccountId(wallet.address!));
     await run(
-      "Posting your record",
+      t("Posting your record"),
       true,
       () => {
         const storage: ChallengeStorage = {
@@ -319,7 +352,7 @@ function GqApp() {
         return postRecord(client, wallet, storage, STAKE);
       },
       m,
-      ({ txId, noteIds }) => ({ kind: "done", title: "Record posted!", text: "Now find someone to beat you.", txId, share: { recordId: noteIds[0], score: m.result.score, expiresAt: blockToMs(height + RECORD_LIFETIME_BLOCKS, height), cities: cityNames(m.cities, places) } }),
+      ({ txId, noteIds }) => ({ kind: "done", title: t("Record posted!"), text: t("Now find someone to beat you."), txId, share: { recordId: noteIds[0], score: m.result.score, expiresAt: blockToMs(height + RECORD_LIFETIME_BLOCKS, height), cities: cityNames(m.cities, places) } }),
     );
   }
 
@@ -338,7 +371,7 @@ function GqApp() {
       return;
     }
     await run(
-      "Inserting your Geocoin",
+      t("Inserting your Geocoin"),
       true,
       async () => {
         // refuse a quiz that does not come from the seed and this dataset
@@ -367,11 +400,11 @@ function GqApp() {
   }
 
   const settleAfterPlay = (shots: ChallengeNote[], record: ChallengeNote | undefined) => (r: PlayResult) => {
-    const plan = settlePlan(shots, record, r.score, height);
-    const rows = reportRows(decodeGame(shots[0].storage.game).cities, r.answers, places);
+    const plan = settlePlan(shots, record, r.score, height, t);
+    const rows = reportRows(decodeGame(shots[0].storage.game).cities, r.answers, shownPlaces);
     if (!plan.won) {
       // nothing to sign on a loss: the Geocoin waits for the champion at the deadline
-      setMode({ kind: "done", title: "The record stands.", text: plan.text, rows });
+      setMode({ kind: "done", title: t("The record stands."), text: plan.text, rows });
       return;
     }
     const claimUntil = blockToMs(shotDeadline(shots[0].storage), height);
@@ -388,11 +421,11 @@ function GqApp() {
           return settle(client, wallet, shots, plan.claimPrize ? record : undefined, gqAnswer(r.answers));
         },
         // the win stands on failure: the report stays and the claim can be sent again until the shot ends
-        { kind: "done", title: "Record smashed!", text: plan.text, rows, retry: claim, retryLabel: plan.claimPrize ? "Claim my prize" : "Get my Geocoin back", claimUntil },
+        { kind: "done", title: t("Record smashed!"), text: plan.text, rows, retry: claim, retryLabel: plan.claimPrize ? t("Claim my prize") : t("Get my Geocoin back"), claimUntil },
         () => {
           // the prize is ours: the record card must not offer it again
           if (plan.claimPrize && record) setSharedRecord((r) => (r && r.id === record.id ? { ...r, consumed: true } : r));
-          return { kind: "done", title: "Record smashed!", text: outcomeText(plan.text, true), rows, claimed: true };
+          return { kind: "done", title: t("Record smashed!"), text: outcomeText(plan.text, true, t), rows, claimed: true };
         },
       );
     claim();
@@ -402,10 +435,10 @@ function GqApp() {
   async function getGeocoins() {
     const token = ++runToken.current;
     setTrouble(null);
-    setMode({ kind: "busy", text: "Getting Geocoins", back: { kind: "lobby" }, stage: "network", since: Date.now(), track: trackOf(mode) });
+    setMode({ kind: "busy", text: t("Getting Geocoins"), back: { kind: "lobby" }, stage: "network", since: Date.now(), track: trackOf(mode) });
     try {
       const grant = lastGrant.current;
-      const refusal = geocoinRefusal(await gcBalance(wallet), grant?.to === wallet.address && Date.now() - grant.at < GRANT_PENDING_MS);
+      const refusal = geocoinRefusal(await gcBalance(wallet), grant?.to === wallet.address && Date.now() - grant.at < GRANT_PENDING_MS, t);
       if (refusal) {
         if (runToken.current !== token) return;
         setMode({ kind: "lobby" });
@@ -415,7 +448,7 @@ function GqApp() {
       lastGrant.current = { to: wallet.address!, at: Date.now() };
       if (LOCAL_WALLET) await local.claim();
       if (runToken.current !== token) return;
-      setMode({ kind: "done", text: `${fmtGeocoin(GEOCOIN_GRANT)} for you! Open your wallet to take them.`, txId });
+      setMode({ kind: "done", text: t("{gc} for you! Open your wallet to take them.", { gc: fmtGeocoin(GEOCOIN_GRANT, t) }), txId });
     } catch (e) {
       if (runToken.current !== token) return;
       oops(e, () => withWallet({ kind: "geocoins" }));
@@ -433,21 +466,21 @@ function GqApp() {
 
   const refreshButton = (
     <button className="btn" onClick={() => void refresh()} disabled={refreshing}>
-      {refreshing ? "Refreshing…" : "Refresh"}
+      {refreshing ? t("Refreshing…") : t("Refresh")}
     </button>
   );
   const geocoinButton = (
     <button className="btn" onClick={() => withWallet({ kind: "geocoins" })}>
-      Empty pockets? Get Geocoins now!
+      {t("Empty pockets? Get Geocoins now!")}
     </button>
   );
   const codeBox = (
     <section className="panel">
-      <div className="panel-title">Have a code?</div>
-      <p className="muted">Paste a record link or code.</p>
-      <input value={code} onChange={(e) => setCode(e.target.value)} placeholder="paste the link or code" aria-label="Record link or code" />
+      <div className="panel-title">{t("Have a code?")}</div>
+      <p className="muted">{t("Paste a record link or code.")}</p>
+      <input value={code} onChange={(e) => setCode(e.target.value)} placeholder={t("paste the link or code")} aria-label={t("Record link or code")} />
       <button className="btn" onClick={openCode}>
-        Go
+        {t("Go")}
       </button>
     </section>
   );
@@ -465,22 +498,25 @@ function GqApp() {
   };
   const openList = (
     <section className="panel open-challenges">
-      <div className="panel-title">Open challenges</div>
+      <div className="panel-title">
+        {t("Open challenges")}
+        {refreshButton}
+      </div>
       {!notesRead ? (
-        <p className="muted">Loading…</p>
+        <p className="muted">{t("Loading…")}</p>
       ) : openRecords.length === 0 ? (
-        <p className="muted">No open challenges yet.</p>
+        <p className="muted">{t("No open challenges yet.")}</p>
       ) : (
         openRecords.map((n) => (
           <div key={n.id} className="row">
             <div>
-              <div className="value">{n.storage.target.toLocaleString()} pts</div>
+              <div className="value">{t("{n} pts", { n: n.storage.target.toLocaleString() })}</div>
               <div className="small muted">
                 <EndsIn until={blockToMs(n.storage.expiryBlock, height)} />
               </div>
             </div>
-            <button className="btn" onClick={() => viewChallenge(n)} aria-label={`View challenge, ${n.storage.target.toLocaleString()} pts`}>
-              View challenge
+            <button className="btn" onClick={() => viewChallenge(n)} aria-label={t("View challenge, {n} pts", { n: n.storage.target.toLocaleString() })}>
+              {t("View challenge")}
             </button>
           </div>
         ))
@@ -497,38 +533,38 @@ function GqApp() {
     if (state === "claimed" || state === "expired") {
       return (
         <section className="panel pink" ref={cardRef} tabIndex={-1}>
-          <div className="panel-title">Record</div>
-          <h2>This one is over.</h2>
+          <div className="panel-title">{t("Record")}</div>
+          <h2>{t("This one is over.")}</h2>
         </section>
       );
     }
     return (
       <section className="panel pink" ref={cardRef} tabIndex={-1}>
-        <div className="panel-title">Record</div>
-        <div className="big-score">{record.storage.target.toLocaleString()} pts to beat</div>
+        <div className="panel-title">{t("Record")}</div>
+        <div className="big-score">{t("{n} pts to beat", { n: record.storage.target.toLocaleString() })}</div>
         <div className="row">
-          <span>Prize</span>
-          <span className="value">{fmtGeocoin(record.amount)}</span>
+          <span>{t("Prize")}</span>
+          <span className="value">{fmtGeocoin(record.amount, t)}</span>
         </div>
         <div className="row">
-          <span>One shot</span>
-          <span className="value">{fmtGeocoin(record.storage.minStake)}</span>
+          <span>{t("One shot")}</span>
+          <span className="value">{fmtGeocoin(record.storage.minStake, t)}</span>
         </div>
-        {state === "mine" && <p className="muted">This is yours.</p>}
+        {state === "mine" && <p className="muted">{t("This is yours.")}</p>}
         {state === "already-challenged" && (
           <button className="btn primary wide" onClick={() => withWallet({ kind: "shot", record: record })}>
-            Play
+            {t("Play")}
           </button>
         )}
         {state === "open" && (
           <button className="btn primary wide" onClick={() => withWallet({ kind: "shot", record: record })}>
-            Insert Geocoin
+            {t("Insert Geocoin")}
           </button>
         )}
         <p className="muted terms" style={{ margin: "14px 0 0" }}>
-          Win and get your Geocoin back plus the prize :)
+          {t("Win and get your Geocoin back plus the prize :)")}
           <br />
-          Lose and your Geocoin goes to the champion :(
+          {t("Lose and your Geocoin goes to the champion :(")}
         </p>
       </section>
     );
@@ -548,9 +584,17 @@ function GqApp() {
     setStarted(false);
   };
 
-  const walletLabel = wallet.connected && me ? `${LOCAL_WALLET ? "Test wallet" : "Wallet"} / ${nameOf(me)}` : null;
+  const walletLabel = wallet.connected && me ? `${LOCAL_WALLET ? t("Test wallet") : t("Wallet")} / ${nameOf(me)}` : null;
 
-  if (!started) return <Welcome onStart={() => setStarted(true)} />;
+  if (!started)
+    return (
+      <Welcome
+        onStart={(l) => {
+          setLang(l);
+          setStarted(true);
+        }}
+      />
+    );
 
   return (
     <Shell
@@ -586,7 +630,7 @@ function GqApp() {
       {mode.kind === "lobby" && tab === "1p" && (
         <>
           <h1 className="slogan">
-            <span>Locate.</span> <span>Challenge.</span> <span>Win.</span>
+            <span>{t("Locate.")}</span> <span>{t("Challenge.")}</span> <span>{t("Win.")}</span>
           </h1>
           <div className="cols tour">
             <div className="panel map-frame">
@@ -594,15 +638,15 @@ function GqApp() {
             </div>
             <div>
               <aside className="panel">
-                <div className="panel-title">1P World Tour</div>
-                <p>10 cities, 15 seconds each.</p>
-                <p className="muted">Free to play. Once you're happy with your score, post it on X to challenge your rivals.</p>
+                <div className="panel-title">{t("1P World Tour")}</div>
+                <p>{t("10 cities, 15 seconds each.")}</p>
+                <p className="muted">{t("Free to play. Once you're happy with your score, post it on X to challenge your rivals.")}</p>
                 <button className="btn primary wide" onClick={startChampion} disabled={!dataset || places.length === 0}>
-                  Locate first city
+                  {t("Locate first city")}
                 </button>
               </aside>
               <button className="text-link" onClick={() => openTab("vs")}>
-                Find a challenge in CHAMPION VS RIVAL mode →
+                {t("Find a challenge in CHAMPION VS RIVAL mode →")}
               </button>
             </div>
           </div>
@@ -625,7 +669,7 @@ function GqApp() {
       {mode.kind === "lobby" && tab === "hub" && (
         <>
           <div className="page-head">
-            <h1>Player Hub</h1>
+            <h1>{t("Player Hub")}</h1>
             {refreshButton}
           </div>
           {wallet.connected ? (
@@ -639,22 +683,22 @@ function GqApp() {
                   const open = record && me ? myOpenShotsOn(record) : [];
                   setMode({ kind: "play-rival", shots: open.length > 0 ? open : [shot], record });
                 }}
-                onCollect={(picked) => void run(picked.length > 1 ? "Taking them" : "Taking it", false, () => collect(client, wallet, picked), { kind: "lobby" })}
+                onCollect={(picked) => void run(picked.length > 1 ? t("Taking them") : t("Taking it"), false, () => collect(client, wallet, picked), { kind: "lobby" })}
               />
               <p>{geocoinButton}</p>
             </>
           ) : null}
           <History
             key={meKey ?? ""}
-            items={me && notesRead ? pastGames(notes, me, height, nameOf) : null}
+            items={me && notesRead ? pastGames(notes, me, height, nameOf, t) : null}
             connect={
               !wallet.connected && (
                 <section className="panel">
-                  <p>Connect to see your games.</p>
+                  <p>{t("Connect to see your games.")}</p>
                   <button className="btn primary" onClick={connect} disabled={wallet.connecting}>
-                    {wallet.connecting ? (LOCAL_WALLET && local.status) || "…" : "Connect wallet"}
+                    {wallet.connecting ? (LOCAL_WALLET && local.status) || "…" : t("Connect wallet")}
                   </button>
-                  {!LOCAL_WALLET && wallet.wallet?.readyState !== "Installed" && <p className="muted">You need the Bread wallet first.</p>}
+                  {!LOCAL_WALLET && wallet.wallet?.readyState !== "Installed" && <p className="muted">{t("You need the Bread wallet first.")}</p>}
                 </section>
               )
             }
@@ -664,29 +708,29 @@ function GqApp() {
 
       {mode.kind === "lobby" && tab === "boards" && <Leaderboards data={notesRead ? boards(publicNotes, height, me) : null} me={me} name={nameOf} action={refreshButton} />}
 
-      {mode.kind === "play-champion" && <Play cities={mode.cities} places={places} onDone={(result) => setMode({ kind: "post-record", seed: mode.seed, cities: mode.cities, result })} />}
+      {mode.kind === "play-champion" && <Play cities={mode.cities} places={shownPlaces} onDone={(result) => setMode({ kind: "post-record", seed: mode.seed, cities: mode.cities, result })} />}
 
       {mode.kind === "post-record" && (
         <div className="cols wide-aside">
           <section className="panel">
-            <div className="panel-title">Run complete!</div>
-            <div className="big-score">{mode.result.score.toLocaleString()} pts</div>
-            <Report rows={reportRows(mode.cities, mode.result.answers, places)} />
+            <div className="panel-title">{t("Run complete!")}</div>
+            <div className="big-score">{t("{n} pts", { n: mode.result.score.toLocaleString() })}</div>
+            <Report rows={reportRows(mode.cities, mode.result.answers, shownPlaces)} />
           </section>
           <aside className="panel yellow">
-            <div className="panel-title">Post your record?</div>
+            <div className="panel-title">{t("Post your record?")}</div>
             <p className="terms">
-              Rivals must pay 1 Geocoin to try to beat you.
+              {t("Rivals must pay 1 Geocoin to try to beat you.")}
               <br />
-              If they do, they take your Geocoin :(
+              {t("If they do, they take your Geocoin :(")}
               <br />
-              Otherwise, their Geocoin is yours!!!
+              {t("Otherwise, their Geocoin is yours!!!")}
             </p>
             <button className="btn primary wide" onClick={() => withWallet({ kind: "post", m: mode })}>
-              Post it
+              {t("Post it")}
             </button>
             <button className="btn wide" onClick={() => setMode({ kind: "lobby" })}>
-              Not now
+              {t("Not now")}
             </button>
           </aside>
         </div>
@@ -695,7 +739,7 @@ function GqApp() {
       {mode.kind === "play-rival" && (
         <Play
           cities={decodeGame(mode.shots[0].storage.game).cities}
-          places={places}
+          places={shownPlaces}
           rival={{ blocksLeft: shotDeadline(mode.shots[0].storage) - height }}
           onDone={settleAfterPlay(mode.shots, mode.record)}
         />
@@ -722,10 +766,10 @@ function GqApp() {
           {mode.share && <ShareButtons {...mode.share} />}
           {mode.retry &&
             (mode.claimUntil ? (
-              <ClaimButton until={mode.claimUntil} label={mode.retryLabel ?? "Try again"} onClaim={mode.retry} />
+              <ClaimButton until={mode.claimUntil} label={mode.retryLabel ?? t("Try again")} onClaim={mode.retry} />
             ) : (
               <button className="btn primary" onClick={mode.retry}>
-                {mode.retryLabel ?? "Try again"}
+                {mode.retryLabel ?? t("Try again")}
               </button>
             ))}
           <button
@@ -742,7 +786,7 @@ function GqApp() {
               else setMode({ kind: "lobby" });
             }}
           >
-            OK
+            {t("OK")}
           </button>
         </section>
       )}

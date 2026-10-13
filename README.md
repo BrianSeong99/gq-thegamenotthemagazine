@@ -22,6 +22,10 @@ transactions, the pitfalls, and a six-line example game that runs through the sa
   code or the list of open challenges) → Player Hub (my records, my shots, what rivals left me, my past games) → Leaderboards
   (Geocoins won, best records, records defended and smashed, a loserboard). History and boards are read from the
   public notes alone (`web/src/lib/hub.ts`): no server, players named by three letters of their address.
+- Simplified Chinese: the splash offers both languages, the ribbon switches in place. English text is
+  the key (`web/src/lib/i18n.ts`, dictionary in `zh.ts`, a test checks every line has one); city names
+  come from `web/public/places.zh-Hans.json` by dataset index (shown, never hashed); Chinese display
+  text uses a Fusion Pixel subset in `web/public/brand/` (OFL, license beside it); sharing goes to Weibo.
 - Design, verified capabilities, blockers and trust assumptions: [`docs/design.md`](docs/design.md)
 - How to run it end to end: [`docs/walkthrough.md`](docs/walkthrough.md)
 

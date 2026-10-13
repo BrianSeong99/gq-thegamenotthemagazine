@@ -1,4 +1,5 @@
 // The Player Hub: my records to take back, my shots to play, lost shots at my records to collect.
+// A shot of mine past its deadline is lost: it shows in History, not here.
 
 import type { ChallengeNote } from "@/lib/chain";
 import { blocksToClock, blockToMs, fmtGeocoin, sameAccount, sameWord } from "@/lib/flow";
@@ -7,6 +8,7 @@ import { cityNames, recordCities, type Place, type Word4 } from "@/lib/quiz";
 import { CLAIM_FUZZ } from "@/config";
 import { noteDeadline as deadline, type AccountFelts } from "@/lib/notes";
 import { ShareButtons } from "./ShareButtons";
+import { useT } from "@/lib/i18n";
 
 type LobbyProps = {
   me: AccountFelts | null;
@@ -18,6 +20,7 @@ type LobbyProps = {
 };
 
 export function Lobby({ me, notes, height, places, onSettle, onCollect }: LobbyProps) {
+  const t = useT();
   const records = notes.filter((n) => n.kind === "record" && !n.consumed);
   const shots = notes.filter((n) => n.kind === "shot" && !n.consumed);
   const recordById = (idWord: Word4) => notes.find((n) => n.kind === "record" && sameWord(n.idWord, idWord));
@@ -26,36 +29,37 @@ export function Lobby({ me, notes, height, places, onSettle, onCollect }: LobbyP
   const ready = owed(notes, height, me);
   const takeable = (n: ChallengeNote) => ready.includes(n);
   // when the champion may take it, as a clock time: blocks left at testnet's pace
-  const until = (n: ChallengeNote) => whenLabel(blockToMs(deadline(n) + CLAIM_FUZZ, height));
+  const until = (n: ChallengeNote) => whenLabel(blockToMs(deadline(n) + CLAIM_FUZZ, height), Date.now(), t);
 
   const mine = (n: ChallengeNote) => sameAccount(me, n.storage.champion);
   // only mine here: other people's open records are listed in Champion vs Rival
   const myRecords = records.filter(mine);
-  const myShots = shots.filter((n) => sameAccount(me, n.storage.rival));
+  // a shot past its deadline is lost and listed in History; the champion's lost-shot card below stays
+  const myShots = shots.filter((n) => sameAccount(me, n.storage.rival) && !expired(n));
   const shotsAtMyRecords = shots.filter((n) => mine(n) && !sameAccount(me, n.storage.rival));
   const empty = myRecords.length + myShots.length + shotsAtMyRecords.length === 0;
 
   return (
     <div className="lobby">
-      {empty && <p className="muted">Play the World Tour and post your record: rivals pay a Geocoin to try to beat it!</p>}
+      {empty && <p className="muted">{t("Play the World Tour and post your record: rivals pay a Geocoin to try to beat it!")}</p>}
       {ready.length > 1 && (
         <p>
           <button className="btn primary blink" onClick={() => onCollect(ready)}>
-            Take all
+            {t("Take all")}
           </button>
         </p>
       )}
       {myRecords.map((p) => (
         <section key={p.id} className={`panel card${takeable(p) ? " yellow" : ""}`}>
-          <div className="eyebrow">{takeable(p) ? "My record / over" : `My record / open until ${until(p)}`}</div>
-          <div className="score">{p.storage.target.toLocaleString()} pts</div>
+          <div className="eyebrow">{takeable(p) ? t("My record / over") : t("My record / open until {time}", { time: until(p) })}</div>
+          <div className="score">{t("{n} pts", { n: p.storage.target.toLocaleString() })}</div>
           {takeable(p) ? (
             <button className="btn primary blink" onClick={() => onCollect([p])}>
-              Take it back
+              {t("Take it back")}
             </button>
           ) : (
             <>
-              <p className="muted">Waiting for a rival…</p>
+              <p className="muted">{t("Waiting for a rival…")}</p>
               <LostSoFar n={triesLost(p, notes, height)} />
               <ShareButtons recordId={p.id} score={p.storage.target} expiresAt={blockToMs(p.storage.expiryBlock, height)} cities={cityNames(recordCities(p.storage.game), places)} />
             </>
@@ -68,17 +72,12 @@ export function Lobby({ me, notes, height, places, onSettle, onCollect }: LobbyP
           const record = recordById(c.storage.recordId);
           return (
             <section key={c.id} className="panel card pink">
-              <div className="eyebrow">{expired(c) ? "My shot / too late" : `My shot / ends in ${blocksToClock(deadline(c) - height)}`}</div>
-              <div className="score">beat {c.storage.target.toLocaleString()}</div>
-              <p className="muted">{fmtGeocoin(c.amount)} on the table</p>
-              {expired(c) ? (
-                // the shot script serves its rival first: a shot at my own record stays locked past its deadline
-                <p className="muted">{mine(c) ? "Locked: this shot was at your own record." : "The champion can take it."}</p>
-              ) : (
-                <button className="btn primary" onClick={() => onSettle(c, record && !record.consumed ? record : undefined)}>
-                  Play
-                </button>
-              )}
+              <div className="eyebrow">{t("My shot / ends in {time}", { time: blocksToClock(deadline(c) - height) })}</div>
+              <div className="score">{t("beat {n}", { n: c.storage.target.toLocaleString() })}</div>
+              <p className="muted">{t("{gc} on the table", { gc: fmtGeocoin(c.amount, t) })}</p>
+              <button className="btn primary" onClick={() => onSettle(c, record && !record.consumed ? record : undefined)}>
+                {t("Play")}
+              </button>
             </section>
           );
         })}
@@ -86,14 +85,14 @@ export function Lobby({ me, notes, height, places, onSettle, onCollect }: LobbyP
       {me &&
         shotsAtMyRecords.map((c) => (
           <section key={c.id} className="panel card mint">
-            <div className="eyebrow">{takeable(c) ? "For you / ready" : "For you / in play"}</div>
-            <div className="score">{fmtGeocoin(c.amount)}</div>
+            <div className="eyebrow">{takeable(c) ? t("For you / ready") : t("For you / in play")}</div>
+            <div className="score">{fmtGeocoin(c.amount, t)}</div>
             {takeable(c) ? (
               <button className="btn primary blink" onClick={() => onCollect([c])}>
-                Take it
+                {t("Take it")}
               </button>
             ) : (
-              <p className="muted">Someone is playing…</p>
+              <p className="muted">{t("Someone is playing…")}</p>
             )}
           </section>
         ))}
@@ -102,4 +101,7 @@ export function Lobby({ me, notes, height, places, onSettle, onCollect }: LobbyP
 }
 
 /** Rivals who lost are counted, never named. Nothing while none lost, or while the count is unknown. */
-const LostSoFar = ({ n }: { n: number | null }) => (n ? <p className="small">{n === 1 ? "1 try lost so far" : `${n} tries lost so far`}</p> : null);
+function LostSoFar({ n }: { n: number | null }) {
+  const t = useT();
+  return n ? <p className="small">{n === 1 ? t("1 try lost so far") : t("{n} tries lost so far", { n })}</p> : null;
+}
