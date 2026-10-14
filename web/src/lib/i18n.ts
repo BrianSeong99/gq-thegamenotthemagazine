@@ -1,24 +1,46 @@
-// Eleven languages in five families. The English text is the key: `t("Take it back")` shows the
+// Many languages in twelve families. The English text is the key: `t("Take it back")` shows the
 // line from the current dictionary, or the English itself when there is none. `{name}` placeholders
 // are filled in after the lookup, so a sentence is translated whole. A key may carry a `|context`
 // suffix that is never shown, for one English word that is two elsewhere ("Defended|board").
 
 import { createContext, useContext } from "react";
+import { DE } from "./de";
 import { ES_AR, ES_CO, ES_ES, ES_MX } from "./es";
 import { FR_CA, FR_FR } from "./fr";
+import { ID } from "./id";
+import { JA } from "./ja";
+import { KO } from "./ko";
 import { PT_BR } from "./pt-BR";
 import { PT_PT } from "./pt-PT";
+import { RU } from "./ru";
+import { TR } from "./tr";
+import { UK } from "./uk";
 import { ZH } from "./zh";
+import { ZH_HANT } from "./zh-Hant";
 
-export type Lang = "en-US" | "en-GB" | "zh-Hans" | "es-ES" | "es-MX" | "es-AR" | "es-CO" | "fr-FR" | "fr-CA" | "pt-BR" | "pt-PT";
+export type Lang =
+  | "en-US" | "en-GB"
+  | "zh-Hans" | "zh-Hant-TW" | "zh-Hant-HK"
+  | "es-ES" | "es-MX" | "es-AR" | "es-CO"
+  | "fr-FR" | "fr-CA"
+  | "pt-BR" | "pt-PT"
+  | "de-DE" | "de-AT" | "de-CH"
+  | "ja" | "ko" | "ru" | "uk" | "tr" | "id";
 export type Params = Record<string, string | number>;
 export type T = (text: string, params?: Params) => string;
 
 /** The dictionaries. English lines are the keys; UK English only has its jokes. */
 export const DICTS: Partial<Record<Lang, Record<string, string>>> = {
   "en-GB": { "Click to start": "Click to start, bruv" },
-  "zh-Hans": ZH, "es-ES": ES_ES, "es-MX": ES_MX, "es-AR": ES_AR, "es-CO": ES_CO, "fr-FR": FR_FR, "fr-CA": FR_CA, "pt-BR": PT_BR, "pt-PT": PT_PT,
+  "zh-Hans": ZH, "zh-Hant-TW": ZH_HANT, "zh-Hant-HK": ZH_HANT,
+  "es-ES": ES_ES, "es-MX": ES_MX, "es-AR": ES_AR, "es-CO": ES_CO,
+  "fr-FR": FR_FR, "fr-CA": FR_CA,
+  "pt-BR": PT_BR, "pt-PT": PT_PT,
+  "de-DE": DE, "de-AT": DE, "de-CH": DE,
+  ja: JA, ko: KO, ru: RU, uk: UK, tr: TR, id: ID,
 };
+/** Languages whose display text comes from the 12 px Fusion Pixel face (theme.css html.pixel12). */
+export const PIXEL12 = /^(zh|ja|ko|ru|uk)/;
 export type Variant = { lang: Lang; flag: string; name: string; /** the city names file, by family (config.ts placesUrl) */ places?: string };
 /**
  * One family per flag slot on the splash, in that order; the first variant is the one shown until
@@ -26,7 +48,14 @@ export type Variant = { lang: Lang; flag: string; name: string; /** the city nam
  */
 export const FAMILIES: { name: string; variants: Variant[] }[] = [
   { name: "English", variants: [{ lang: "en-US", flag: "/brand/flag-us.svg", name: "US" }, { lang: "en-GB", flag: "/brand/flag-gb.svg", name: "UK" }] },
-  { name: "中文", variants: [{ lang: "zh-Hans", flag: "/brand/flag-cn.svg", name: "简体", places: "zh-Hans" }] },
+  {
+    name: "中文",
+    variants: [
+      { lang: "zh-Hans", flag: "/brand/flag-cn.svg", name: "简体", places: "zh-Hans" },
+      { lang: "zh-Hant-TW", flag: "/brand/flag-tw.svg", name: "繁體 台灣", places: "zh-Hant" },
+      { lang: "zh-Hant-HK", flag: "/brand/flag-hk.svg", name: "繁體 香港", places: "zh-Hant" },
+    ],
+  },
   {
     name: "Español",
     variants: [
@@ -38,6 +67,20 @@ export const FAMILIES: { name: string; variants: Variant[] }[] = [
   },
   { name: "Français", variants: [{ lang: "fr-FR", flag: "/brand/flag-fr.svg", name: "France", places: "fr" }, { lang: "fr-CA", flag: "/brand/flag-qc.svg", name: "Québec", places: "fr" }] },
   { name: "Português", variants: [{ lang: "pt-BR", flag: "/brand/flag-br.svg", name: "Brasil", places: "pt-BR" }, { lang: "pt-PT", flag: "/brand/flag-pt.svg", name: "Portugal", places: "pt-PT" }] },
+  {
+    name: "Deutsch",
+    variants: [
+      { lang: "de-DE", flag: "/brand/flag-de.svg", name: "Deutschland", places: "de" },
+      { lang: "de-AT", flag: "/brand/flag-at.svg", name: "Österreich", places: "de" },
+      { lang: "de-CH", flag: "/brand/flag-ch.svg", name: "Schweiz", places: "de" },
+    ],
+  },
+  { name: "日本語", variants: [{ lang: "ja", flag: "/brand/flag-jp.svg", name: "日本", places: "ja" }] },
+  { name: "한국어", variants: [{ lang: "ko", flag: "/brand/flag-kr.svg", name: "한국", places: "ko" }] },
+  { name: "Русский", variants: [{ lang: "ru", flag: "/brand/flag-ru.svg", name: "Россия", places: "ru" }] },
+  { name: "Українська", variants: [{ lang: "uk", flag: "/brand/flag-ua.svg", name: "Україна", places: "uk" }] },
+  { name: "Türkçe", variants: [{ lang: "tr", flag: "/brand/flag-tr.svg", name: "Türkiye", places: "tr" }] },
+  { name: "Bahasa Indonesia", variants: [{ lang: "id", flag: "/brand/flag-id.svg", name: "Indonesia", places: "id" }] },
 ];
 export const LANGS = FAMILIES.flatMap((f) => f.variants);
 /** What a flag or picker entry calls a variant: "Español (Argentina)". */

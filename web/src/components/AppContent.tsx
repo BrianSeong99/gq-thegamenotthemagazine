@@ -16,7 +16,7 @@ import { gcBalance, postShot, postRecord, settle, collect, setSubmitAttemptListe
 import { shotDeadline, shotStorage, ZERO_WORD, type AccountFelts, type ChallengeStorage } from "@/lib/notes";
 import { blockToMs, claimVerdict, explain, fmtGamecoin, NOT_FINISHED, SHOT_LOST, shotRefusal, withoutRecord, withTimeout, type Trouble, myOpenShotsOn as openShotsOn, outcomeText, parseCode, reportRows, settlePlan, sharedRecordState, type ReportRow } from "@/lib/flow";
 import { cityNames, datasetWord, decodeGame, encodeGame, quizCities, randomSeed, type Place, type Word4 } from "@/lib/quiz";
-import { LANGS, LangContext, storedLang, storeLang, useT, type Lang } from "@/lib/i18n";
+import { LANGS, LangContext, PIXEL12, storedLang, storeLang, useT, type Lang } from "@/lib/i18n";
 import { gqAnswer, type City } from "@/lib/rules";
 import { History } from "./History";
 import { Leaderboards } from "./Leaderboards";
@@ -72,6 +72,7 @@ export function AppContent() {
   };
   useEffect(() => {
     document.documentElement.lang = lang;
+    document.documentElement.classList.toggle("pixel12", PIXEL12.test(lang));
   }, [lang]);
   return (
     <LangContext.Provider value={{ lang, setLang }}>

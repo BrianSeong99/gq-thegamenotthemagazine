@@ -3,7 +3,7 @@
 
 @font-face {
   font-family: "GeoQuizz Pixel";
-  src: url("/brand/geoquizz-pixel.ttf?v=20261014b") format("truetype");
+  src: url("/brand/geoquizz-pixel.ttf?v=20261014c") format("truetype");
   font-display: swap;
 }
 /* Chinese display text: Fusion Pixel 12 px (zh_hans), cut down to the characters the game shows.
@@ -11,7 +11,7 @@
    GeoQuizz face carries the accented Latin letters of Spanish, French and Portuguese too (added as pixel marks). */
 @font-face {
   font-family: "GQ Chinese Pixel";
-  src: url("/brand/gq-chinese-pixel.woff2?v=20261014b") format("woff2");
+  src: url("/brand/gq-chinese-pixel.woff2?v=20261014c") format("woff2");
   font-display: swap;
 }
 
@@ -33,16 +33,18 @@
   --body: Verdana, sans-serif;
   color-scheme: dark;
 }
-/* Simplified Chinese: the system's own CJK face for body copy, pixel sizes on the 12 px grid for display text */
-html[lang="zh-Hans"] {
-  --body: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif;
-}
-html[lang="zh-Hans"] h1, html[lang="zh-Hans"] .big-score { font-size: 36px; }
-html[lang="zh-Hans"] h2, html[lang="zh-Hans"] h3, html[lang="zh-Hans"] .btn, html[lang="zh-Hans"] .banner, html[lang="zh-Hans"] .card .score, html[lang="zh-Hans"] .history-score, html[lang="zh-Hans"] .history-item .money-label, html[lang="zh-Hans"] .history-filters button { font-size: 24px; }
-html[lang="zh-Hans"] .hud .city { font-size: 36px; }
-html[lang="zh-Hans"] .eyebrow, html[lang="zh-Hans"] .panel-title, html[lang="zh-Hans"] .masthead nav button, html[lang="zh-Hans"] .masthead .sound, html[lang="zh-Hans"] .masthead .wallet, html[lang="zh-Hans"] .masthead .testnet, html[lang="zh-Hans"] .masthead .net, html[lang="zh-Hans"] .history-item .eyebrow, html[lang="zh-Hans"] .history-day-title, html[lang="zh-Hans"] .rotate-hint, html[lang="zh-Hans"] .hud .rival .bubble, html[lang="zh-Hans"] .panel .deadline, html[lang="zh-Hans"] .hud .deadline, html[lang="zh-Hans"] .loader-label, html[lang="zh-Hans"] .panel-title .btn, html[lang="zh-Hans"] .board-tabs .btn, html[lang="zh-Hans"] .record-tabs .btn { font-size: 12px; }
-html[lang="zh-Hans"] .history-item p { font-size: 16px; }
-html[lang="zh-Hans"] .small, html[lang="zh-Hans"] .history-item .history-detail, html[lang="zh-Hans"] .history-item .money-note, html[lang="zh-Hans"] .text-link { font-size: 14px; }
+/* CJK: the system's own face for body copy; display text in Chinese, Japanese, Korean, Russian and
+   Ukrainian comes from the 12 px Fusion face, so html.pixel12 (set in AppContent) puts it on the 12 px grid */
+html[lang="zh-Hans"] { --body: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif; }
+html[lang^="zh-Hant"] { --body: "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif; }
+html[lang="ja"] { --body: "Hiragino Sans", "Yu Gothic", "Meiryo", "Noto Sans JP", sans-serif; }
+html[lang="ko"] { --body: "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif; }
+html.pixel12 h1, html.pixel12 .big-score { font-size: 36px; }
+html.pixel12 h2, html.pixel12 h3, html.pixel12 .btn, html.pixel12 .banner, html.pixel12 .card .score, html.pixel12 .history-score, html.pixel12 .history-item .money-label, html.pixel12 .history-filters button { font-size: 24px; }
+html.pixel12 .hud .city { font-size: 36px; }
+html.pixel12 .eyebrow, html.pixel12 .panel-title, html.pixel12 .masthead nav button, html.pixel12 .masthead .sound, html.pixel12 .masthead .wallet, html.pixel12 .masthead .testnet, html.pixel12 .masthead .net, html.pixel12 .history-item .eyebrow, html.pixel12 .history-day-title, html.pixel12 .rotate-hint, html.pixel12 .hud .rival .bubble, html.pixel12 .panel .deadline, html.pixel12 .hud .deadline, html.pixel12 .loader-label, html.pixel12 .panel-title .btn, html.pixel12 .board-tabs .btn, html.pixel12 .record-tabs .btn { font-size: 12px; }
+html.pixel12 .history-item p { font-size: 16px; }
+html.pixel12 .small, html.pixel12 .history-item .history-detail, html.pixel12 .history-item .money-note, html.pixel12 .text-link { font-size: 14px; }
 
 * { box-sizing: border-box; }
 html, body { margin: 0; background: var(--void); color: var(--white); }
@@ -135,7 +137,7 @@ main { max-width: 1440px; margin: 0 auto; padding: 28px 4% 56px; }
 .welcome .start-options { position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; align-items: center; gap: 4px; }
 .welcome .start { display: flex; align-items: center; gap: 0.5em; min-height: 44px; padding: 4px 12px; background: none; border: 0; cursor: pointer; text-transform: uppercase; font: clamp(18px, 3vw, 36px)/1.2 var(--display); color: var(--yellow); text-shadow: 3px 3px 0 var(--void), 5px 5px 0 var(--pink); animation: blink 1.1s steps(1) infinite; }
 .welcome .start:hover { animation: none; }
-.welcome .flags { position: absolute; right: 16px; bottom: 16px; display: flex; align-items: flex-end; gap: 8px; }
+.welcome .flags { position: absolute; right: 16px; bottom: 16px; max-width: calc(100% - 32px); display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: flex-end; gap: 8px; }
 /* a family: its other variants stack above the flag in the slot */
 .welcome .family { display: flex; flex-direction: column; gap: 8px; }
 .welcome .flag { display: grid; place-items: center; min-width: 44px; min-height: 44px; padding: 4px; background: var(--void); border: 3px solid var(--rule); cursor: pointer; }
