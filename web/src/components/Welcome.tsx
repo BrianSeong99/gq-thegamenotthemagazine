@@ -1,12 +1,8 @@
 // The attract screen: the city hero, one blinking start line in the middle, the flags bottom right.
-// A cyan frame marks the current language: click the other flag and the start line, then the whole game, follow.
+// A click anywhere on the picture starts; a cyan frame marks the current language, click another flag
+// and the start line, then the whole game, follow.
 
-import { useLang, useT, type Lang } from "@/lib/i18n";
-
-const FLAGS: [Lang, string, string][] = [
-  ["en", "/brand/flag-us.svg", "English"],
-  ["zh-Hans", "/brand/flag-cn.svg", "中文"],
-];
+import { LANGS, useLang, useT } from "@/lib/i18n";
 
 export function Welcome({ onStart }: { onStart: () => void }) {
   const t = useT();
@@ -14,16 +10,16 @@ export function Welcome({ onStart }: { onStart: () => void }) {
   return (
     <div className="welcome-screen">
       <div className="welcome">
-        <img src="/brand/hero-city.webp" alt="" width={1440} height={960} />
+        <img src="/brand/hero-city.webp" alt="" width={1440} height={960} onClick={onStart} />
         <div className="start-options">
           <button className="start" onClick={onStart}>
             {t("Click to start")}
           </button>
         </div>
         <div className="flags">
-          {FLAGS.map(([l, src, name]) => (
-            <button key={l} className="flag" aria-label={name} aria-pressed={l === lang} onClick={() => setLang(l)}>
-              <img src={src} alt="" width={36} height={24} />
+          {LANGS.map((l) => (
+            <button key={l.lang} className="flag" aria-label={l.name} aria-pressed={l.lang === lang} onClick={() => setLang(l.lang)}>
+              <img src={l.flag} alt="" width={36} height={24} />
             </button>
           ))}
         </div>

@@ -216,6 +216,14 @@ describe("shared record link, connected as a stranger", () => {
   });
 });
 
+it("a click anywhere on the splash picture starts the game", async () => {
+  window.history.replaceState({}, "", "/");
+  const { container } = render(<AppContent />);
+  await screen.findByRole("button", { name: /click to start/i });
+  fireEvent.click(container.querySelector(".welcome > img")!);
+  expect(await screen.findByRole("button", { name: /player hub/i })).toBeInTheDocument();
+});
+
 describe("Simplified Chinese", () => {
   it("the China flag turns the start line into 点击开始, which starts in Chinese: tabs, cities and history dates in Chinese, the Weibo share, and EN switches back in place", async () => {
     window.history.replaceState({}, "", "/");
@@ -233,7 +241,7 @@ describe("Simplified Chinese", () => {
     fireEvent.click(screen.getByRole("button", { name: "定位第一座城市" }));
     // the quiz names the city in Chinese (places.zh-Hans.json), the dataset untouched
     expect(await screen.findByText(/找到城\d！/)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: /switch to english/i }));
+    fireEvent.change(screen.getByRole("combobox", { name: "语言" }), { target: { value: "en" } });
     expect(document.documentElement.lang).toBe("en");
     expect(await screen.findByText(/find c\d!/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /player hub/i })).toBeInTheDocument();

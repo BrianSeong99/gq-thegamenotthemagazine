@@ -26,7 +26,7 @@ import { Play, type PlayResult } from "./Play";
 import { Shell } from "./Shell";
 import { ClaimButton, EndsIn, ErrorBox, Waiting, type Stage } from "./Status";
 import { type Tab } from "@/lib/tabs";
-import { PLACES_ZH_URL } from "@/config";
+import { placesUrl } from "@/config";
 import { Welcome } from "./Welcome";
 import { WorldMap } from "./WorldMap";
 
@@ -129,17 +129,17 @@ function GqApp() {
   const [started, setStarted] = useState(!!sharedRecordId);
   const [tab, setTab] = useState<Tab>(sharedRecordId ? "vs" : "1p");
   const [places, setPlaces] = useState<Place[]>([]);
-  // the cities' Chinese names, by dataset index, fetched the first time Chinese is on; the dataset itself stays as hashed
-  const [placesZh, setPlacesZh] = useState<[string, string][] | null>(null);
+  // the cities' names in the current language, by dataset index, fetched when a language other than English is on; the dataset itself stays as hashed
+  const [placeNames, setPlaceNames] = useState<{ lang: Lang; list: [string, string][] } | null>(null);
   useEffect(() => {
-    if (lang !== "zh-Hans" || placesZh) return;
-    fetch(PLACES_ZH_URL)
+    if (lang === "en" || placeNames?.lang === lang) return;
+    fetch(placesUrl(lang))
       .then((r) => r.json())
-      .then(setPlacesZh)
+      .then((list: [string, string][]) => setPlaceNames({ lang, list }))
       .catch((e) => console.warn("[gq] place names", e));
-  }, [lang, placesZh]);
-  /** The cities as the player reads them: Chinese names when Chinese is on and loaded. */
-  const shownPlaces = useMemo(() => (lang === "zh-Hans" && placesZh ? places.map((p, i) => (placesZh[i] ? { ...p, name: placesZh[i][0], country: placesZh[i][1] } : p)) : places), [lang, placesZh, places]);
+  }, [lang, placeNames]);
+  /** The cities as the player reads them: names in the current language once loaded. */
+  const shownPlaces = useMemo(() => (placeNames?.lang === lang ? places.map((p, i) => (placeNames.list[i] ? { ...p, name: placeNames.list[i][0], country: placeNames.list[i][1] } : p)) : places), [lang, placeNames, places]);
   const [dataset, setDataset] = useState<Word4 | null>(null);
   const [notes, setNotes] = useState<ChallengeNote[]>([]);
   // the first read of every game's notes, history and boards wait for it
