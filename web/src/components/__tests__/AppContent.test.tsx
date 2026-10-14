@@ -221,16 +221,22 @@ it("a family's other flags stack above the framed one, and a picked variant take
   localStorage.removeItem("gq.lang");
   render(<AppContent />);
   expect(await screen.findByRole("button", { name: "English (US)" })).toHaveAttribute("aria-pressed", "true");
-  expect(screen.getByRole("button", { name: "English (UK)" })).toBeInTheDocument();
-  expect(screen.queryByRole("button", { name: "Português (Portugal)" })).toBeNull();
+  // nothing is open until a framed flag is clicked
+  expect(screen.queryByRole("button", { name: "English (UK)" })).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "Português (Brasil)" }));
   expect(document.documentElement.lang).toBe("pt-BR");
-  expect(screen.queryByRole("button", { name: "English (UK)" })).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "Português (Portugal)" }));
   expect(document.documentElement.lang).toBe("pt-PT");
-  expect(screen.getByRole("button", { name: "Português (Portugal)" })).toHaveAttribute("aria-pressed", "true");
-  expect(screen.getByRole("button", { name: "Português (Brasil)" })).not.toHaveAttribute("aria-pressed", "true");
+  const pt = screen.getByRole("button", { name: "Português (Portugal)" });
+  expect(pt).toHaveAttribute("aria-pressed", "true");
+  // the pick folded the stack; the framed flag opens it again
+  expect(screen.queryByRole("button", { name: "Português (Brasil)" })).toBeNull();
+  fireEvent.click(pt);
+  expect(screen.getByRole("button", { name: "Português (Brasil)" })).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Clica para começar" })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "English (US)" }));
+  fireEvent.click(screen.getByRole("button", { name: "English (UK)" }));
+  expect(screen.getByRole("button", { name: "Click to start, bruv" })).toBeInTheDocument();
   localStorage.removeItem("gq.lang");
 });
 
@@ -244,7 +250,7 @@ it("a click anywhere on the splash picture starts the game", async () => {
 });
 
 describe("Simplified Chinese", () => {
-  it("the China flag turns the start line into 点击开始, which starts in Chinese: tabs, cities and history dates in Chinese, the Weibo share, and EN switches back in place", async () => {
+  it("the China flag turns the start line into 点击开始, which starts in Chinese: tabs, cities and history dates in Chinese, the Weibo share", async () => {
     window.history.replaceState({}, "", "/");
     localStorage.removeItem("gq.lang");
     render(<AppContent />);
@@ -260,10 +266,8 @@ describe("Simplified Chinese", () => {
     fireEvent.click(screen.getByRole("button", { name: "定位第一座城市" }));
     // the quiz names the city in Chinese (places.zh-Hans.json), the dataset untouched
     expect(await screen.findByText(/找到城\d！/)).toBeInTheDocument();
-    fireEvent.change(screen.getByRole("combobox", { name: "语言" }), { target: { value: "en-US" } });
-    expect(document.documentElement.lang).toBe("en-US");
-    expect(await screen.findByText(/find c\d!/i)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /player hub/i })).toBeInTheDocument();
+    // no language switch inside the game: the splash is the only place
+    expect(screen.queryByRole("combobox")).toBeNull();
   });
 
   it("remembers the language on the next visit: the splash starts in Chinese", async () => {

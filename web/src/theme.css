@@ -124,8 +124,6 @@ p { margin: 0 0 12px; }
 .masthead .wallet { display: block; margin: 0; min-height: 44px; padding: 10px 12px; font-size: 12px; max-width: 280px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .masthead .sound { background: none; border: 0; padding: 6px 0; font: 12px/1.6 var(--display); text-transform: uppercase; color: var(--cyan); white-space: nowrap; }
 /* the other language, one small framed button */
-.masthead .lang { min-width: 44px; min-height: 44px; padding: 8px 5px; background: var(--void); border: 2px solid var(--rule); font: 12px/1.4 var(--display); color: var(--muted); white-space: nowrap; }
-.masthead .lang:hover { border-color: var(--cyan); color: var(--yellow); }
 .share { display: flex; flex-wrap: wrap; gap: 4px 0; margin-top: 8px; }
 
 main { max-width: 1440px; margin: 0 auto; padding: 28px 4% 56px; }
@@ -258,7 +256,6 @@ table.report td:nth-child(2) { text-align: right; color: var(--muted); }
   .masthead .brand img { width: 110px; }
   .masthead nav { gap: 12px; }
   .masthead nav button, .masthead .sound { font-size: 10px; padding: 2px 0; }
-  .masthead .lang { min-width: 32px; min-height: 32px; padding: 4px; font-size: 10px; }
   .masthead .wallet { min-height: 32px; padding: 4px 8px; font-size: 10px; max-width: 150px; }
   main { padding: 8px 12px 16px; }
   /* 1P World Tour: slogan on one line, the start button beside the map */

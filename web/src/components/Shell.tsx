@@ -1,7 +1,7 @@
-// The arcade chrome around every screen: one ribbon with the wordmark, the tabs, sound, language and wallet.
+// The arcade chrome around every screen: one ribbon with the wordmark, the tabs, sound and wallet.
 
 import type { ReactNode } from "react";
-import { FAMILIES, type Lang, useLang, useT } from "@/lib/i18n";
+import { useT } from "@/lib/i18n";
 import { TAB_LABEL, type Tab } from "@/lib/tabs";
 
 export function Shell({
@@ -32,7 +32,6 @@ export function Shell({
   children: ReactNode;
 }) {
   const t = useT();
-  const { lang, setLang } = useLang();
   return (
     <>
       <header className="masthead">
@@ -62,18 +61,6 @@ export function Shell({
         <button className="sound" onClick={onSound} aria-pressed={soundOn}>
           {soundOn ? t("Sound on") : t("Sound off")}
         </button>
-        {/* another language, in place: the screen, the quiz and the wallet stay as they are */}
-        <select className="lang" aria-label={t("Language")} value={lang} onChange={(e) => setLang(e.target.value as Lang)}>
-          {FAMILIES.map((f) => (
-            <optgroup key={f.name} label={f.name}>
-              {f.variants.map((v) => (
-                <option key={v.lang} value={v.lang} lang={v.lang}>
-                  {f.name} ({v.name})
-                </option>
-              ))}
-            </optgroup>
-          ))}
-        </select>
         <div className="account">
           <button className="btn wallet" onClick={onWallet}>
             {walletLabel ?? t("Connect wallet")}

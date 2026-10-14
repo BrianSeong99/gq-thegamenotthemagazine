@@ -14,8 +14,9 @@ export type Lang = "en-US" | "en-GB" | "zh-Hans" | "es-ES" | "es-MX" | "es-AR" |
 export type Params = Record<string, string | number>;
 export type T = (text: string, params?: Params) => string;
 
-/** The dictionaries; English variants have none, their lines are the keys. */
+/** The dictionaries. English lines are the keys; UK English only has its jokes. */
 export const DICTS: Partial<Record<Lang, Record<string, string>>> = {
+  "en-GB": { "Click to start": "Click to start, bruv" },
   "zh-Hans": ZH, "es-ES": ES_ES, "es-MX": ES_MX, "es-AR": ES_AR, "es-CO": ES_CO, "fr-FR": FR_FR, "fr-CA": FR_CA, "pt-BR": PT_BR, "pt-PT": PT_PT,
 };
 export type Variant = { lang: Lang; flag: string; name: string; /** the city names file, by family (config.ts placesUrl) */ places?: string };

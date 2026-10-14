@@ -1,6 +1,7 @@
 // The attract screen: the city hero, one blinking start line in the middle, the flags bottom right,
 // one per language family. A click anywhere on the picture starts. A cyan frame marks the current
-// language; its family's other variants stack above it, and a picked variant takes the slot.
+// language; clicking it opens its family's other variants above it, a picked one takes the slot and
+// the stack folds away until the framed flag is clicked again.
 
 import { useState } from "react";
 import { FAMILIES, type Lang, useLang, useT, variantLabel } from "@/lib/i18n";
@@ -10,6 +11,8 @@ export function Welcome({ onStart }: { onStart: () => void }) {
   const { lang, setLang } = useLang();
   // the variant each family keeps in its slot after a pick, until the page is left
   const [picked, setPicked] = useState<Record<string, Lang>>({});
+  // the family whose other variants are shown above its flag
+  const [open, setOpen] = useState<string | null>(null);
   return (
     <div className="welcome-screen">
       <div className="welcome">
@@ -26,18 +29,28 @@ export function Welcome({ onStart }: { onStart: () => void }) {
             const pick = (l: Lang) => {
               setPicked({ ...picked, [f.name]: l });
               setLang(l);
+              setOpen(null);
             };
             return (
               <div key={f.name} className="family">
-                {current &&
+                {open === f.name &&
                   f.variants
-                    .filter((v) => v !== current)
+                    .filter((v) => v !== shown)
                     .map((v) => (
                       <button key={v.lang} className="flag" aria-label={variantLabel(v)} onClick={() => pick(v.lang)}>
                         <img src={v.flag} alt="" width={36} height={24} />
                       </button>
                     ))}
-                <button className="flag" aria-label={variantLabel(shown)} aria-pressed={!!current} onClick={() => pick(shown.lang)}>
+                <button
+                  className="flag"
+                  aria-label={variantLabel(shown)}
+                  aria-pressed={!!current}
+                  aria-expanded={f.variants.length > 1 ? open === f.name : undefined}
+                  onClick={() => {
+                    setLang(shown.lang);
+                    setOpen(open === f.name || f.variants.length < 2 ? null : f.name);
+                  }}
+                >
                   <img src={shown.flag} alt="" width={36} height={24} />
                 </button>
               </div>

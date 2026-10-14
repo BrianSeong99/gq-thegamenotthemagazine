@@ -18,7 +18,6 @@ const ES: Record<string, string> = {
   Wallet: "Billetera",
   "Test wallet": "Billetera de prueba",
   Testnet: "Testnet",
-  Language: "Idioma",
   "Click to start": "Clic para empezar",
   "Miden testnet: Gamecoins are play money.": "Testnet de Miden: los Gamecoins son dinero de juguete.",
   "Turn your phone sideways: the map is much easier to play.": "Gira el teléfono: el mapa se juega mucho mejor.",
