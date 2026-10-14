@@ -1,7 +1,7 @@
 // Brazilian Portuguese, keyed by the English line as written in the code (see i18n.ts). Terms:
 // recorde record, tentativa shot, Gamecoin, campeão champion, rival, prêmio prize.
 
-export const PT: Record<string, string> = {
+export const PT_BR: Record<string, string> = {
   // ribbon and splash
   "1P World Tour": "Volta ao mundo 1J",
   "Champion vs Rival": "Campeão vs Rival",

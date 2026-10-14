@@ -3,7 +3,7 @@
 
 @font-face {
   font-family: "GeoQuizz Pixel";
-  src: url("/brand/geoquizz-pixel.ttf") format("truetype");
+  src: url("/brand/geoquizz-pixel.ttf?v=20261014b") format("truetype");
   font-display: swap;
 }
 /* Chinese display text: Fusion Pixel 12 px (zh_hans), cut down to the characters the game shows.
@@ -11,7 +11,7 @@
    GeoQuizz face carries the accented Latin letters of Spanish, French and Portuguese too (added as pixel marks). */
 @font-face {
   font-family: "GQ Chinese Pixel";
-  src: url("/brand/gq-chinese-pixel.woff2") format("woff2");
+  src: url("/brand/gq-chinese-pixel.woff2?v=20261014b") format("woff2");
   font-display: swap;
 }
 
