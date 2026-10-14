@@ -33,7 +33,7 @@ const stage = (id: StageId, name: string, threshold: number, lon0: number, lon1:
 export const STAGES: Stage[] = [
   stage("world", "World Tour", 0, -180, 180, -90, 90),
   stage("america", "America", 3000, -170, -30, -57, 72),
-  stage("africa", "Africa", 4000, -20, 55, -36, 38),
+  stage("africa", "Africa", 4000, -26, 58, -36, 38),
   stage("europe", "Europe", 5000, -25, 45, 34, 72),
   stage("asia", "Asia", 6000, 25, 190, -48, 78),
 ];
