@@ -16,11 +16,10 @@ import { RU } from "./ru";
 import { TR } from "./tr";
 import { UK } from "./uk";
 import { ZH } from "./zh";
-import { ZH_HANT } from "./zh-Hant";
 
 export type Lang =
   | "en-US" | "en-GB"
-  | "zh-Hans" | "zh-Hant-TW" | "zh-Hant-HK"
+  | "zh-Hans"
   | "es-ES" | "es-MX" | "es-AR" | "es-CO"
   | "fr-FR" | "fr-CA"
   | "pt-BR" | "pt-PT"
@@ -32,7 +31,7 @@ export type T = (text: string, params?: Params) => string;
 /** The dictionaries. English lines are the keys; UK English only has its jokes. */
 export const DICTS: Partial<Record<Lang, Record<string, string>>> = {
   "en-GB": { "Click to start": "Click to start, bruv" },
-  "zh-Hans": ZH, "zh-Hant-TW": ZH_HANT, "zh-Hant-HK": ZH_HANT,
+  "zh-Hans": ZH,
   "es-ES": ES_ES, "es-MX": ES_MX, "es-AR": ES_AR, "es-CO": ES_CO,
   "fr-FR": FR_FR, "fr-CA": FR_CA,
   "pt-BR": PT_BR, "pt-PT": PT_PT,
@@ -48,14 +47,7 @@ export type Variant = { lang: Lang; flag: string; name: string; /** the city nam
  */
 export const FAMILIES: { name: string; variants: Variant[] }[] = [
   { name: "English", variants: [{ lang: "en-US", flag: "/brand/flag-us.svg", name: "US" }, { lang: "en-GB", flag: "/brand/flag-gb.svg", name: "UK" }] },
-  {
-    name: "中文",
-    variants: [
-      { lang: "zh-Hans", flag: "/brand/flag-cn.svg", name: "简体", places: "zh-Hans" },
-      { lang: "zh-Hant-TW", flag: "/brand/flag-tw.svg", name: "繁體 台灣", places: "zh-Hant" },
-      { lang: "zh-Hant-HK", flag: "/brand/flag-hk.svg", name: "繁體 香港", places: "zh-Hant" },
-    ],
-  },
+  { name: "中文", variants: [{ lang: "zh-Hans", flag: "/brand/flag-cn.svg", name: "简体", places: "zh-Hans" }] },
   {
     name: "Español",
     variants: [
@@ -77,10 +69,10 @@ export const FAMILIES: { name: string; variants: Variant[] }[] = [
   },
   { name: "日本語", variants: [{ lang: "ja", flag: "/brand/flag-jp.svg", name: "日本", places: "ja" }] },
   { name: "한국어", variants: [{ lang: "ko", flag: "/brand/flag-kr.svg", name: "한국", places: "ko" }] },
-  { name: "Русский", variants: [{ lang: "ru", flag: "/brand/flag-ru.svg", name: "Россия", places: "ru" }] },
   { name: "Українська", variants: [{ lang: "uk", flag: "/brand/flag-ua.svg", name: "Україна", places: "uk" }] },
   { name: "Türkçe", variants: [{ lang: "tr", flag: "/brand/flag-tr.svg", name: "Türkiye", places: "tr" }] },
   { name: "Bahasa Indonesia", variants: [{ lang: "id", flag: "/brand/flag-id.svg", name: "Indonesia", places: "id" }] },
+  { name: "Русский", variants: [{ lang: "ru", flag: "/brand/flag-ru.svg", name: "Россия", places: "ru" }] },
 ];
 export const LANGS = FAMILIES.flatMap((f) => f.variants);
 /** What a flag or picker entry calls a variant: "Español (Argentina)". */

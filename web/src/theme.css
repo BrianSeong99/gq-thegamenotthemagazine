@@ -3,7 +3,7 @@
 
 @font-face {
   font-family: "GeoQuizz Pixel";
-  src: url("/brand/geoquizz-pixel.ttf?v=20261014c") format("truetype");
+  src: url("/brand/geoquizz-pixel.ttf?v=20261014d") format("truetype");
   font-display: swap;
 }
 /* Chinese display text: Fusion Pixel 12 px (zh_hans), cut down to the characters the game shows.
@@ -11,7 +11,7 @@
    GeoQuizz face carries the accented Latin letters of Spanish, French and Portuguese too (added as pixel marks). */
 @font-face {
   font-family: "GQ Chinese Pixel";
-  src: url("/brand/gq-chinese-pixel.woff2?v=20261014c") format("woff2");
+  src: url("/brand/gq-chinese-pixel.woff2?v=20261014d") format("woff2");
   font-display: swap;
 }
 
@@ -36,7 +36,6 @@
 /* CJK: the system's own face for body copy; display text in Chinese, Japanese, Korean, Russian and
    Ukrainian comes from the 12 px Fusion face, so html.pixel12 (set in AppContent) puts it on the 12 px grid */
 html[lang="zh-Hans"] { --body: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif; }
-html[lang^="zh-Hant"] { --body: "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif; }
 html[lang="ja"] { --body: "Hiragino Sans", "Yu Gothic", "Meiryo", "Noto Sans JP", sans-serif; }
 html[lang="ko"] { --body: "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif; }
 html.pixel12 h1, html.pixel12 .big-score { font-size: 36px; }
