@@ -15,7 +15,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
       <MidenFiSignerProvider
         appName={APP_NAME}
         network={WalletAdapterNetwork.Testnet}
-        autoConnect={false}
+        autoConnect={true}
       >
         {children}
       </MidenFiSignerProvider>
