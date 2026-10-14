@@ -14,8 +14,9 @@ import { accountFelts, bech32Of, fetchChallengeNote, hexOf, knownNote, listChall
 import { boards, history as pastGames, keyOf, lettersBackward, nicknames, owed, playersInOrder } from "@/lib/hub";
 import { gcBalance, postShot, postRecord, settle, collect, setSubmitAttemptListener, setSubmitStageListener, waitFor, type Submitted } from "@/lib/bread";
 import { shotDeadline, shotStorage, ZERO_WORD, type AccountFelts, type ChallengeStorage } from "@/lib/notes";
-import { blockToMs, claimVerdict, explain, fmtGamecoin, NOT_FINISHED, SHOT_LOST, shotRefusal, withoutRecord, withTimeout, type Trouble, myOpenShotsOn as openShotsOn, outcomeText, parseCode, reportRows, settlePlan, sharedRecordState, type ReportRow } from "@/lib/flow";
-import { cityNames, datasetWord, decodeGame, encodeGame, quizCities, randomSeed, type Place, type Word4 } from "@/lib/quiz";
+import { blockToMs, claimVerdict, explain, fmtGamecoin, NOT_FINISHED, sameAccount, SHOT_LOST, shotRefusal, withoutRecord, withTimeout, type Trouble, myOpenShotsOn as openShotsOn, outcomeText, parseCode, reportRows, settlePlan, sharedRecordState, type ReportRow } from "@/lib/flow";
+import { cityNames, datasetWord, decodeGame, encodeGame, gameStage, quizCities, randomSeed, type Place, type Word4 } from "@/lib/quiz";
+import { registerDataset, STAGES, stageById, type Stage as GameStage, type StageId } from "@/lib/stages";
 import { LANGS, LangContext, PIXEL12, storedLang, storeLang, useT, type Lang } from "@/lib/i18n";
 import { gqAnswer, type City } from "@/lib/rules";
 import { History } from "./History";
@@ -27,13 +28,14 @@ import { Shell } from "./Shell";
 import { ClaimButton, EndsIn, ErrorBox, Waiting, type Stage } from "./Status";
 import { type Tab } from "@/lib/tabs";
 import { placesUrl } from "@/config";
+import { StageTiles } from "./StageTiles";
 import { Welcome } from "./Welcome";
 import { WorldMap } from "./WorldMap";
 
 type Mode =
   | { kind: "lobby" }
-  | { kind: "play-champion"; seed: Word4; cities: City[] }
-  | { kind: "post-record"; seed: Word4; cities: City[]; result: PlayResult }
+  | { kind: "play-champion"; seed: Word4; cities: City[]; stage: GameStage }
+  | { kind: "post-record"; seed: Word4; cities: City[]; result: PlayResult; stage: GameStage }
   | { kind: "play-rival"; shots: ChallengeNote[]; record?: ChallengeNote }
   /** `back`: where the Back button, a failure or a wallet that never finishes returns to */
   /** `track`: the music of the screen it came from, which keeps playing while it waits */
@@ -129,20 +131,38 @@ function GqApp() {
 
   const [started, setStarted] = useState(!!sharedRecordId);
   const [tab, setTab] = useState<Tab>(sharedRecordId ? "vs" : "1p");
-  const [places, setPlaces] = useState<Place[]>([]);
-  // the cities' names in the current language's family, by dataset index, fetched when a language with its own names is on; the dataset itself stays as hashed
+  // every stage's city list (the World Tour's is cities.json) with its dataset hash; all five load at the start
+  const [datasets, setDatasets] = useState<Partial<Record<StageId, { places: Place[]; word: Word4 }>>>({});
+  // the 1P stage on the table
+  const [stageId, setStageId] = useState<StageId>("world");
+  const stage = stageById(stageId);
+  // the cities' names in the current language's family, keyed "City|Country", fetched when a language with its own names is on; the lists themselves stay as hashed
   const placesFile = LANGS.find((v) => v.lang === lang)?.places;
-  const [placeNames, setPlaceNames] = useState<{ file: string; list: [string, string][] } | null>(null);
+  const [placeNames, setPlaceNames] = useState<{ file: string; names: Record<string, [string, string]> } | null>(null);
   useEffect(() => {
     if (!placesFile || placeNames?.file === placesFile) return;
     fetch(placesUrl(placesFile))
       .then((r) => r.json())
-      .then((list: [string, string][]) => setPlaceNames({ file: placesFile, list }))
+      .then((names: Record<string, [string, string]>) => setPlaceNames({ file: placesFile, names }))
       .catch((e) => console.warn("[gq] place names", e));
   }, [placesFile, placeNames]);
-  /** The cities as the player reads them: names in the current language once loaded. */
-  const shownPlaces = useMemo(() => (placesFile && placeNames?.file === placesFile ? places.map((p, i) => (placeNames.list[i] ? { ...p, name: placeNames.list[i][0], country: placeNames.list[i][1] } : p)) : places), [placesFile, placeNames, places]);
-  const [dataset, setDataset] = useState<Word4 | null>(null);
+  /** A stage's cities as the player reads them: names in the current language once loaded. */
+  const placesOf = useCallback(
+    (s: GameStage | undefined): Place[] => {
+      const list = s ? (datasets[s.id]?.places ?? []) : [];
+      if (!placesFile || placeNames?.file !== placesFile) return list;
+      return list.map((p) => {
+        const n = placeNames.names[`${p.name}|${p.country}`];
+        return n ? { ...p, name: n[0], country: n[1] } : p;
+      });
+    },
+    [datasets, placesFile, placeNames],
+  );
+  /** The stage a note's game data plays on, and its cities in the player's language. */
+  const placesOfGame = useCallback((game: bigint[]) => placesOf(gameStage(game)), [placesOf]);
+  const dataset = datasets[stageId]?.word ?? null;
+  const places = placesOf(stage);
+  const shownPlaces = places;
   const [notes, setNotes] = useState<ChallengeNote[]>([]);
   // the first read of every game's notes, history and boards wait for it
   const [notesRead, setNotesRead] = useState(false);
@@ -174,6 +194,9 @@ function GqApp() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [publicNotes, meKey]);
   const nameOf = (a: AccountFelts) => names.get(keyOf(a)) ?? lettersBackward(bech32Of(a)).slice(0, 3);
+  /** My best posted record, on any map: what the stages unlock on. */
+  const myBest = useMemo(() => (me ? Math.max(0, ...notes.filter((n) => n.kind === "record" && sameAccount(n.storage.champion, me)).map((n) => n.storage.target)) : 0), [notes, me]);
+  const unlocked = (s: GameStage) => s.threshold <= myBest
 
   /** A failure in plain words, with a way to try again when there is one. */
   const oops = (e: unknown, retry?: () => void) => setTrouble({ t: explain(e), retry });
@@ -192,14 +215,16 @@ function GqApp() {
       .catch((e) => oops(e, () => void loadRecord(id)));
 
   useEffect(() => {
-    withTimeout(fetch(CITIES_URL), 30_000, "Loading the cities")
-      .then(async (r) => {
-        if (!r.ok) throw new Error(`Loading the cities: HTTP ${r.status}`);
-        const bytes = new Uint8Array(await r.arrayBuffer());
-        setDataset(await datasetWord(bytes));
-        setPlaces(JSON.parse(new TextDecoder().decode(bytes)));
-      })
-      .catch((e) => oops(e, reload));
+    for (const s of STAGES)
+      withTimeout(fetch(s.id === "world" ? CITIES_URL : s.cities), 30_000, "Loading the cities")
+        .then(async (r) => {
+          if (!r.ok) throw new Error(`Loading the cities: HTTP ${r.status}`);
+          const bytes = new Uint8Array(await r.arrayBuffer());
+          const word = await datasetWord(bytes);
+          registerDataset(s, word);
+          setDatasets((d) => ({ ...d, [s.id]: { places: JSON.parse(new TextDecoder().decode(bytes)), word } }));
+        })
+        .catch((e) => oops(e, reload));
     loadScripts().catch((e) => oops(e, reload));
     if (sharedRecordId) void loadRecord(sharedRecordId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -328,12 +353,13 @@ function GqApp() {
     if (!dataset || places.length === 0) return say(t("Still loading the cities, try again in a second."));
     setTrouble(null);
     const seed = randomSeed();
-    quizCities(seed, places)
-      .then((cities) => setMode({ kind: "play-champion", seed, cities }))
+    quizCities(seed, places, stage)
+      .then((cities) => setMode({ kind: "play-champion", seed, cities, stage }))
       .catch((e) => oops(e, startChampion));
   }
 
   async function postMyRecord(m: Extract<Mode, { kind: "post-record" }>) {
+    const dataset = datasets[m.stage.id]?.word;
     if (!dataset) return;
     const champion = accountFelts(parseAccountId(wallet.address!));
     await run(
@@ -354,7 +380,7 @@ function GqApp() {
         return postRecord(client, wallet, storage, STAKE);
       },
       m,
-      ({ txId, noteIds }) => ({ kind: "done", title: t("Record posted!"), text: t("Now find someone to beat you."), txId, share: { recordId: noteIds[0], score: m.result.score, expiresAt: blockToMs(height + RECORD_LIFETIME_BLOCKS, height), cities: cityNames(m.cities, places) } }),
+      ({ txId, noteIds }) => ({ kind: "done", title: t("Record posted!"), text: t("Now find someone to beat you."), txId, share: { recordId: noteIds[0], score: m.result.score, expiresAt: blockToMs(height + RECORD_LIFETIME_BLOCKS, height), cities: cityNames(m.cities, placesOf(m.stage)), stage: m.stage.id === "world" ? undefined : m.stage.name } }),
     );
   }
 
@@ -362,10 +388,13 @@ function GqApp() {
 
   /** Posts the shot note and, once it is on chain, starts the quiz right away. */
   async function takeShot(record: ChallengeNote) {
-    if (!dataset) return;
     const rival = accountFelts(parseAccountId(wallet.address!));
     const refusal = shotRefusal(record, height, rival);
     if (refusal) return say(refusal);
+    const recordStage = gameStage(record.storage.game);
+    const recordDataset = recordStage && datasets[recordStage.id]?.word;
+    if (!recordStage || !recordDataset) return say(t("This record uses another city list. It can't be played here."));
+    if (!unlocked(recordStage)) return say(t("You need a record above {n} pts to play {stage}.", { n: recordStage.threshold.toLocaleString(), stage: t(recordStage.name) }));
     const open = openShotsOn(notes, rival, record, height);
     if (open.length > 0) {
       // one Gamecoin per sitting: play the shot already on the table instead of paying again
@@ -378,9 +407,9 @@ function GqApp() {
       async () => {
         // refuse a quiz that does not come from the seed and this dataset
         const game = decodeGame(record.storage.game);
-        const expected = await quizCities(game.seed, places);
+        const expected = await quizCities(game.seed, datasets[recordStage.id]!.places, recordStage);
         const same = expected.every((c, i) => JSON.stringify(c) === JSON.stringify(game.cities[i]));
-        if (!same || game.dataset.some((f, i) => f !== dataset[i])) throw new Error("This record's quiz does not match the dataset.");
+        if (!same || game.dataset.some((f, i) => f !== recordDataset[i])) throw new Error("This record's quiz does not match the dataset.");
         return postShot(client, wallet, record, rival);
       },
       { kind: "lobby" },
@@ -404,7 +433,7 @@ function GqApp() {
 
   const settleAfterPlay = (shots: ChallengeNote[], record: ChallengeNote | undefined) => (r: PlayResult) => {
     const plan = settlePlan(shots, record, r.score, height, t);
-    const rows = reportRows(decodeGame(shots[0].storage.game).cities, r.answers, shownPlaces);
+    const rows = reportRows(decodeGame(shots[0].storage.game).cities, r.answers, placesOfGame(shots[0].storage.game));
     const claimUntil = blockToMs(shotDeadline(shots[0].storage), height);
     if (!plan.won) {
       // nothing to sign on a loss: the Gamecoin waits for the champion at the deadline; until then the shot can be played again
@@ -534,6 +563,7 @@ function GqApp() {
   const recordCard = () => {
     if (!record) return null;
     const state = sharedRecordState(record, me, me ? myOpenShotsOn(record) : [], height);
+    const recordStage = gameStage(record.storage.game);
     if (state === "claimed" || state === "expired") {
       return (
         <section className="panel pink" ref={cardRef} tabIndex={-1}>
@@ -546,6 +576,12 @@ function GqApp() {
       <section className="panel pink" ref={cardRef} tabIndex={-1}>
         <div className="panel-title">{t("Record")}</div>
         <div className="big-score">{t("{n} pts to beat", { n: record.storage.target.toLocaleString() })}</div>
+        {recordStage && recordStage.id !== "world" && (
+          <div className="row">
+            <span>{t("Map")}</span>
+            <span className="value">{t(recordStage.name)}</span>
+          </div>
+        )}
         <div className="row">
           <span>{t("Prize")}</span>
           <span className="value">{fmtGamecoin(record.amount, t)}</span>
@@ -555,6 +591,9 @@ function GqApp() {
           <span className="value">{fmtGamecoin(record.storage.minStake, t)}</span>
         </div>
         {state === "mine" && <p className="muted">{t("This is yours.")}</p>}
+        {recordStage && !unlocked(recordStage) && state !== "mine" && (
+          <p className="muted">{t("You need a record above {n} pts to play {stage}.", { n: recordStage.threshold.toLocaleString(), stage: t(recordStage.name) })}</p>
+        )}
         {state === "already-challenged" && (
           <button className="btn primary wide" onClick={() => withWallet({ kind: "shot", record: record })}>
             {t("Play")}
@@ -598,6 +637,7 @@ function GqApp() {
   return (
     <Shell
       tab={tab}
+      labels={stage.id === "world" ? {} : { "1p": t("1P {stage}", { stage: t(stage.name) }) }}
       onTab={openTab}
       onHome={goHome}
       walletLabel={walletLabel}
@@ -633,11 +673,12 @@ function GqApp() {
           </h1>
           <div className="cols tour">
             <div className="panel map-frame">
-              <WorldMap />
+              <WorldMap stage={stage} />
+              <StageTiles shown={stage} unlocked={unlocked} onPick={setStageId} />
             </div>
             <div>
               <aside className="panel">
-                <div className="panel-title">{t("1P World Tour")}</div>
+                <div className="panel-title">{stage.id === "world" ? t("1P World Tour") : t("1P {stage}", { stage: t(stage.name) })}</div>
                 <p>{t("10 cities, 15 seconds each.")}</p>
                 <p className="muted">{t("Free to play. Once you're happy with your score, post it on X to challenge your rivals.")}</p>
                 <button className="btn primary wide" onClick={startChampion} disabled={!dataset || places.length === 0}>
@@ -677,7 +718,7 @@ function GqApp() {
                 me={me}
                 notes={notes}
                 height={height}
-                places={places}
+                places={placesOfGame}
                 onSettle={(shot, record) => {
                   const open = record && me ? myOpenShotsOn(record) : [];
                   setMode({ kind: "play-rival", shots: open.length > 0 ? open : [shot], record });
@@ -707,14 +748,16 @@ function GqApp() {
 
       {mode.kind === "lobby" && tab === "boards" && <Leaderboards data={notesRead ? boards(publicNotes, height, me) : null} me={me} name={nameOf} action={refreshButton} />}
 
-      {mode.kind === "play-champion" && <Play cities={mode.cities} places={shownPlaces} onDone={(result) => setMode({ kind: "post-record", seed: mode.seed, cities: mode.cities, result })} />}
+      {mode.kind === "play-champion" && (
+        <Play stage={mode.stage} cities={mode.cities} places={placesOf(mode.stage)} onDone={(result) => setMode({ kind: "post-record", seed: mode.seed, cities: mode.cities, result, stage: mode.stage })} />
+      )}
 
       {mode.kind === "post-record" && (
         <div className="cols wide-aside">
           <section className="panel">
             <div className="panel-title">{t("Run complete!")}</div>
             <div className="big-score">{t("{n} pts", { n: mode.result.score.toLocaleString() })}</div>
-            <Report rows={reportRows(mode.cities, mode.result.answers, shownPlaces)} />
+            <Report rows={reportRows(mode.cities, mode.result.answers, placesOf(mode.stage))} />
           </section>
           <aside className="panel yellow">
             <div className="panel-title">{t("Post your record?")}</div>

@@ -227,4 +227,15 @@ export const ZH: Record<string, string> = {
   "{title}: rank, nickname, {unit}": "{title}：排名、昵称、{unit}",
   "Your row": "你的一行",
   "Your rank": "你的排名",
+  // stages
+  "World Tour": "环游世界",
+  America: "美洲",
+  Africa: "非洲",
+  Europe: "欧洲",
+  Asia: "亚洲",
+  "1P {stage}": "单人 {stage}",
+  "{n} pts to unlock": "{n} 分解锁",
+  "You need a record above {n} pts to play {stage}.": "需要 {n} 分以上的纪录才能挑战{stage}。",
+  Stages: "关卡",
+  Map: "地图",
 };

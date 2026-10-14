@@ -75,7 +75,8 @@ vi.mock("@/lib/bread", () => ({
 // the app fetches the dataset and the map; the quiz check must see the record's own cities
 vi.mock("@/lib/quiz", async (orig) => ({
   ...(await orig<typeof import("@/lib/quiz")>()),
-  datasetWord: async () => [0n, 0n, 0n, 0n],
+  // the World Tour list hashes to the record's dataset word, the stage lists to another
+  datasetWord: async (bytes: Uint8Array) => (new TextDecoder().decode(bytes).startsWith('["/') ? [9n, 9n, 9n, 9n] : [0n, 0n, 0n, 0n]),
   quizCities: async () => cities,
 }));
 
@@ -94,8 +95,9 @@ beforeEach(() => {
     "fetch",
     vi.fn(async (url: string) => ({
       ok: true,
-      arrayBuffer: async () => new TextEncoder().encode(url.includes("cities") ? JSON.stringify(cities.map((c) => ({ name: `c${c.idx}`, country: "x", lat: 0, lon: 0 }))) : "[]").buffer,
-      json: async () => (url.includes("places.zh") ? cities.map((c) => [`城${c.idx}`, "国"]) : []),
+      // the World Tour list; the stage lists are empty here (each hashes to its own dataset word)
+      arrayBuffer: async () => new TextEncoder().encode(url.endsWith("/cities.json") ? JSON.stringify(cities.map((c) => ({ name: `c${c.idx}`, country: "x", lat: 0, lon: 0 }))) : `["${url}"]`).buffer,
+      json: async () => (url.includes("places.zh") ? Object.fromEntries(cities.map((c) => [`c${c.idx}|x`, [`城${c.idx}`, "国"]])) : {}),
     })),
   );
   window.history.replaceState({}, "", "/?record=0xp");
@@ -116,6 +118,55 @@ async function start(tab?: RegExp) {
   fireEvent.click(await screen.findByRole("button", { name: /click to start/i }));
   if (tab) fireEvent.click(screen.getByRole("button", { name: tab }));
 }
+
+describe("1P stages", () => {
+  beforeEach(() => {
+    window.history.replaceState({}, "", "/");
+    localStorage.removeItem("gq.lang");
+    wallet.connected = true;
+  });
+
+  it("unlock on my own posted records: a 5200 opens America, Africa and Europe, Asia stays locked", async () => {
+    chain.notes = [{ ...prize, id: "0xmine", createdAt: 5, storage: { ...storage, champion: me, target: 5200 } }];
+    const { container } = render(<AppContent />);
+    await screen.findByRole("button", { name: /click to start/i });
+    fireEvent.click(container.querySelector(".welcome > img")!);
+    await screen.findByRole("button", { name: "Europe" });
+    expect(screen.getByRole("button", { name: "America" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Africa" })).toBeEnabled();
+    const asia = screen.getByRole("button", { name: /^Asia: 6,000 pts to unlock$/ });
+    expect(asia).toBeDisabled();
+    // the picked map takes the screen, the tab and the title follow, the World Tour becomes a tile
+    fireEvent.click(screen.getByRole("button", { name: "Europe" }));
+    expect(screen.getByRole("img", { name: "Europe" })).toBeInTheDocument();
+    expect(screen.getByText("1P Europe", { selector: ".panel-title" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "World Tour" })).toBeEnabled();
+    expect(screen.queryByRole("button", { name: "Europe" })).toBeNull();
+  });
+
+  it("without a record of mine every stage is locked and says what it needs", async () => {
+    chain.notes = [];
+    const { container } = render(<AppContent />);
+    await screen.findByRole("button", { name: /click to start/i });
+    fireEvent.click(container.querySelector(".welcome > img")!);
+    expect(await screen.findByRole("button", { name: /^America: 3,000 pts to unlock$/ })).toBeDisabled();
+    expect(screen.getByRole("img", { name: "World map" })).toBeInTheDocument();
+  });
+
+  it("a record on a locked stage shows the map and the score I need, and Insert Gamecoin refuses", async () => {
+    // the stage lists all hash to the second dataset word here, the last of them registered is Asia
+    const game = encodeGame({ seed: [0n, 0n, 0n, 0n], dataset: [9n, 9n, 9n, 9n], cities });
+    chain.shared = { ...prize, storage: { ...storage, game } };
+    chain.notes = [chain.shared];
+    window.history.replaceState({}, "", "/?record=0xp");
+    render(<AppContent />);
+    expect(await screen.findByText("Asia", { selector: ".value" })).toBeInTheDocument();
+    expect(screen.getByText("You need a record above 6,000 pts to play Asia.")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /insert gamecoin/i }));
+    await waitFor(() => expect(screen.getAllByText("You need a record above 6,000 pts to play Asia.").length).toBeGreaterThan(1));
+    expect(bread.postShot).not.toHaveBeenCalled();
+  });
+});
 
 describe("shared record link, connected as a stranger", () => {
   it("lands on VS, posts one shot on Insert Gamecoin, then starts the quiz when the note is on chain", async () => {

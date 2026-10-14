@@ -224,27 +224,27 @@ function utcLabel(ms: number): string {
 }
 
 // the X post: one of these, the record picks which (so a record always shares the same line)
-const POSTS: ((score: number, until: string) => string)[] = [
-  (score, until) => `${score} points on GQ 😎\nInstall @joinbread & beat my record before ${until}:`,
-  (score, until) => `My GQ record: ${score} points, open until ${until}.\nInstall @joinbread & beat it:`,
-  (score, until) => `${score} points. One Gamecoin says you can't beat it before ${until}.\nInstall @joinbread & prove me wrong:`,
-  (score, until) => `Know your geography? ${score} points to beat on GQ until ${until}.\nInstall @joinbread & take a shot:`,
-  (score, until) => `10 cities, 15 seconds each, ${score} points. Your move, until ${until}.\nInstall @joinbread & play GQ:`,
-  (score, until) => `Champion of GQ with ${score} points, for now. Record expires ${until}.\nInstall @joinbread & come take it:`,
-  (score, until) => `I set ${score} points on GQ. Beat it before ${until} and my Gamecoin is yours.\nInstall @joinbread & try:`,
-  (score, until) => `Rivals wanted: ${score} points on GQ, open until ${until} 🌍\nInstall @joinbread & take your shot:`,
+const POSTS: ((score: number, until: string, gq: string) => string)[] = [
+  (score, until, gq) => `${score} points on ${gq} 😎\nInstall @joinbread & beat my record before ${until}:`,
+  (score, until, gq) => `My ${gq} record: ${score} points, open until ${until}.\nInstall @joinbread & beat it:`,
+  (score, until, gq) => `${score} points on ${gq}. One Gamecoin says you can't beat it before ${until}.\nInstall @joinbread & prove me wrong:`,
+  (score, until, gq) => `Know your geography? ${score} points to beat on ${gq} until ${until}.\nInstall @joinbread & take a shot:`,
+  (score, until, gq) => `10 cities, 15 seconds each, ${score} points on ${gq}. Your move, until ${until}.\nInstall @joinbread & play:`,
+  (score, until, gq) => `Champion of ${gq} with ${score} points, for now. Record expires ${until}.\nInstall @joinbread & come take it:`,
+  (score, until, gq) => `I set ${score} points on ${gq}. Beat it before ${until} and my Gamecoin is yours.\nInstall @joinbread & try:`,
+  (score, until, gq) => `Rivals wanted: ${score} points on ${gq}, open until ${until} 🌍\nInstall @joinbread & take your shot:`,
 ];
 
 // a run with one of these gets a line about it: hard ones to brag, easy ones to tease
 const HARD_CITIES = ["Funafuti", "Palikir", "Melekeok", "Majuro", "Tarawa", "Nuku'alofa", "Apia", "Honiara", "Port Vila", "Moroni", "Malé", "Bir Lehlou", "Lobamba", "Mbabane", "Maseru", "Sri Jayawardenepura Kotte", "Bandar Seri Begawan", "Naypyidaw", "Thimphu", "Ashgabat", "Dushanbe", "Bishkek", "Nur-Sultan", "Dili", "Basseterre", "Castries", "Roseau", "Kingstown", "Saint George's", "Saint John's", "Belmopan", "Paramaribo", "Bujumbura", "Lilongwe", "Gaborone", "Bissau", "Banjul", "Praia", "São Tomé", "Malabo", "Hargeisa", "Laayoune", "Vaduz", "Podgorica", "Chișinău", "Sucre", "Putrajaya", "Ürümqi", "Baguio", "Dodoma", "Bloemfontein"];
 const EASY_CITIES = ["Paris", "London", "New York", "Tokyo", "Rome", "Berlin", "Madrid", "Moscow", "Beijing", "Sydney", "Cairo", "Rio de Janeiro", "Los Angeles", "San Francisco", "Dubai", "Istanbul", "Amsterdam", "Singapore", "Hong Kong", "Mexico City", "Buenos Aires", "Lisbon", "Athens", "Mumbai", "Bangkok", "Seoul", "Shanghai", "Cape Town", "Toronto", "Chicago", "Miami", "Vienna", "Prague", "Dublin"];
-const HARD_POSTS: ((score: number, until: string, city: string) => string)[] = [
-  (score, until, city) => `${city}. Yes, I know where that is. ${score} points on GQ until ${until}.\nInstall @joinbread & find it faster:`,
-  (score, until, city) => `Can you place ${city} in 15 seconds? I did. ${score} points to beat before ${until}.\nInstall @joinbread & try:`,
+const HARD_POSTS: ((score: number, until: string, city: string, gq: string) => string)[] = [
+  (score, until, city, gq) => `${city}. Yes, I know where that is. ${score} points on ${gq} until ${until}.\nInstall @joinbread & find it faster:`,
+  (score, until, city, gq) => `Can you place ${city} in 15 seconds? I did. ${score} points on ${gq} to beat before ${until}.\nInstall @joinbread & try:`,
 ];
-const EASY_POSTS: ((score: number, until: string, city: string) => string)[] = [
-  (score, until, city) => `You know where ${city} is, right? ${score} points to beat before ${until}.\nInstall @joinbread & play GQ:`,
-  (score, until, city) => `My run had ${city} in it. ${score} points on GQ, open until ${until}.\nInstall @joinbread & do better:`,
+const EASY_POSTS: ((score: number, until: string, city: string, gq: string) => string)[] = [
+  (score, until, city, gq) => `You know where ${city} is, right? ${score} points to beat before ${until}.\nInstall @joinbread & play ${gq}:`,
+  (score, until, city, gq) => `My run had ${city} in it. ${score} points on ${gq}, open until ${until}.\nInstall @joinbread & do better:`,
 ];
 
 // the Weibo post, one line: Chinese players share there, not on X
@@ -252,20 +252,21 @@ const WEIBO_POST = (score: number) => `我在 GeoQuizz 得了 ${score} 分。来
 
 /**
  * The shareable link to a record, and the X post that carries it (the Weibo one too); `expiresAt`
- * is the record's expiry in ms, `cities` the names of its run. A hard city gets bragged about, an
- * easy one teased with.
+ * is the record's expiry in ms, `cities` the names of its run, `stage` the stage's English name
+ * when it is not the World Tour ("GQ Europe"). A hard city gets bragged about, an easy one teased with.
  */
-export function recordLinks(recordId: string, score: number, expiresAt: number, cities: string[] = []) {
+export function recordLinks(recordId: string, score: number, expiresAt: number, cities: string[] = [], stage?: string) {
   const url = `${location.origin}${location.pathname}?record=${recordId}`;
   const pick = [...recordId].reduce((sum, c) => sum + c.charCodeAt(0), 0);
   const hard = cities.filter((c) => HARD_CITIES.includes(c));
   const easy = cities.filter((c) => EASY_CITIES.includes(c));
   const until = utcLabel(expiresAt);
+  const gq = stage ? `GQ ${stage}` : "GQ";
   const text = hard.length
-    ? HARD_POSTS[pick % HARD_POSTS.length](score, until, hard[pick % hard.length])
+    ? HARD_POSTS[pick % HARD_POSTS.length](score, until, hard[pick % hard.length], gq)
     : easy.length
-      ? EASY_POSTS[pick % EASY_POSTS.length](score, until, easy[pick % easy.length])
-      : POSTS[pick % POSTS.length](score, until);
+      ? EASY_POSTS[pick % EASY_POSTS.length](score, until, easy[pick % easy.length], gq)
+      : POSTS[pick % POSTS.length](score, until, gq);
   return {
     url,
     x: `https://x.com/intent/post?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`,

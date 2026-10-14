@@ -207,4 +207,15 @@ export const JA: Record<string, string> = {
   "{title}: rank, nickname, {unit}": "{title}：順位、ニックネーム、{unit}",
   "Your row": "あなたの行",
   "Your rank": "あなたの順位",
+  // stages
+  "World Tour": "ワールドツアー",
+  America: "アメリカ",
+  Africa: "アフリカ",
+  Europe: "ヨーロッパ",
+  Asia: "アジア",
+  "1P {stage}": "1P {stage}",
+  "{n} pts to unlock": "{n} 点で解放",
+  "You need a record above {n} pts to play {stage}.": "{stage}をプレイするには {n} 点以上の記録が必要です。",
+  Stages: "ステージ",
+  Map: "マップ",
 };

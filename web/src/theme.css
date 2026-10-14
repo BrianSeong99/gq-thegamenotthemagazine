@@ -180,7 +180,17 @@ main { max-width: 1440px; margin: 0 auto; padding: 28px 4% 56px; }
 .arena .open-challenges { position: absolute; inset: 0; overflow-y: auto; }
 
 /* the world map */
-.map-frame { padding: 10px; }
+.map-frame { padding: 10px; position: relative; }
+/* the stage tiles, over the bottom of the 1P map (Antarctica on the world) */
+.stages { position: absolute; left: 22px; right: 22px; bottom: 22px; display: flex; gap: 8px; }
+.stage { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 4px; background: var(--void); border: 3px solid var(--rule); color: var(--yellow); font: 12px/1.3 var(--display); text-transform: uppercase; cursor: pointer; }
+.stage:hover { border-color: var(--cyan); }
+.stage img { width: 100%; height: 36px; object-fit: cover; image-rendering: pixelated; border: 1px solid var(--rule); }
+.stage.locked, .stage:disabled { opacity: 1; color: var(--muted); cursor: default; }
+.stage.locked:hover { border-color: var(--rule); }
+.stage.locked img { filter: grayscale(1) brightness(0.45); }
+.stage .need { display: flex; align-items: center; gap: 3px; font-size: 10px; color: var(--pink); }
+.tag { color: var(--muted); font-size: 0.85em; }
 .world-map { width: 100%; height: auto; display: block; background: var(--cobalt); border: 2px solid var(--rule); }
 .world-map .grid { stroke: #4b63ff; stroke-width: 0.6; }
 

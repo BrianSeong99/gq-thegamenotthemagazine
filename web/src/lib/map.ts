@@ -14,3 +14,13 @@ export const latLonToPixel = (p: LatLon) => ({
   x: ((p.lon + 180) / 360) * MAP_W,
   y: ((90 - p.lat) / 180) * MAP_H,
 });
+
+/**
+ * Where a stage's region sits on the 1000 × 500 picture in stretched coordinates (lib/stages.ts):
+ * a centred box the map shows alone. The world is the whole picture.
+ */
+export const frameOf = (s: { lon0: number; lon1: number; lat0: number; lat1: number; factor: number }) => {
+  const w = (((s.lon1 - s.lon0) * s.factor) / 360) * MAP_W;
+  const h = (((s.lat1 - s.lat0) * s.factor) / 180) * MAP_H;
+  return { x: (MAP_W - w) / 2, y: (MAP_H - h) / 2, w, h };
+};

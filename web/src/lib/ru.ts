@@ -207,4 +207,15 @@ export const RU: Record<string, string> = {
   "{title}: rank, nickname, {unit}": "{title}: место, ник, {unit}",
   "Your row": "Твоя строка",
   "Your rank": "Твоё место",
+  // stages
+  "World Tour": "Кругосветка",
+  America: "Америка",
+  Africa: "Африка",
+  Europe: "Европа",
+  Asia: "Азия",
+  "1P {stage}": "1P {stage}",
+  "{n} pts to unlock": "{n} очк. для открытия",
+  "You need a record above {n} pts to play {stage}.": "Нужен рекорд выше {n} очк., чтобы играть {stage}.",
+  Stages: "Этапы",
+  Map: "Карта",
 };

@@ -207,4 +207,15 @@ export const ID: Record<string, string> = {
   "{title}: rank, nickname, {unit}": "{title}: peringkat, nama panggilan, {unit}",
   "Your row": "Barismu",
   "Your rank": "Peringkatmu",
+  // stages
+  "World Tour": "Tur Dunia",
+  America: "Amerika",
+  Africa: "Afrika",
+  Europe: "Eropa",
+  Asia: "Asia",
+  "1P {stage}": "1P {stage}",
+  "{n} pts to unlock": "{n} poin untuk membuka",
+  "You need a record above {n} pts to play {stage}.": "Kamu perlu rekor di atas {n} poin untuk memainkan {stage}.",
+  Stages: "Tahap",
+  Map: "Peta",
 };

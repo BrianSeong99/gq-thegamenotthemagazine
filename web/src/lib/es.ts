@@ -227,6 +227,17 @@ const ES: Record<string, string> = {
   "{title}: rank, nickname, {unit}": "{title}: puesto, apodo, {unit}",
   "Your row": "Tu fila",
   "Your rank": "Tu puesto",
+  // stages
+  "World Tour": "Vuelta al mundo",
+  America: "América",
+  Africa: "África",
+  Europe: "Europa",
+  Asia: "Asia",
+  "1P {stage}": "1J {stage}",
+  "{n} pts to unlock": "{n} pts para desbloquear",
+  "You need a record above {n} pts to play {stage}.": "Necesitas un récord de más de {n} pts para jugar {stage}.",
+  Stages: "Etapas",
+  Map: "Mapa",
 };
 
 /** Every line of `d` with each `[from, to]` pair swapped. */

@@ -15,8 +15,11 @@ export function Shell({
   soundOn,
   onSound,
   children,
+  labels = {},
 }: {
   tab: Tab;
+  /** a tab called otherwise, already translated (the 1P tab after the map it shows) */
+  labels?: Partial<Record<Tab, string>>;
   onTab: (t: Tab) => void;
   /** the wordmark: back to the splash screen, inside the app (sound and wallet stay as they are) */
   onHome: () => void;
@@ -49,7 +52,7 @@ export function Shell({
         <nav aria-label={t("Sections")}>
           {(Object.keys(TAB_LABEL) as Tab[]).map((k) => (
             <button key={k} className={k === tab ? "active" : k === "hub" && hubAlert ? "blink" : ""} onClick={() => onTab(k)} aria-current={k === tab ? "page" : undefined}>
-              {t(TAB_LABEL[k])}
+              {labels[k] ?? t(TAB_LABEL[k])}
             </button>
           ))}
         </nav>

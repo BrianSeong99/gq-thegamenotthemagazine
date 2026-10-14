@@ -4,6 +4,7 @@
 
 import type { ChallengeNote } from "./chain";
 import { fmtGamecoin, sameAccount as same, toGc } from "./flow";
+import { gameStage } from "./quiz";
 import { isShotAt, noteDeadline, shotDeadline, type AccountFelts } from "./notes";
 import { CLAIM_FUZZ } from "@/config";
 import { en, type T } from "./i18n";
@@ -162,7 +163,7 @@ export function history(notes: ChallengeNote[], me: AccountFelts, height: number
   return items.sort((a, b) => b.at - a.at);
 }
 
-export type Ranked = { key: string; who: AccountFelts; value: number; at: number; rank: number };
+export type Ranked = { key: string; who: AccountFelts; value: number; at: number; rank: number; /** the stage of a record, its English name (t() key), none for the World Tour */ tag?: string };
 /** The top rows (10, 100 records), and my best row when I am not among them. */
 type Board = { top: Ranked[]; mine: Ranked | null };
 type Event = { who: AccountFelts; value: number; at: number };
@@ -191,6 +192,12 @@ function rank(rows: Omit<Ranked, "rank">[], me: AccountFelts | null, limit = 10)
  * one of the champion's records, open or not. Smashed: records a rival took. Losers: shots a rival
  * lost, the other side of Defended.
  */
+/** A record's stage for the boards: the stage name, none for the World Tour or an unknown list. */
+const stageTag = (game: bigint[]): string | undefined => {
+  const s = gameStage(game);
+  return s && s.id !== "world" ? s.name : undefined;
+};
+
 export function boards(notes: ChallengeNote[], height: number, me: AccountFelts | null) {
   const coins: Event[] = [];
   const defended: Event[] = [];
@@ -212,7 +219,7 @@ export function boards(notes: ChallengeNote[], height: number, me: AccountFelts 
       smashed.push({ who: w, value: 1, at: n.consumedAt! });
     }
   }
-  const records = notes.filter((n) => n.kind === "record").map((n) => ({ key: n.id, who: n.storage.champion, value: n.storage.target, at: n.createdAt ?? Infinity }));
+  const records = notes.filter((n) => n.kind === "record").map((n) => ({ key: n.id, who: n.storage.champion, value: n.storage.target, at: n.createdAt ?? Infinity, tag: stageTag(n.storage.game) }));
   return { coins: rank(tally(coins), me), records: rank(records, me, 100), defended: rank(tally(defended), me), smashed: rank(tally(smashed), me), losers: rank(tally(losers), me) };
 }
 

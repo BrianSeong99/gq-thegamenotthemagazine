@@ -4,10 +4,10 @@ import { useState } from "react";
 import { recordLinks } from "@/lib/flow";
 import { useLang, useT } from "@/lib/i18n";
 
-export function ShareButtons({ recordId, score, expiresAt, cities }: { recordId: string; score: number; expiresAt: number; cities: string[] }) {
+export function ShareButtons({ recordId, score, expiresAt, cities, stage }: { recordId: string; score: number; expiresAt: number; cities: string[]; stage?: string }) {
   const t = useT();
   const { lang } = useLang();
-  const { url, x, weibo } = recordLinks(recordId, score, expiresAt, cities);
+  const { url, x, weibo } = recordLinks(recordId, score, expiresAt, cities, stage);
   const [copied, setCopied] = useState(false);
   return (
     <div className="share">

@@ -38,7 +38,10 @@ export function Leaderboards({ data, me, name, action }: { data: Boards | null; 
     <tr key={r.key} className={mine(r) ? "mine" : undefined} aria-label={mine(r) ? t("Your row") : undefined}>
       <td>{String(r.rank).padStart(2, "0")}</td>
       <td>{name(r.who)}</td>
-      <td>{r.value.toLocaleString()}</td>
+      <td>
+        {r.value.toLocaleString()}
+        {r.tag && <span className="tag"> ({t(r.tag)})</span>}
+      </td>
     </tr>
   );
   const board = (k: Name) => {

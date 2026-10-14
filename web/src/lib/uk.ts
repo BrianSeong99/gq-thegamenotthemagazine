@@ -207,4 +207,15 @@ export const UK: Record<string, string> = {
   "{title}: rank, nickname, {unit}": "{title}: місце, нік, {unit}",
   "Your row": "Твій рядок",
   "Your rank": "Твоє місце",
+  // stages
+  "World Tour": "Навколосвітка",
+  America: "Америка",
+  Africa: "Африка",
+  Europe: "Європа",
+  Asia: "Азія",
+  "1P {stage}": "1P {stage}",
+  "{n} pts to unlock": "{n} оч. для відкриття",
+  "You need a record above {n} pts to play {stage}.": "Потрібен рекорд понад {n} оч., щоб грати {stage}.",
+  Stages: "Етапи",
+  Map: "Карта",
 };

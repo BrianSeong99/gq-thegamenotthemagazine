@@ -3,6 +3,7 @@
 
 import { cosX100, latToCd, lonToCd, ROUNDS, type City } from "./rules";
 import type { Word4 } from "./notes";
+import { stageOfDataset, toStretched, WORLD, type Stage } from "./stages";
 
 export type { Word4 };
 export type Place = { name: string; country: string; lat: number; lon: number };
@@ -64,12 +65,16 @@ export async function pickIndices(seed: Word4, datasetSize: number): Promise<num
   return picked;
 }
 
-/** The cities a seed selects, as the note stores them. */
-export async function quizCities(seed: Word4, dataset: Place[]): Promise<City[]> {
+/**
+ * The cities a seed selects, as the note stores them: in the stage's stretched coordinates, with
+ * the cosine of the real latitude so the contract's distance stays kilometres times the zoom.
+ */
+export async function quizCities(seed: Word4, dataset: Place[], stage: Stage = WORLD): Promise<City[]> {
   const idxs = await pickIndices(seed, dataset.length);
   return idxs.map((idx) => {
     const p = dataset[idx];
-    return { idx, lat: latToCd(p.lat), lon: lonToCd(p.lon), cos: cosX100(p.lat) };
+    const s = toStretched(stage, p);
+    return { idx, lat: latToCd(s.lat), lon: lonToCd(s.lon), cos: cosX100(p.lat) };
   });
 }
 
@@ -78,3 +83,6 @@ export async function datasetWord(fileBytes: Uint8Array): Promise<Word4> {
   const digest = new DataView(await crypto.subtle.digest("SHA-256", fileBytes));
   return [0, 1, 2, 3].map((i) => BigInt(digest.getUint32(i * 4, true))) as Word4;
 }
+
+/** The stage a note's game data plays on, by its dataset hash; undefined when it is not GeoQuizz's or the list is unknown. */
+export const gameStage = (game: bigint[]): Stage | undefined => (game.length === GAME_ITEMS ? stageOfDataset(decodeGame(game).dataset) : undefined);

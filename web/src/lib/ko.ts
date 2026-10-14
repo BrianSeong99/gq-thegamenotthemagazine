@@ -207,4 +207,15 @@ export const KO: Record<string, string> = {
   "{title}: rank, nickname, {unit}": "{title}: 순위, 닉네임, {unit}",
   "Your row": "내 줄",
   "Your rank": "내 순위",
+  // stages
+  "World Tour": "월드 투어",
+  America: "아메리카",
+  Africa: "아프리카",
+  Europe: "유럽",
+  Asia: "아시아",
+  "1P {stage}": "1P {stage}",
+  "{n} pts to unlock": "{n}점이면 해제",
+  "You need a record above {n} pts to play {stage}.": "{stage}을(를) 플레이하려면 {n}점 이상의 기록이 필요합니다.",
+  Stages: "스테이지",
+  Map: "지도",
 };

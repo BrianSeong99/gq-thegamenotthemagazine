@@ -14,7 +14,8 @@ type LobbyProps = {
   me: AccountFelts | null;
   notes: ChallengeNote[];
   height: number;
-  places: Place[];
+  /** the city list a note's game data plays on, in the player's language */
+  places: (game: bigint[]) => Place[];
   onSettle: (shot: ChallengeNote, record: ChallengeNote | undefined) => void;
   onCollect: (notes: ChallengeNote[]) => void;
 };
@@ -61,7 +62,7 @@ export function Lobby({ me, notes, height, places, onSettle, onCollect }: LobbyP
             <>
               <p className="muted">{t("Waiting for a rival…")}</p>
               <LostSoFar n={triesLost(p, notes, height)} />
-              <ShareButtons recordId={p.id} score={p.storage.target} expiresAt={blockToMs(p.storage.expiryBlock, height)} cities={cityNames(recordCities(p.storage.game), places)} />
+              <ShareButtons recordId={p.id} score={p.storage.target} expiresAt={blockToMs(p.storage.expiryBlock, height)} cities={cityNames(recordCities(p.storage.game), places(p.storage.game))} />
             </>
           )}
         </section>

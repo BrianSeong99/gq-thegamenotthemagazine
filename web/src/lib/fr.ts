@@ -229,6 +229,17 @@ export const FR_FR: Record<string, string> = {
   "{title}: rank, nickname, {unit}": "{title} : rang, pseudo, {unit}",
   "Your row": "Votre ligne",
   "Your rank": "Votre rang",
+  // stages
+  "World Tour": "Tour du monde",
+  America: "Amérique",
+  Africa: "Afrique",
+  Europe: "Europe",
+  Asia: "Asie",
+  "1P {stage}": "1J {stage}",
+  "{n} pts to unlock": "{n} pts pour débloquer",
+  "You need a record above {n} pts to play {stage}.": "Il vous faut un record de plus de {n} pts pour jouer {stage}.",
+  Stages: "Étapes",
+  Map: "Carte",
 };
 
 export const FR_CA = swap(FR_FR, [["le wallet", "le portefeuille"], ["Wallet", "Portefeuille"], ["wallet", "portefeuille"], ["votre téléphone", "votre cellulaire"], [" ?", "?"], [" !", "!"], [" ;", ";"]]);

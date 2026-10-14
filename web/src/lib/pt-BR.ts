@@ -226,4 +226,15 @@ export const PT_BR: Record<string, string> = {
   "{title}: rank, nickname, {unit}": "{title}: posição, apelido, {unit}",
   "Your row": "Sua linha",
   "Your rank": "Sua posição",
+  // stages
+  "World Tour": "Volta ao mundo",
+  America: "América",
+  Africa: "África",
+  Europe: "Europa",
+  Asia: "Ásia",
+  "1P {stage}": "1J {stage}",
+  "{n} pts to unlock": "{n} pts para desbloquear",
+  "You need a record above {n} pts to play {stage}.": "Você precisa de um recorde acima de {n} pts para jogar {stage}.",
+  Stages: "Fases",
+  Map: "Mapa",
 };

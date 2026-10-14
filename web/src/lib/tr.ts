@@ -207,4 +207,15 @@ export const TR: Record<string, string> = {
   "{title}: rank, nickname, {unit}": "{title}: sıra, takma ad, {unit}",
   "Your row": "Senin satırın",
   "Your rank": "Senin sıran",
+  // stages
+  "World Tour": "Dünya Turu",
+  America: "Amerika",
+  Africa: "Afrika",
+  Europe: "Avrupa",
+  Asia: "Asya",
+  "1P {stage}": "1P {stage}",
+  "{n} pts to unlock": "Açmak için {n} puan",
+  "You need a record above {n} pts to play {stage}.": "{stage} oynamak için {n} puanın üzerinde bir rekor gerekir.",
+  Stages: "Aşamalar",
+  Map: "Harita",
 };
