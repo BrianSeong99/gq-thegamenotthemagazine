@@ -115,7 +115,7 @@ function Gate() {
 
 function GqApp() {
   const t = useT();
-  const { lang, setLang } = useContext(LangContext);
+  const { lang } = useContext(LangContext);
   const client = useMidenClient();
   const { runExclusive, isReady } = useMiden();
   const bread = useMidenFiWallet();
@@ -590,12 +590,7 @@ function GqApp() {
 
   if (!started)
     return (
-      <Welcome
-        onStart={(l) => {
-          setLang(l);
-          setStarted(true);
-        }}
-      />
+      <Welcome onStart={() => setStarted(true)} />
     );
 
   return (

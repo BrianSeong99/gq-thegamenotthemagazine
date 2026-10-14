@@ -217,11 +217,17 @@ describe("shared record link, connected as a stranger", () => {
 });
 
 describe("Simplified Chinese", () => {
-  it("点击开始 starts in Chinese: tabs, cities and history dates in Chinese, the Weibo share, and EN switches back in place", async () => {
+  it("the China flag turns the start line into 点击开始, which starts in Chinese: tabs, cities and history dates in Chinese, the Weibo share, and EN switches back in place", async () => {
     window.history.replaceState({}, "", "/");
     localStorage.removeItem("gq.lang");
     render(<AppContent />);
-    fireEvent.click(await screen.findByRole("button", { name: /点击开始/ }));
+    const cn = await screen.findByRole("button", { name: "中文" });
+    expect(cn).toHaveClass("blink");
+    expect(screen.getByRole("button", { name: "English" })).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(cn);
+    expect(cn).not.toHaveClass("blink");
+    expect(screen.getByRole("button", { name: "English" })).toHaveClass("blink");
+    fireEvent.click(screen.getByRole("button", { name: /点击开始/ }));
     expect(document.documentElement.lang).toBe("zh-Hans");
     expect(localStorage.getItem("gq.lang")).toBe("zh-Hans");
     expect(screen.getByRole("button", { name: "玩家中心" })).toBeInTheDocument();
@@ -234,11 +240,12 @@ describe("Simplified Chinese", () => {
     expect(screen.getByRole("button", { name: /player hub/i })).toBeInTheDocument();
   });
 
-  it("remembers the language on the next visit, and the Chinese start button stays on the splash", async () => {
+  it("remembers the language on the next visit: the splash starts in Chinese", async () => {
     window.history.replaceState({}, "", "/");
     localStorage.setItem("gq.lang", "zh-Hans");
     render(<AppContent />);
-    expect(await screen.findByRole("button", { name: /click to start/i })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /点击开始/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "中文" })).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByText("横着拿手机，地图更好玩。")).toBeInTheDocument();
     localStorage.removeItem("gq.lang");
   });
