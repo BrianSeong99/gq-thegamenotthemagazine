@@ -1,4 +1,4 @@
-//! Lists every GQ record/shot note the chain carries under NOTE_TAG (sender, kind, amount, state).
+//! Lists every GQ record/shot note the chain carries under NOTE_TAG (sender, kind, amount, faucet, state).
 //!   cargo run --release --bin list_gq
 
 use anyhow::Result;
@@ -25,8 +25,9 @@ async fn main() -> Result<()> {
         let items = r.details().storage().items();
         let amount: u64 = r.details().assets().iter_fungible().map(|a| a.amount().as_u64()).sum();
         let sender = r.metadata().map(|m| m.sender().to_hex()).unwrap_or_default();
+        let faucet = r.details().assets().iter_fungible().next().map(|a| a.faucet_id().to_hex()).unwrap_or_default();
         println!(
-            "{kind:<10} {} root {} sender {sender} amount {} target {} expiry {} deadline {} consumed {}",
+            "{kind:<10} {} root {} sender {sender} amount {} of {faucet} target {} expiry {} deadline {} consumed {}",
             r.id().map(|i| i.to_hex()).unwrap_or_default(),
             &Word::from(root).to_hex()[..10],
             amount as f64 / 1e6,
