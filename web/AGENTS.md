@@ -1,7 +1,7 @@
 # GeoQuizz web app: notes for agents
 
 GeoQuizz (GQ) is a Miden testnet game. A champion posts a record note (a score to beat and one
-Geocoin); rivals post shot notes, play the same ten-city quiz, and the note scripts recompute the
+Gamecoin); rivals post shot notes, play the same ten-city quiz, and the note scripts recompute the
 score. This folder is the React app; the mechanic lives in `../masm/`, its host-side reference and
 MockChain tests in `../integration/`. Read `../README.md` and `../docs/design.md` first.
 

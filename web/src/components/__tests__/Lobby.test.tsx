@@ -2,6 +2,7 @@
 // show exactly the actions the rules allow.
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import { GC_FAUCET } from "@/config";
 import type { ChallengeNote } from "@/lib/chain";
 import type { ChallengeStorage } from "@/lib/notes";
 import { encodeGame } from "@/lib/quiz";
@@ -22,12 +23,13 @@ const base: ChallengeStorage = {
 };
 const places = [{ name: "Funafuti", country: "Tuvalu", lat: 0, lon: 0 }];
 const game = encodeGame({ seed: [0n, 0n, 0n, 0n], dataset: [0n, 0n, 0n, 0n], cities: Array.from({ length: 10 }, () => ({ idx: 0, lat: 0, lon: 0, cos: 0 })) });
-const prize: ChallengeNote = { id: "0xp", idWord: [9n, 9n, 9n, 9n], kind: "record", storage: { ...base, game }, amount: 1_000_000n, consumed: false };
+const prize: ChallengeNote = { id: "0xp", idWord: [9n, 9n, 9n, 9n], kind: "record", storage: { ...base, game }, faucet: GC_FAUCET, amount: 1_000_000n, consumed: false };
 const myShot: ChallengeNote = {
   id: "0xc",
   idWord: [1n, 1n, 1n, 1n],
   kind: "shot",
   storage: { ...prize.storage, rival: me, recordId: [9n, 9n, 9n, 9n], shotDeadline: 200 },
+  faucet: GC_FAUCET,
   amount: 1_000_000n,
   consumed: false,
 };
@@ -93,7 +95,7 @@ describe("Lobby", () => {
     expect(h.onCollect).toHaveBeenCalledWith([prize, myShot, second]);
   });
 
-  it("blinks every take button: Geocoins are waiting", () => {
+  it("blinks every take button: Gamecoins are waiting", () => {
     render(<Lobby me={champion} notes={[prize, myShot]} places={places} height={1064} {...handlers()} />);
     for (const b of screen.getAllByRole("button", { name: /take/i })) expect(b.className).toContain("blink");
   });

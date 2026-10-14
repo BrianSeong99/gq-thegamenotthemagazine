@@ -2,7 +2,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { ChallengeNote } from "../chain";
 import type { ChallengeStorage, Word4 } from "../notes";
-import { GC_FAUCET, MIN_SHOT_WINDOW_BLOCKS, V1_ROOTS } from "@/config";
+import { GC_FAUCET, GEOCOIN_FAUCET, MIN_SHOT_WINDOW_BLOCKS, V1_ROOTS } from "@/config";
 import {
   acceptNote,
   blocksToClock,
@@ -14,7 +14,7 @@ import {
   shotRefusal,
   isChainBehind,
   myOpenShotsOn,
-  fmtGeocoin,
+  fmtGamecoin,
   outcomeText,
   recordLinks,
   withoutRecord,
@@ -41,12 +41,13 @@ const base: ChallengeStorage = {
   game: [],
   shotDeadline: 0,
 };
-const prize: ChallengeNote = { id: "0x9", idWord: [...recordId], kind: "record", storage: base, amount: 1_000_000n, consumed: false };
+const prize: ChallengeNote = { id: "0x9", idWord: [...recordId], kind: "record", storage: base, faucet: GC_FAUCET, amount: 1_000_000n, consumed: false };
 const challenge = (rival: typeof me, deadline: number, consumed = false, id = "0xc"): ChallengeNote => ({
   id,
   idWord: [1n, 2n, 3n, 4n],
   kind: "shot",
   storage: { ...base, rival, recordId: [...recordId], shotDeadline: deadline },
+  faucet: GC_FAUCET,
   amount: 1_000_000n,
   consumed,
 });
@@ -131,7 +132,8 @@ describe("accepting a note from the chain", () => {
     expect(acceptNote({ ...shot, sender: champion }, shotRoot)).toBe(false);
   });
 
-  it("wants exactly one asset, the Geocoin", () => {
+  it("wants exactly one asset, a Gamecoin or the Geocoin before it", () => {
+    expect(acceptNote({ ...record, assets: [{ faucet: GEOCOIN_FAUCET, amount: 1_000_000n }] }, shotRoot)).toBe(true);
     expect(acceptNote({ ...record, assets: [] }, shotRoot)).toBe(false);
     expect(acceptNote({ ...record, assets: [{ faucet: "0xbad", amount: 1_000_000n }] }, shotRoot)).toBe(false);
     expect(acceptNote({ ...record, assets: [gc, { faucet: "0xbad", amount: 1n }] }, shotRoot)).toBe(false);
@@ -156,7 +158,7 @@ describe("settling after a play", () => {
 
   it("only recovers the stake when the prize is gone, and forfeits on a loss or a tie", () => {
     expect(settlePlan([challenge(me, 500)], { ...prize, consumed: true }, 2001, 100)).toMatchObject({ won: true, claimPrize: false });
-    expect(settlePlan([challenge(me, 500)], undefined, 2001, 100).text).toMatch(/Geocoin comes back/);
+    expect(settlePlan([challenge(me, 500)], undefined, 2001, 100).text).toMatch(/Gamecoin comes back/);
     expect(settlePlan([challenge(me, 500)], prize, 2000, 100)).toMatchObject({ won: false, claimPrize: false, again: true });
     expect(settlePlan([challenge(me, 500)], prize, 1999, 100).text).toMatch(/Not enough\.$/);
     // the shot ended during the play: nothing to try again at
@@ -226,10 +228,10 @@ describe("a pasted code", () => {
   });
 });
 
-describe("Geocoin in words", () => {
+describe("Gamecoin in words", () => {
   it("spells the token out, singular and plural", () => {
-    expect(fmtGeocoin(1_000_000n)).toBe("1 Geocoin");
-    expect(fmtGeocoin(10_000_000n)).toBe("10 Geocoins");
+    expect(fmtGamecoin(1_000_000n)).toBe("1 Gamecoin");
+    expect(fmtGamecoin(10_000_000n)).toBe("10 Gamecoins");
   });
   it("shares a record as a ?record= link, inside the X post too, with the expiry in UTC; the Weibo post carries the same link", () => {
     const { url, x, weibo } = recordLinks("0xabc", 9690, Date.UTC(2026, 9, 13, 14, 5));
@@ -267,7 +269,8 @@ describe("errors in plain words", () => {
     [Object.assign(new Error(""), { name: "WalletNotReadyError" }), "no-wallet"],
     [Object.assign(new Error(""), { name: "WalletNotConnectedError" }), "no-wallet"],
     [new Error("Bread is not connected"), "no-wallet"],
-    [new Error("You need 1 Geocoin and your wallet holds 0 Geocoins. Get Geocoins first."), "funds"],
+    [new Error("You need 1 Gamecoin and your wallet holds 0 Gamecoins. Get Gamecoins first."), "funds"],
+    [new Error("You need 1 Geocoin, the old coin, and your wallet holds 0."), "refused"],
     [new Error("SummaryAnchorMismatchError: the transaction summary binds block commitment 0x1 but the captured chain anchor is 0x2"), "out-of-step"],
     [new Error("failed to capture chain anchor: storage error: block header for block 85053 not found"), "out-of-step"],
     [new Error(NOT_FINISHED), "not-finished"],
@@ -291,7 +294,7 @@ describe("errors in plain words", () => {
   });
   it("keeps the raw text for 'What happened?' (the amounts of a funds refusal live there), but not when the sentence is already the message", () => {
     expect(explain(new TypeError("Failed to fetch")).detail).toBe("TypeError: Failed to fetch");
-    expect(explain(new Error("You need 1 Geocoin and your wallet holds 0 Geocoins.")).detail).toBe("You need 1 Geocoin and your wallet holds 0 Geocoins.");
+    expect(explain(new Error("You need 1 Gamecoin and your wallet holds 0 Gamecoins.")).detail).toBe("You need 1 Gamecoin and your wallet holds 0 Gamecoins.");
     expect(explain(new Error(NOT_FINISHED)).detail).toBeUndefined();
   });
   it("times out a read that hangs, as a network trouble", async () => {

@@ -1,10 +1,10 @@
 import { AccountId, type TransactionRequest } from "@miden-sdk/miden-sdk";
 import { describe, expect, it, vi } from "vitest";
 import authVectors from "../../../../rules/auth_vectors.json";
-import { GC_FAUCET } from "@/config";
+import { GC_FAUCET, GEOCOIN_FAUCET } from "@/config";
 import type { Client } from "../chain";
 import type { Word4 } from "../quiz";
-import { authArgElements, collect, multisigAuthArgs, type Wallet } from "../bread";
+import { authArgElements, collect, multisigAuthArgs, stakeFaucet, type Wallet } from "../bread";
 
 // the node's tip, as the app reads it before building a request
 const node = vi.hoisted(() => ({ tip: 0 }));
@@ -67,5 +67,14 @@ describe("handing a request to Bread", () => {
     sent.length = 0;
     await expect(collect(client, wallet([async () => Promise.reject(new Error("NOT_GRANTED"))]), [])).rejects.toThrow(/NOT_GRANTED/);
     expect(sent).toHaveLength(1);
+  });
+});
+
+describe("the asset of a new record", () => {
+  it("is Gamecoin, or Geocoin only for a wallet that holds the old coin and not enough of the new one", () => {
+    expect(stakeFaucet(1_000_000n, 0n, 1_000_000n)).toBe(GC_FAUCET);
+    expect(stakeFaucet(1_000_000n, 5_000_000n, 1_000_000n)).toBe(GC_FAUCET);
+    expect(stakeFaucet(0n, 1_000_000n, 1_000_000n)).toBe(GEOCOIN_FAUCET);
+    expect(stakeFaucet(0n, 0n, 1_000_000n)).toBe(GC_FAUCET);
   });
 });

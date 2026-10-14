@@ -27,8 +27,8 @@ describe("Simplified Chinese dictionary", () => {
       "All",
       "My records",
       "My shots",
-      "{n} Geocoin",
-      "{n} Geocoins",
+      "{n} Gamecoin",
+      "{n} Gamecoins",
       "The game could not start.",
       NOT_FINISHED,
       SHOT_LOST,
@@ -38,14 +38,14 @@ describe("Simplified Chinese dictionary", () => {
       "This one is rigged.",
       (parseCode("https://x.com/a/status/1") as { hint: string }).hint,
       (parseCode("nope") as { hint: string }).hint,
-      ...["NOT_GRANTED", "WalletNotReady", "WalletNotConnected", "You need 1 Geocoin", "SummaryAnchorMismatch", "already consumed", "deadline has passed", "dataset", "Not found", "assertion failed", "timed out", "???"].map((raw) => explain(new Error(raw)).title),
+      ...["NOT_GRANTED", "WalletNotReady", "WalletNotConnected", "You need 1 Gamecoin", "You need 1 Geocoin", "SummaryAnchorMismatch", "already consumed", "deadline has passed", "dataset", "Not found", "assertion failed", "timed out", "???"].map((raw) => explain(new Error(raw)).title),
     ];
     expect(fromLibs.filter((k) => !(k in ZH))).toEqual([]);
   });
 
   it("translates whole sentences, fills placeholders after, and falls back to English", () => {
     const zh = translator("zh-Hans");
-    expect(zh("{who} can take the coin.", { who: "JHT" })).toBe("JHT 可以领走地理币。");
+    expect(zh("{who} can take the coin.", { who: "JHT" })).toBe("JHT 可以领走游戏币。");
     expect(zh("Defended|board")).toBe("守住纪录最多");
     expect(zh("no such line {x}", { x: 1 })).toBe("no such line 1");
     expect(en("Defended|board")).toBe("Defended");

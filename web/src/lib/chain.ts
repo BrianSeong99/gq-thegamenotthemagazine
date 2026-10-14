@@ -24,7 +24,7 @@ import {
   Word,
 } from "@miden-sdk/miden-sdk";
 import type { useMidenClient } from "@miden-sdk/react";
-import { GC_FAUCET, MIDEN_RPC_URL, RECORD_SCRIPT_URL, SHOT_SCRIPT_URL, SHOT_SCRIPT_V1_URL } from "@/config";
+import { MIDEN_RPC_URL, RECORD_SCRIPT_URL, SHOT_SCRIPT_URL, SHOT_SCRIPT_V1_URL } from "@/config";
 import { decodeStorage, NOTE_TAG, type AccountFelts, type ChallengeStorage } from "./notes";
 import { acceptNote, noteKind } from "./flow";
 import type { Word4 } from "./quiz";
@@ -83,6 +83,8 @@ export type ChallengeNote = {
   idWord: Word4;
   kind: "record" | "shot";
   storage: ChallengeStorage;
+  /** the asset it holds (config.ts STAKE_FAUCETS): shots at a record stake the same one */
+  faucet: string;
   amount: bigint;
   consumed: boolean;
   /** the block it was consumed in */
@@ -95,7 +97,7 @@ export type ChallengeNote = {
 };
 
 /** A record or shot of ours as the node serves it; null for a foreign root or layout, or a note not shaped as this app writes them (flow.ts acceptNote). */
-function decodeNote(input: InputNote, scripts: Scripts): Pick<ChallengeNote, "kind" | "storage" | "amount" | "v1"> | null {
+function decodeNote(input: InputNote, scripts: Scripts): Pick<ChallengeNote, "kind" | "storage" | "faucet" | "amount" | "v1"> | null {
   const note = input.note();
   const known = noteKind(note.recipient().script().root().toHex(), scripts);
   if (!known) return null;
@@ -109,7 +111,7 @@ function decodeNote(input: InputNote, scripts: Scripts): Pick<ChallengeNote, "ki
   const assets = note.assets().fungibleAssets().map((a) => ({ faucet: a.faucetId().toString(), amount: a.amount() }));
   const shotRoot = known.kind === "record" ? wordFromHex(known.shotRoot) : undefined;
   if (!acceptNote({ kind, storage, sender: accountFelts(note.metadata().sender()), assets }, shotRoot)) return null;
-  return { kind, storage, amount: assets[0].amount, ...(v1 && { v1 }) };
+  return { kind, storage, ...assets[0], ...(v1 && { v1 }) };
 }
 
 /** Registers the app's note tag (idempotent) and syncs. */
@@ -202,10 +204,10 @@ export async function knownNote(id: string): Promise<{ consumed: boolean } | und
 }
 
 /** Builds a record or shot note exactly as the contracts expect it; `serial` fixes its id. */
-export function buildChallengeNote(sender: AccountId, script: NoteScript, storageFelts: bigint[], amount: bigint, serial: Word4): Note {
+export function buildChallengeNote(sender: AccountId, script: NoteScript, storageFelts: bigint[], faucet: string, amount: bigint, serial: Word4): Note {
   const recipient = new NoteRecipient(wordFromFelts(serial), script, new NoteStorage(feltArray(storageFelts)));
   const metadata = new NoteMetadata(sender, NoteType.Public, new NoteTag(NOTE_TAG));
-  const assets = new NoteAssets([new FungibleAsset(AccountId.fromHex(GC_FAUCET), amount)]);
+  const assets = new NoteAssets([new FungibleAsset(AccountId.fromHex(faucet), amount)]);
   return new Note(assets, metadata, recipient);
 }
 

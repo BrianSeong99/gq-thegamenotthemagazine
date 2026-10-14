@@ -30,8 +30,8 @@ export function Leaderboards({ data, me, name, action }: { data: Boards | null; 
   const t = useT();
   const [pick, setPick] = useState<"coins" | "records" | "wins">("coins");
   const [side, setSide] = useState<"defended" | "smashed">("defended");
-  const TITLE: Record<Name, string> = { coins: t("Most Geocoins won"), records: t("Best records"), defended: t("Defended|board"), smashed: t("Smashed"), losers: t("Most lost shots") };
-  const UNIT: Record<Name, string> = { coins: t("Geocoins won"), records: t("Record"), defended: t("Rivals beaten"), smashed: t("Records smashed"), losers: t("Shots lost") };
+  const TITLE: Record<Name, string> = { coins: t("Most Gamecoins won"), records: t("Best records"), defended: t("Defended|board"), smashed: t("Smashed"), losers: t("Most lost shots") };
+  const UNIT: Record<Name, string> = { coins: t("Gamecoins won"), records: t("Record"), defended: t("Rivals beaten"), smashed: t("Records smashed"), losers: t("Shots lost") };
   const EMPTY: Record<Name, string> = { coins: t("No wins yet."), records: t("No records yet."), defended: t("No rivals beaten yet."), smashed: t("No records yet."), losers: t("No losers yet.") };
   const mine = (r: Ranked) => sameAccount(me, r.who);
   const row = (r: Ranked) => (
@@ -86,7 +86,7 @@ export function Leaderboards({ data, me, name, action }: { data: Boards | null; 
         {action}
       </div>
       <section className="high-scores" data-pick={pick}>
-        <Tabs items={[["coins", t("Geocoins")], ["records", t("Records")], ["wins", t("Wins")]]} value={pick} onPick={setPick} className="board-tabs" />
+        <Tabs items={[["coins", t("Gamecoins")], ["records", t("Records")], ["wins", t("Wins")]]} value={pick} onPick={setPick} className="board-tabs" />
         <div className="boards-grid">
           {board("coins")}
           {board("records")}

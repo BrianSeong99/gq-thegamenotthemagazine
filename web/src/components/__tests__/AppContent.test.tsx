@@ -39,12 +39,13 @@ const storage: ChallengeStorage = {
   game: encodeGame({ seed: [0n, 0n, 0n, 0n], dataset: [0n, 0n, 0n, 0n], cities }),
   shotDeadline: 0,
 };
-const prize: ChallengeNote = { id: "0xp", idWord: [9n, 9n, 9n, 9n], kind: "record", storage, amount: 1_000_000n, consumed: false };
+const prize: ChallengeNote = { id: "0xp", idWord: [9n, 9n, 9n, 9n], kind: "record", storage, faucet: GC_FAUCET, amount: 1_000_000n, consumed: false };
 const myShot: ChallengeNote = {
   id: "0xc",
   idWord: [1n, 1n, 1n, 1n],
   kind: "shot",
   storage: { ...storage, rival: me, recordId: [9n, 9n, 9n, 9n], shotDeadline: 200 },
+  faucet: GC_FAUCET,
   amount: 1_000_000n,
   consumed: false,
 };
@@ -82,7 +83,7 @@ import { useMidenClient, useMint } from "@miden-sdk/react";
 import { waitFor as waitForMock } from "@/lib/bread";
 import { fetchChallengeNote, hexOf, knownNote, listChallengeNotes, syncNotes } from "@/lib/chain";
 import { encodeGame } from "@/lib/quiz";
-import { MIN_SHOT_WINDOW_BLOCKS } from "@/config";
+import { GC_FAUCET, MIN_SHOT_WINDOW_BLOCKS } from "@/config";
 import { AppContent } from "../AppContent";
 
 beforeEach(() => {
@@ -117,10 +118,10 @@ async function start(tab?: RegExp) {
 }
 
 describe("shared record link, connected as a stranger", () => {
-  it("lands on VS, posts one shot on Insert Geocoin, then starts the quiz when the note is on chain", async () => {
+  it("lands on VS, posts one shot on Insert Gamecoin, then starts the quiz when the note is on chain", async () => {
     bread.postShot.mockResolvedValue({ txId: "tx", noteIds: ["0xnew"], deadline: 220 });
     render(<AppContent />);
-    const button = await screen.findByRole("button", { name: /insert geocoin/i });
+    const button = await screen.findByRole("button", { name: /insert gamecoin/i });
     fireEvent.click(button);
     await waitFor(() => expect(bread.postShot).toHaveBeenCalledTimes(1));
     expect(bread.postShot.mock.calls[0][2]).toEqual(prize);
@@ -140,37 +141,37 @@ describe("shared record link, connected as a stranger", () => {
     bread.postShot.mockResolvedValue({ txId: "tx", noteIds: ["0xnew"], deadline: 220 });
     vi.mocked(waitForMock).mockResolvedValueOnce(false);
     render(<AppContent />);
-    fireEvent.click(await screen.findByRole("button", { name: /insert geocoin/i }));
+    fireEvent.click(await screen.findByRole("button", { name: /insert gamecoin/i }));
     await screen.findByText(/did not go through yet/i);
-    expect(screen.getByRole("button", { name: /insert geocoin/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /insert gamecoin/i })).toBeInTheDocument();
   });
 
   it("Back leaves a request that hangs and returns to the record", async () => {
     bread.postShot.mockReturnValue(new Promise(() => undefined));
     render(<AppContent />);
-    fireEvent.click(await screen.findByRole("button", { name: /insert geocoin/i }));
+    fireEvent.click(await screen.findByRole("button", { name: /insert gamecoin/i }));
     fireEvent.click(await screen.findByRole("button", { name: /^back$/i }));
-    expect(await screen.findByRole("button", { name: /insert geocoin/i })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /insert gamecoin/i })).toBeInTheDocument();
   });
 
   it("saying no in the wallet keeps the record on screen, says so plainly, and Try again asks again", async () => {
     bread.postShot.mockRejectedValueOnce(Object.assign(new Error("NOT_GRANTED"), { name: "WalletTransactionError" }));
     bread.postShot.mockResolvedValueOnce({ txId: "tx", noteIds: ["0xnew"], deadline: 220 });
     render(<AppContent />);
-    fireEvent.click(await screen.findByRole("button", { name: /insert geocoin/i }));
+    fireEvent.click(await screen.findByRole("button", { name: /insert gamecoin/i }));
     await screen.findByText(/you said no in your wallet/i);
-    expect(screen.getByRole("button", { name: /insert geocoin/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /insert gamecoin/i })).toBeInTheDocument();
     expect(screen.queryByText(/NOT_GRANTED/)).not.toBeVisible();
     fireEvent.click(screen.getByRole("button", { name: /try again/i }));
     await screen.findByText(/find c0!/i);
     expect(bread.postShot).toHaveBeenCalledTimes(2);
   });
 
-  it("Try again after a wallet that did not finish first checks the chain: no second Geocoin", async () => {
+  it("Try again after a wallet that did not finish first checks the chain: no second Gamecoin", async () => {
     bread.postShot.mockResolvedValue({ txId: "tx", noteIds: ["0xnew"], deadline: 220 });
     vi.mocked(waitForMock).mockResolvedValueOnce(false);
     render(<AppContent />);
-    fireEvent.click(await screen.findByRole("button", { name: /insert geocoin/i }));
+    fireEvent.click(await screen.findByRole("button", { name: /insert gamecoin/i }));
     await screen.findByText(/did not go through yet/i);
     // the shot landed late, while the player read the message
     vi.mocked(knownNote).mockResolvedValue({ consumed: false });
@@ -185,7 +186,7 @@ describe("shared record link, connected as a stranger", () => {
     render(<AppContent />);
     await screen.findByText(/network is slow or busy/i);
     fireEvent.click(screen.getByRole("button", { name: /try again/i }));
-    expect(await screen.findByRole("button", { name: /insert geocoin/i })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /insert gamecoin/i })).toBeInTheDocument();
     expect(screen.queryByText(/network is slow or busy/i)).toBeNull();
   });
 
@@ -204,14 +205,14 @@ describe("shared record link, connected as a stranger", () => {
     chain.notes = [{ ...prize, consumed: true }];
     render(<AppContent />);
     await screen.findByText(/this one is over/i);
-    expect(screen.queryByRole("button", { name: /insert geocoin/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /insert gamecoin/i })).toBeNull();
   });
 
   it("shows a claimed record as gone, with no button", async () => {
     chain.shared = { ...prize, consumed: true };
     render(<AppContent />);
     await screen.findByText(/this one is over/i);
-    expect(screen.queryByRole("button", { name: /insert geocoin|^play$/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /insert gamecoin|^play$/i })).toBeNull();
   });
 });
 
@@ -465,17 +466,17 @@ describe("open challenges in Champion vs Rival", () => {
     expect(screen.getByText(/have a code\?/i)).toBeInTheDocument();
   });
 
-  it("the code box and the Geocoins button share a column, the open challenges stand beside it", async () => {
+  it("the code box and the Gamecoins button share a column, the open challenges stand beside it", async () => {
     window.history.replaceState({}, "", "/");
     await start(/^champion vs rival$/i);
     const stack = screen.getByText(/have a code\?/i).closest(".stack");
-    expect(stack).toContainElement(screen.getByRole("button", { name: /get geocoins/i }));
+    expect(stack).toContainElement(screen.getByRole("button", { name: /get gamecoins/i }));
     expect(stack).not.toContainElement(await screen.findByText("Open challenges"));
   });
 });
 
 describe("home, connected", () => {
-  it("mints ten Geocoins to the connected wallet from the faucet nobody holds a key to", async () => {
+  it("mints ten Gamecoins to the connected wallet from the faucet nobody holds a key to", async () => {
     window.history.replaceState({}, "", "/");
     // the app's own client refreshes the public faucet account before executing the mint
     const importAccountById = vi.fn(async () => undefined);
@@ -483,29 +484,29 @@ describe("home, connected", () => {
     const mint = vi.fn(async () => ({ transactionId: "tx" }));
     vi.mocked(useMint).mockReturnValue({ mint, result: null, isLoading: false, stage: "idle", error: null, reset: vi.fn() } as never);
     await start(/^champion vs rival$/i);
-    fireEvent.click(await screen.findByRole("button", { name: /get geocoins/i }));
-    await screen.findByText(/10 Geocoins for you! Open your wallet to take them/i);
+    fireEvent.click(await screen.findByRole("button", { name: /get gamecoins/i }));
+    await screen.findByText(/10 Gamecoins for you! Open your wallet to take them/i);
     expect(importAccountById).toHaveBeenCalledTimes(1);
     expect(mint).toHaveBeenCalledWith(expect.objectContaining({ targetAccountId: "mtst1me", amount: 10_000_000n, noteType: "public" }));
   });
 
 
-  it("gives Geocoins to empty pockets only: more than 1 held, or a grant on its way, mints nothing", async () => {
+  it("gives Gamecoins to empty pockets only: more than 1 held, or a grant on its way, mints nothing", async () => {
     window.history.replaceState({}, "", "/");
     vi.mocked(useMidenClient).mockReturnValue({ importAccountById: vi.fn(async () => undefined) } as never);
     const mint = vi.fn(async () => ({ transactionId: "tx" }));
     vi.mocked(useMint).mockReturnValue({ mint, result: null, isLoading: false, stage: "idle", error: null, reset: vi.fn() } as never);
     bread.gcBalance.mockResolvedValueOnce(5_000_000n);
     await start(/^champion vs rival$/i);
-    fireEvent.click(await screen.findByRole("button", { name: /get geocoins/i }));
-    await screen.findByText("You still have 5 Geocoins. Get more when you have 1 or less.");
+    fireEvent.click(await screen.findByRole("button", { name: /get gamecoins/i }));
+    await screen.findByText("You still have 5 Gamecoins. Get more when you have 1 or less.");
     expect(mint).not.toHaveBeenCalled();
     // spent down to nothing: the grant goes through, and pressing again right after is refused
-    fireEvent.click(screen.getByRole("button", { name: /get geocoins/i }));
-    await screen.findByText(/10 Geocoins for you!/i);
+    fireEvent.click(screen.getByRole("button", { name: /get gamecoins/i }));
+    await screen.findByText(/10 Gamecoins for you!/i);
     fireEvent.click(screen.getByRole("button", { name: /^ok$/i }));
-    fireEvent.click(await screen.findByRole("button", { name: /get geocoins/i }));
-    await screen.findByText("Your Geocoins are on their way. Open your wallet to take them.");
+    fireEvent.click(await screen.findByRole("button", { name: /get gamecoins/i }));
+    await screen.findByText("Your Gamecoins are on their way. Open your wallet to take them.");
     expect(mint).toHaveBeenCalledTimes(1);
   });
 

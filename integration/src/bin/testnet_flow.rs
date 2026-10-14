@@ -3,7 +3,7 @@
 //! cannot settle; the champion collects the stake from the shot deadline + CLAIM_FUZZ on), then a
 //! second rival wins and CLAIMS record + stake in one transaction.
 //!
-//!   cargo run --release --bin geocoin deploy        # once
+//!   cargo run --release --bin gamecoin deploy        # once
 //!   cargo run --release --bin testnet_flow
 //!
 //! Prints every transaction id (https://testnet.midenscan.com/tx/<id>).
@@ -43,8 +43,8 @@ const CITIES: [City; ROUNDS] = VECTOR_CITIES;
 #[tokio::main]
 async fn main() -> Result<()> {
     let state: serde_json::Value =
-        serde_json::from_str(&std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/../geocoin.json"))?)?;
-    let gc = AccountId::from_hex(state["geocoin"].as_str().context("run geocoin deploy first")?)?;
+        serde_json::from_str(&std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/../gamecoin.json"))?)?;
+    let gc = AccountId::from_hex(state["gamecoin"].as_str().context("run gamecoin deploy first")?)?;
 
     let setup = setup_client().await?;
     let mut client = setup.client;

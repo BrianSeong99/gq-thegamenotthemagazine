@@ -3,7 +3,7 @@
 // made and consumed in) come in, rows come out.
 
 import type { ChallengeNote } from "./chain";
-import { fmtGeocoin, sameAccount as same, toGc } from "./flow";
+import { fmtGamecoin, sameAccount as same, toGc } from "./flow";
 import { isShotAt, noteDeadline, shotDeadline, type AccountFelts } from "./notes";
 import { CLAIM_FUZZ } from "@/config";
 import { en, type T } from "./i18n";
@@ -107,7 +107,7 @@ function winner(record: ChallengeNote, notes: ChallengeNote[], height: number): 
   return shot?.storage.rival ?? undefined;
 }
 
-/** Geocoins a champion took from shots lost at `record`: the lost ones already consumed. */
+/** Gamecoins a champion took from shots lost at `record`: the lost ones already consumed. */
 const collected = (record: ChallengeNote, notes: ChallengeNote[], height: number) =>
   shotsAt(record, notes).reduce((sum, s) => (s.consumedAt !== undefined && shotOutcome(s, height, record) === "lost" ? sum + s.amount : sum), 0n);
 
@@ -121,7 +121,7 @@ export type HistoryItem = { id: string; kind: "record" | "shot"; at: number; res
 /** My finished games, newest first: my records and my shots once consumed (live ones stay on the cards). Lines in the language of `t`. */
 export function history(notes: ChallengeNote[], me: AccountFelts, height: number, name: (a: AccountFelts) => string, t: T = en): HistoryItem[] {
   const items: HistoryItem[] = [];
-  const gc = (v: bigint) => fmtGeocoin(v, t);
+  const gc = (v: bigint) => fmtGamecoin(v, t);
   for (const n of notes) {
     // a shot of mine past its deadline is lost before anyone touches it: history from the deadline on
     const lostOnTable = n.kind === "shot" && !n.consumed && same(n.storage.rival, me) && shotOutcome(n, height) === "lost";
@@ -146,7 +146,7 @@ export function history(notes: ChallengeNote[], me: AccountFelts, height: number
         const money = won > 0n ? { money: t("{won} won, {lost} lost", { won: gc(won), lost: gc(n.amount) }), moneyTone: "" as const } : { money: t("{gc} lost", { gc: gc(n.amount) }), moneyTone: "pink" as const };
         items.push({ ...base, result: t("Beaten"), context: t("{who} beat ", { who }), detail: tries, tone: "pink", note: t("Prize went to {who}.", { who }), ...money });
       } else if (lost > 0) {
-        const money = won > 0n ? { money: t("{gc} won", { gc: gc(won) }), moneyTone: "mint" as const, note: t("Your Geocoin back.") } : { money: t("{gc} back", { gc: gc(n.amount) }), moneyTone: "" as const };
+        const money = won > 0n ? { money: t("{gc} won", { gc: gc(won) }), moneyTone: "mint" as const, note: t("Your Gamecoin back.") } : { money: t("{gc} back", { gc: gc(n.amount) }), moneyTone: "" as const };
         items.push({ ...base, result: t("Defended"), detail: tries, tone: "mint", ...money });
       } else items.push({ ...base, result: t("Taken back"), detail: shotsAt(n, notes).length === 0 ? t("Nobody tried.") : "", money: t("{gc} back", { gc: gc(n.amount) }), tone: "", moneyTone: "" });
     } else if (n.kind === "shot" && same(n.storage.rival, me)) {
@@ -155,7 +155,7 @@ export function history(notes: ChallengeNote[], me: AccountFelts, height: number
       const shot = { ...base, context: t("{who}'s record: ", { who }) };
       if (shotOutcome(n, height, record) === "lost") items.push({ ...shot, result: t("You lost"), money: t("{gc} lost", { gc: gc(n.amount) }), note: t("Went to {who}.", { who }), tone: "pink", moneyTone: "pink" });
       // the prize comes with the shot in one transaction: same block
-      else if (record && record.consumedAt === n.consumedAt) items.push({ ...shot, result: t("You won"), money: t("{gc} won", { gc: gc(record.amount) }), note: t("Your Geocoin back."), tone: "mint", moneyTone: "mint" });
+      else if (record && record.consumedAt === n.consumedAt) items.push({ ...shot, result: t("You won"), money: t("{gc} won", { gc: gc(record.amount) }), note: t("Your Gamecoin back."), tone: "mint", moneyTone: "mint" });
       else items.push({ ...shot, result: t("You won"), detail: record && record.consumedAt !== undefined && record.consumedAt < n.consumedAt ? t("Prize already taken.") : "", money: t("{gc} back", { gc: gc(n.amount) }), tone: "mint", moneyTone: "" });
     }
   }
@@ -186,7 +186,7 @@ function rank(rows: Omit<Ranked, "rank">[], me: AccountFelts | null, limit = 10)
 }
 
 /**
- * The four boards. Geocoins won: lost shots a champion took, plus prizes (a winner's own Geocoin
+ * The four boards. Gamecoins won: lost shots a champion took, plus prizes (a winner's own Gamecoin
  * coming back is not a win). Best records: every record posted, by its score, a hundred of them. Defended: every rival who lost at
  * one of the champion's records, open or not. Smashed: records a rival took. Losers: shots a rival
  * lost, the other side of Defended.

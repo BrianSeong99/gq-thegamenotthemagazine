@@ -1,7 +1,8 @@
 # GQ walkthrough
 
-Words: a **champion** posts a **record** (record note: score to beat + 1 Geocoin); a **rival** takes a
-**shot** (shot note, 1 Geocoin) at it. **Geocoin (GC)** is the token. Rules v2 since 2026-10-09:
+Words: a **champion** posts a **record** (record note: score to beat + 1 Gamecoin); a **rival** takes a
+**shot** (shot note, 1 Gamecoin) at it. **Gamecoin (GC)** is the token (Geocoin, the coin before
+2026-10-14, still plays: a shot stakes the asset of its record). Rules v2 since 2026-10-09:
 ten cities, 15 s each, 1000 max per city. Rules v1/v2 number the game rules; scripts v1/v2
 (`V1_ROOTS` in `web/src/config.ts`) number the note scripts, a separate count: scripts v2
 (2026-10-12) make the champion wait `CLAIM_FUZZ` (64) blocks past a deadline before collecting.
@@ -26,7 +27,7 @@ and `take_back_waits_claim_fuzz_past_expiry`.
 ## Testnet run of the challenge mechanic (2026-10-08, protocol 0.17.1, rules v1)
 
 `cargo run --release --bin testnet_flow` with three fresh private wallets, the first GQ faucet
-`0x02a14387adb68f516e57cc5aa65891` (the GQ token of rules v1; replaced by Geocoin). The scripts
+`0x02a14387adb68f516e57cc5aa65891` (the GQ token of rules v1; replaced by Geocoin, then Gamecoin). The scripts
 of that day let a losing answer settle; today's refuse it, so the binary now leaves the loser's
 shot for the champion to collect:
 
@@ -57,25 +58,25 @@ cd web && yarn install && yarn dev          # http://localhost:5173
    FIRST CITY plays ten cities with no wallet; RUN COMPLETE! shows a row per city; POST IT connects
    the wallet and posts the record) → **Champion vs Rival** (a `?record=` link lands here; "Have a code?" takes a
    record link, our X share link or a bare id; OPEN CHALLENGES lists the records a rival can still
-   shoot at, lowest score first, each with a countdown to its expiry; INSERT GEOCOIN posts the shot
+   shoot at, lowest score first, each with a countdown to its expiry; INSERT GAMECOIN posts the shot
    and starts the quiz; the red rival and the shot clock sit in the HUD) → **Player Hub** (my
    records: TAKE IT BACK 64 blocks after expiry; my shots: PLAY; for you: TAKE IT 64 blocks after
    the deadline; HISTORY of my past games, filtered ALL / MY RECORDS / MY SHOTS) →
    **Leaderboards**. SOUND ON/OFF in the toolbar: four tracks, on by default.
 1. Install Bread (latest release at https://www.miden.xyz/bread, v1.17.2+, testnet build), create a wallet, fund fees ("Fund your wallet": 0.01 USDCx).
-2. Get Geocoins: once connected, "Empty pockets? Get Geocoins now!" mints 10 GC from the
+2. Get Gamecoins: once connected, "Empty pockets? Get Gamecoins now!" mints 10 GC from the
    browser (the faucet has no key, anyone may mint); Bread auto-claims the public P2ID note.
-   From the CLI: `cargo run --release --bin geocoin mint <your mtst1… address> 10`. One Geocoin per
+   From the CLI: `cargo run --release --bin gamecoin mint <your mtst1… address> 10`. One Gamecoin per
    record, one per shot.
 3. Play the 1P World Tour, then "Post it" to post your record (1 GC). Another account opens the shared link
-   and clicks "Insert Geocoin". A win settles (Geocoin back, plus the prize if you claimed first); a
-   loss signs nothing, the champion collects the Geocoin 64 blocks after the shot deadline (~3 min).
+   and clicks "Insert Gamecoin". A win settles (Gamecoin back, plus the prize if you claimed first); a
+   loss signs nothing, the champion collects the Gamecoin 64 blocks after the shot deadline (~3 min).
 4. The Player Hub only ever shows your own notes: "My record" cards ("Take it back" 64 blocks after expiry),
    "My shot" cards ("Play" again on a loss while the deadline holds), "For you" cards (lost shots
    at your records, "Take it" 64 blocks after their deadline).
 5. Share: after posting, the champion gets "Share on X" and a link of the form
    `<app>/?record=<note id>` (`?prize=` links from before still open). Opening it loads the record
-   straight from the node (no lobby needed) and offers "Insert Geocoin": one click posts the shot
+   straight from the node (no lobby needed) and offers "Insert Gamecoin": one click posts the shot
    note and starts the quiz as soon as the note is on chain; on a win the app settles the shot
    (and claims the prize if it is still there).
 
@@ -90,7 +91,7 @@ Notes the wallet never synced travel with their inclusion proofs (`importNotes`)
 `http://localhost:5173/?local=1` creates a private single-signature account in the app's own
 store (fee-funded from the public faucet, ~1 min of proof-of-work on first use), remembers it in
 `localStorage`, claims whatever is sent to it on connect, and signs the very same requests Bread
-would. `?local=2` is a second wallet, so one browser can play both sides. Geocoins come from the
+would. `?local=2` is a second wallet, so one browser can play both sides. Gamecoins come from the
 same button as with Bread; the local wallet claims the minted note itself.
 
 Full rules-v1 round verified this way on 2026-10-09 morning (test wallets `0x071d3da3…` champion,
@@ -113,7 +114,7 @@ NETWORK SLOW tag in the ribbon.
 Troubleshooting: `ChainBehindBoundBlockError: the Miden client synced to block …` means Bread had
 not synced up to the block the request binds yet; the app retries at the fresh tip automatically
 (see design.md, Bread specifics). `SummaryAnchorMismatchError` comes from Bread 1.17.1: update Bread. A "You need
-1 Geocoin and your wallet holds 0 Geocoins" error means the wallet has no Geocoin yet: press "Get Geocoins". A transaction that fails with
+1 Gamecoin and your wallet holds 0 Gamecoins" error means the wallet has no Gamecoin yet: press "Get Gamecoins". A transaction that fails with
 `assertion failed with error code: <number>` failed inside the note scripts;
 `cargo run --release --bin probe` prints the code of every message (for example
 `14434107113890732517` = "challenge: the deadline has passed", normal after ~3 min;

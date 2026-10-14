@@ -2,7 +2,7 @@
 // A shot of mine past its deadline is lost: it shows in History, not here.
 
 import type { ChallengeNote } from "@/lib/chain";
-import { blocksToClock, blockToMs, fmtGeocoin, sameAccount, sameWord } from "@/lib/flow";
+import { blocksToClock, blockToMs, fmtGamecoin, sameAccount, sameWord } from "@/lib/flow";
 import { owed, triesLost, whenLabel } from "@/lib/hub";
 import { cityNames, recordCities, type Place, type Word4 } from "@/lib/quiz";
 import { CLAIM_FUZZ } from "@/config";
@@ -41,7 +41,7 @@ export function Lobby({ me, notes, height, places, onSettle, onCollect }: LobbyP
 
   return (
     <div className="lobby">
-      {empty && <p className="muted">{t("Play the World Tour and post your record: rivals pay a Geocoin to try to beat it!")}</p>}
+      {empty && <p className="muted">{t("Play the World Tour and post your record: rivals pay a Gamecoin to try to beat it!")}</p>}
       {ready.length > 1 && (
         <p>
           <button className="btn primary blink" onClick={() => onCollect(ready)}>
@@ -74,7 +74,7 @@ export function Lobby({ me, notes, height, places, onSettle, onCollect }: LobbyP
             <section key={c.id} className="panel card pink">
               <div className="eyebrow">{t("My shot / ends in {time}", { time: blocksToClock(deadline(c) - height) })}</div>
               <div className="score">{t("beat {n}", { n: c.storage.target.toLocaleString() })}</div>
-              <p className="muted">{t("{gc} on the table", { gc: fmtGeocoin(c.amount, t) })}</p>
+              <p className="muted">{t("{gc} on the table", { gc: fmtGamecoin(c.amount, t) })}</p>
               <button className="btn primary" onClick={() => onSettle(c, record && !record.consumed ? record : undefined)}>
                 {t("Play")}
               </button>
@@ -86,7 +86,7 @@ export function Lobby({ me, notes, height, places, onSettle, onCollect }: LobbyP
         shotsAtMyRecords.map((c) => (
           <section key={c.id} className="panel card mint">
             <div className="eyebrow">{takeable(c) ? t("For you / ready") : t("For you / in play")}</div>
-            <div className="score">{fmtGeocoin(c.amount, t)}</div>
+            <div className="score">{fmtGamecoin(c.amount, t)}</div>
             {takeable(c) ? (
               <button className="btn primary blink" onClick={() => onCollect([c])}>
                 {t("Take it")}

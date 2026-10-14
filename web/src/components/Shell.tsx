@@ -24,7 +24,7 @@ export function Shell({
   walletLabel: string | null;
   /** the last background sync failed */
   netSlow?: boolean;
-  /** the connected wallet has Geocoins to take in the Player Hub */
+  /** the connected wallet has Gamecoins to take in the Player Hub */
   hubAlert?: boolean;
   onWallet: () => void;
   soundOn: boolean;
@@ -76,7 +76,7 @@ export function Shell({
           <button className="btn wallet" onClick={onWallet}>
             {walletLabel ?? t("Connect wallet")}
           </button>
-          <span className="testnet" title={t("Miden testnet: Geocoins are play money.")}>
+          <span className="testnet" title={t("Miden testnet: Gamecoins are play money.")}>
             {t("Testnet")}
           </span>
         </div>

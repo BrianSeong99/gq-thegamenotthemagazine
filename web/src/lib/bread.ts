@@ -17,10 +17,10 @@ import {
 import { Transaction } from "@miden-sdk/miden-wallet-adapter-base";
 import type { useMidenFiWallet } from "@miden-sdk/miden-wallet-adapter-react";
 import { buildChallengeNote, endpoint, fetchNotesWithProof, feltArray, loadScripts, parseAccountId, syncNotes, wordFromFelts, type Client, type ChallengeNote } from "./chain";
-import { SHOT_WINDOW_BLOCKS, GC_FAUCET, NETWORK_POLL_INTERVAL_MS, NETWORK_POLL_TIMEOUT_MS } from "@/config";
+import { SHOT_WINDOW_BLOCKS, GC_FAUCET, GEOCOIN_FAUCET, NETWORK_POLL_INTERVAL_MS, NETWORK_POLL_TIMEOUT_MS } from "@/config";
 import { encodeStorage, SHOT_DEADLINE_INDEX, shotStorage, ZERO_WORD, type AccountFelts, type ChallengeStorage, type GameAnswer } from "./notes";
 import { randomSeed, type Word4 } from "./quiz";
-import { fmtGeocoin, submitWithRetry, withTimeout } from "./flow";
+import { fmtGamecoin, submitWithRetry, toGc, withTimeout } from "./flow";
 
 /** What the app needs from a signer: Bread's adapter hook, or the local test wallet. */
 export type Wallet = Pick<ReturnType<typeof useMidenFiWallet>, "address" | "requestTransaction" | "requestAssets"> & { local?: boolean };
@@ -53,22 +53,39 @@ function breadBuilder(boundBlock: number, feeFaucet: AccountId): TransactionRequ
   return new TransactionRequestBuilder().withAuthArg(commitment).extendAdviceMap(advice).withBlockNumbers([boundBlock]);
 }
 
-/** The wallet's own view of its Geocoin balance. */
-export async function gcBalance(wallet: Wallet): Promise<bigint> {
+type Assets = Awaited<ReturnType<NonNullable<Wallet["requestAssets"]>>>;
+
+/** The wallet's own view of what it holds. */
+async function walletAssets(wallet: Wallet): Promise<Assets> {
   if (!wallet.requestAssets) throw new Error("Bread is not connected");
-  const assets = await withTimeout(wallet.requestAssets(), 30_000, "Reading your wallet's balance");
-  const faucet = AccountId.fromHex(GC_FAUCET).toString();
-  return assets.filter((a) => parseAccountId(a.faucetId).toString() === faucet).reduce((sum, a) => sum + BigInt(a.amount), 0n);
+  return withTimeout(wallet.requestAssets(), 30_000, "Reading your wallet's balance");
 }
 
-/** Throws a readable error when the wallet holds less than `needed` Geocoin. */
-async function requireGc(wallet: Wallet, needed: bigint): Promise<void> {
-  const balance = await gcBalance(wallet);
+function balanceOf(assets: Assets, faucet: string): bigint {
+  const id = AccountId.fromHex(faucet).toString();
+  return assets.filter((a) => parseAccountId(a.faucetId).toString() === id).reduce((sum, a) => sum + BigInt(a.amount), 0n);
+}
+
+/** The wallet's own view of its Gamecoin balance. */
+export async function gcBalance(wallet: Wallet): Promise<bigint> {
+  return balanceOf(await walletAssets(wallet), GC_FAUCET);
+}
+
+/** The asset of a new record: Gamecoin, or Geocoin for a wallet that only holds the old coin. */
+export function stakeFaucet(gamecoins: bigint, geocoins: bigint, needed: bigint): string {
+  return gamecoins < needed && geocoins >= needed ? GEOCOIN_FAUCET : GC_FAUCET;
+}
+
+/** Throws a readable error (flow.ts explain) when the wallet holds less than `needed` of `faucet`. */
+async function requireGc(wallet: Wallet, needed: bigint, faucet?: string): Promise<string> {
+  const assets = await walletAssets(wallet);
+  faucet ??= stakeFaucet(balanceOf(assets, GC_FAUCET), balanceOf(assets, GEOCOIN_FAUCET), needed);
+  const balance = balanceOf(assets, faucet);
   if (balance < needed) {
-    throw new Error(
-      `You need ${fmtGeocoin(needed)} and your wallet holds ${fmtGeocoin(balance)}. Get Geocoins first.`,
-    );
+    if (faucet === GEOCOIN_FAUCET) throw new Error(`You need ${toGc(needed)} Geocoin, the old coin, and your wallet holds ${toGc(balance)}.`);
+    throw new Error(`You need ${fmtGamecoin(needed)} and your wallet holds ${fmtGamecoin(balance)}. Get Gamecoins first.`);
   }
+  return faucet;
 }
 
 /**
@@ -144,14 +161,14 @@ async function submit(
 
 /** Champion: post a record note. `storage.shotRoot` is filled from the loaded script. */
 export async function postRecord(client: Client, wallet: Wallet, storage: ChallengeStorage, amount: bigint): Promise<Submitted> {
-  await requireGc(wallet, amount);
+  const faucet = await requireGc(wallet, amount);
   const { record, shot } = await loadScripts();
   const root = shot.root().toFelts().map((f) => f.asInt()) as Word4;
   const felts = encodeStorage({ ...storage, shotRoot: root });
   const serial = randomSeed();
   // WASM objects are consumed by the builder, so every attempt builds its own note (same serial,
   // hence the same note id)
-  const make = () => buildChallengeNote(parseAccountId(wallet.address!), record, felts, amount, serial);
+  const make = () => buildChallengeNote(parseAccountId(wallet.address!), record, felts, faucet, amount, serial);
   const noteId = make().id().toString();
   const txId = await submit(client, wallet, (b) => {
     const notes = new NoteArray();
@@ -163,7 +180,7 @@ export async function postRecord(client: Client, wallet: Wallet, storage: Challe
 
 /** Rival: post a shot note at `record`, staking `record.storage.minStake`. */
 export async function postShot(client: Client, wallet: Wallet, record: ChallengeNote, me: AccountFelts): Promise<Submitted & { deadline: number }> {
-  await requireGc(wallet, record.storage.minStake);
+  await requireGc(wallet, record.storage.minStake, record.faucet);
   // the record names the shot script its shots run (its own version's)
   const shot = (await loadScripts()).shots.get(wordFromFelts(record.storage.shotRoot).toHex());
   if (!shot) throw new Error("This record wants a shot script this app does not have.");
@@ -171,7 +188,7 @@ export async function postShot(client: Client, wallet: Wallet, record: Challenge
   const storage = shotStorage(record.storage, me, record.idWord, deadline);
   const felts = encodeStorage(storage);
   const serial = randomSeed();
-  const make = () => buildChallengeNote(parseAccountId(wallet.address!), shot, felts, record.storage.minStake, serial);
+  const make = () => buildChallengeNote(parseAccountId(wallet.address!), shot, felts, record.faucet, record.storage.minStake, serial);
   const noteId = make().id().toString();
   const txId = await submit(client, wallet, (b) => {
     const notes = new NoteArray();

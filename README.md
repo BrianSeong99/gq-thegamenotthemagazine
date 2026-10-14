@@ -3,9 +3,9 @@
 **Play:** https://gq-thegamenotthemagazine.vercel.app
 
 A small, complete reference for a **challenge mechanic** on Miden testnet v0.17: a champion posts a
-**record note** with a score to beat; rivals take a **shot** (a shot note holding one Geocoin), play
+**record note** with a score to beat; rivals take a **shot** (a shot note holding one Gamecoin), play
 the same quiz, and the chain recomputes the score from their answers. Beat the record and you take
-the prize (first come, first served) and your Geocoin back; fall short and your Geocoin goes to the
+the prize (first come, first served) and your Gamecoin back; fall short and your Gamecoin goes to the
 champion once the shot's short deadline has passed by 64 blocks. A loser signs nothing.
 
 GeoQuizz is the game plugged into it: a city name appears, you click the map, points for closeness
@@ -20,7 +20,7 @@ transactions, the pitfalls, and a six-line example game that runs through the sa
   live in `web/public/brand/`; the package itself (boards, prototype, handoff notes) stays out of
   git. Screens: welcome hero → 1P World Tour (free, no wallet) → Champion vs Rival (a record by link,
   code or the list of open challenges) → Player Hub (my records, my shots, what rivals left me, my past games) → Leaderboards
-  (Geocoins won, best records, records defended and smashed, a loserboard). History and boards are read from the
+  (Gamecoins won, best records, records defended and smashed, a loserboard). History and boards are read from the
   public notes alone (`web/src/lib/hub.ts`): no server, players named by three letters of their address.
 - Simplified Chinese: the splash offers both languages, the ribbon switches in place. English text is
   the key (`web/src/lib/i18n.ts`, dictionary in `zh.ts`, a test checks every line has one); city names
@@ -34,10 +34,10 @@ transactions, the pitfalls, and a six-line example game that runs through the sa
 | word | meaning |
 |---|---|
 | champion | the player holding the score to beat |
-| rival | a player who pays one Geocoin to beat it |
+| rival | a player who pays one Gamecoin to beat it |
 | record | what the champion posts and shares: the score and the prize (a **record note**) |
 | shot | one rival's paid attempt (a **shot note**, bound to one record) |
-| Geocoin (GC) | the token both sides put in: one per record, one per shot |
+| Gamecoin (GC) | the token both sides put in: one per record, one per shot |
 | challenge | the act, and the name of the reusable mechanic |
 
 ## Layout
@@ -62,7 +62,7 @@ shot at it must have and compares the storage hash.
 |-------|----------------|-------------------------------------------------|-----------------------------|
 | 0-1   | champion       | [suffix, prefix]                                | copied from the record      |
 | 2     | target         | champion's score to beat                        | copied                      |
-| 3     | min_stake      | the stake (one Geocoin)                         | copied                      |
+| 3     | min_stake      | the stake (one Gamecoin)                         | copied                      |
 | 4     | expiry_block   | record's end (~24 h)                            | copied                      |
 | 5-6   | rival          | 0, 0                                            | rival [suffix, prefix]      |
 | 7     | shot_deadline  | 0                                               | shot's end (~3 min)         |
@@ -97,10 +97,12 @@ No Bread at hand? `http://localhost:5173/?local=1` runs a test wallet inside the
 for a second one): same contracts, same requests, signed by a private single-signature account
 the app creates and fee-funds itself.
 
-Geocoins: the faucet (`0x2a85bbc7c655b6d116381742015892` on testnet) has no authentication, so
-anyone may mint. In the app, "Empty pockets? Get Geocoins now!" mints ten from the browser; from
-the CLI, `cargo run --release --bin geocoin mint <account> <GC>` (`geocoin deploy` creates a new
-faucet, `geocoin fees` tops up the fee balance it pays mints with).
+Gamecoins: the faucet (`0x6a8e2ccb2090bcd1071cea18da2cce` on testnet) has no authentication, so
+anyone may mint. In the app, "Empty pockets? Get Gamecoins now!" mints ten from the browser; from
+the CLI, `cargo run --release --bin gamecoin mint <account> <GC>` (`gamecoin deploy` creates a new
+faucet, `gamecoin fees` tops up the fee balance it pays mints with). Geocoin, the coin before
+2026-10-14 (`0x2a85bbc7c655b6d116381742015892`), still plays: a record posted with it takes Geocoin shots,
+since a shot must stake the asset of its record.
 `cargo run --release --bin testnet_flow` runs champion / a rival who never settles / winning rival
 with in-process wallets.
 

@@ -1,13 +1,13 @@
-//! Geocoin (GC) on testnet: a public fungible faucet with no authentication, so anyone may mint.
-//! The app's "EMPTY POCKETS? GET GEOCOINS NOW!" button executes the mint from the browser; this
+//! Gamecoin (GC) on testnet: a public fungible faucet with no authentication, so anyone may mint.
+//! The app's "EMPTY POCKETS? GET GAMECOINS NOW!" button executes the mint from the browser; this
 //! tool deploys the faucet and mints from the command line.
 //!
-//!   cargo run --release --bin geocoin deploy                       # once; writes geocoin.json
-//!   cargo run --release --bin geocoin mint <account> <amount-in-GC>
-//!   cargo run --release --bin geocoin fees                         # top up the faucet's fee balance
+//!   cargo run --release --bin gamecoin deploy                       # once; writes gamecoin.json
+//!   cargo run --release --bin gamecoin mint <account> <amount-in-GC>
+//!   cargo run --release --bin gamecoin fees                         # top up the faucet's fee balance
 //!
 //! `<account>` is bech32 (mtst1...) or hex. State lives next to the repo root: `store.sqlite3`
-//! and `geocoin.json` (faucet id). The faucet pays the fees of every mint in the chain's fee
+//! and `gamecoin.json` (faucet id). The faucet pays the fees of every mint in the chain's fee
 //! asset, fetched from the testnet faucet; `fees` refills it.
 //!
 //! ponytail: no PoW, no captcha, no rate limit. Testnet toy money; gate it when it matters.
@@ -37,7 +37,7 @@ use rand::Rng;
 
 pub const GC_DECIMALS: u8 = 6;
 pub const GC_MAX_SUPPLY: u64 = 1_000_000_000 * 1_000_000; // 1e9 GC
-const STATE_FILE: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../geocoin.json");
+const STATE_FILE: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../gamecoin.json");
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -46,7 +46,7 @@ async fn main() -> Result<()> {
         Some("deploy") => deploy().await,
         Some("mint") if args.len() == 3 => mint(&args[1], &args[2]).await,
         Some("fees") => fees().await,
-        _ => bail!("usage: geocoin deploy | geocoin mint <account> <amount-in-GC> | geocoin fees"),
+        _ => bail!("usage: gamecoin deploy | gamecoin mint <account> <amount-in-GC> | gamecoin fees"),
     }
 }
 
@@ -56,7 +56,7 @@ async fn deploy() -> Result<()> {
     client.sync_state().await?;
 
     let faucet = FungibleFaucet::builder()
-        .name(TokenName::new("Geocoin")?)
+        .name(TokenName::new("Gamecoin")?)
         .symbol(TokenSymbol::new("GC")?)
         .decimals(GC_DECIMALS)
         .max_supply(AssetAmount::new(GC_MAX_SUPPLY)?)
@@ -85,18 +85,18 @@ async fn deploy() -> Result<()> {
     client.add_account(&account, false).await?;
 
     let id = account.id();
-    println!("Geocoin faucet: {} ({})", id.to_bech32(miden_client::account::NetworkId::Testnet), id.to_hex());
-    std::fs::write(STATE_FILE, format!("{{\n  \"geocoin\": \"{}\"\n}}\n", id.to_hex()))?;
+    println!("Gamecoin faucet: {} ({})", id.to_bech32(miden_client::account::NetworkId::Testnet), id.to_hex());
+    std::fs::write(STATE_FILE, format!("{{\n  \"gamecoin\": \"{}\"\n}}\n", id.to_hex()))?;
     println!("wrote {STATE_FILE}; set VITE_GC_FAUCET or web/src/config.ts GC_FAUCET to it");
 
     fund_fees(&mut client, id).await?;
-    println!("Faucet is funded for fees. Mint with: geocoin mint <account> <amount>");
+    println!("Faucet is funded for fees. Mint with: gamecoin mint <account> <amount>");
     Ok(())
 }
 
 fn faucet_id() -> Result<AccountId> {
     let state: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(STATE_FILE)?)?;
-    Ok(AccountId::from_hex(state["geocoin"].as_str().context("no geocoin in geocoin.json")?)?)
+    Ok(AccountId::from_hex(state["gamecoin"].as_str().context("no gamecoin in gamecoin.json")?)?)
 }
 
 async fn mint(target: &str, amount_gc: &str) -> Result<()> {

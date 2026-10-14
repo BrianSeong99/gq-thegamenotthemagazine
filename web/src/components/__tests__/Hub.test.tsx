@@ -8,7 +8,7 @@ import { Leaderboards } from "../Leaderboards";
 // blocks under 95 were made yesterday
 vi.mock("@/lib/chain", () => ({ blockTime: vi.fn(async (b: number) => Date.now() - (b < 95 ? 86_400_000 : 0)) }));
 
-const item = (i: number, kind: "record" | "shot" = "record"): HistoryItem => ({ id: `0x${i}`, kind, at: 100 - i, result: "Defended", context: "", score: i, detail: "5 tries lost", money: "1 Geocoin back", note: "", tone: "mint", moneyTone: "" });
+const item = (i: number, kind: "record" | "shot" = "record"): HistoryItem => ({ id: `0x${i}`, kind, at: 100 - i, result: "Defended", context: "", score: i, detail: "5 tries lost", money: "1 Gamecoin back", note: "", tone: "mint", moneyTone: "" });
 
 describe("History", () => {
   it("shows ten games, MORE adds the rest, then says that's all", async () => {
@@ -29,8 +29,8 @@ describe("History", () => {
   });
 
   it("leads with the result, labels whose score it is, and keeps money apart", () => {
-    render(<History items={[{ ...item(1, "shot"), result: "You won", context: "MUD's record: ", score: 6200, detail: "", money: "1 Geocoin won", note: "Your Geocoin back." }]} />);
-    expect(screen.getByRole("article", { name: "You won" })).toHaveTextContent("My shotYou wonMUD's record: 6,200 pts1 Geocoin wonYour Geocoin back.");
+    render(<History items={[{ ...item(1, "shot"), result: "You won", context: "MUD's record: ", score: 6200, detail: "", money: "1 Gamecoin won", note: "Your Gamecoin back." }]} />);
+    expect(screen.getByRole("article", { name: "You won" })).toHaveTextContent("My shotYou wonMUD's record: 6,200 pts1 Gamecoin wonYour Gamecoin back.");
   });
 
   it("filters my records from my shots, ten of the picked kind at a time, and says when a kind has none", () => {

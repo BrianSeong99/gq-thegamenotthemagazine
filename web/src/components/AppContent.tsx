@@ -1,20 +1,20 @@
-// GeoQuizz screens: welcome → 1P World Tour (play, then put a Geocoin on it) / VS (a record by
+// GeoQuizz screens: welcome → 1P World Tour (play, then put a Gamecoin on it) / VS (a record by
 // link, code or from the open list, take a shot) / Player Hub (my records, my shots, what rivals left me).
-// The app's own Miden client only reads the chain (and mints Geocoins); the wallet signs the rest.
+// The app's own Miden client only reads the chain (and mints Gamecoins); the wallet signs the rest.
 
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { useMidenClient, useMiden } from "@miden-sdk/react";
 import { useMidenFiWallet } from "@miden-sdk/miden-wallet-adapter-react";
 import { LOCAL_WALLET, useLocalWallet } from "@/lib/localWallet";
-import { GEOCOIN_GRANT, geocoinRefusal, GRANT_PENDING_MS, useGeocoin } from "@/lib/geocoin";
+import { GAMECOIN_GRANT, gamecoinRefusal, GRANT_PENDING_MS, useGamecoin } from "@/lib/gamecoin";
 import { useSound, type Track } from "@/lib/useSound";
 import { CITIES_URL, RECORD_LIFETIME_BLOCKS, STAKE, TEST_ACCOUNTS } from "@/config";
 import { accountFelts, bech32Of, fetchChallengeNote, hexOf, knownNote, listChallengeNotes, loadScripts, parseAccountId, syncNotes, wordFromHex, type ChallengeNote } from "@/lib/chain";
 import { boards, history as pastGames, keyOf, lettersBackward, nicknames, owed, playersInOrder } from "@/lib/hub";
 import { gcBalance, postShot, postRecord, settle, collect, setSubmitAttemptListener, setSubmitStageListener, waitFor, type Submitted } from "@/lib/bread";
 import { shotDeadline, shotStorage, ZERO_WORD, type AccountFelts, type ChallengeStorage } from "@/lib/notes";
-import { blockToMs, claimVerdict, explain, fmtGeocoin, NOT_FINISHED, SHOT_LOST, shotRefusal, withoutRecord, withTimeout, type Trouble, myOpenShotsOn as openShotsOn, outcomeText, parseCode, reportRows, settlePlan, sharedRecordState, type ReportRow } from "@/lib/flow";
+import { blockToMs, claimVerdict, explain, fmtGamecoin, NOT_FINISHED, SHOT_LOST, shotRefusal, withoutRecord, withTimeout, type Trouble, myOpenShotsOn as openShotsOn, outcomeText, parseCode, reportRows, settlePlan, sharedRecordState, type ReportRow } from "@/lib/flow";
 import { cityNames, datasetWord, decodeGame, encodeGame, quizCities, randomSeed, type Place, type Word4 } from "@/lib/quiz";
 import { LangContext, storedLang, storeLang, useT, type Lang } from "@/lib/i18n";
 import { gqAnswer, type City } from "@/lib/rules";
@@ -61,7 +61,7 @@ const trackOf = (m: Mode): Track =>
           : "home";
 
 /** Something that needs a connected wallet; it runs once the wallet is there. */
-type Intent = { kind: "post"; m: Extract<Mode, { kind: "post-record" }> } | { kind: "shot"; record: ChallengeNote } | { kind: "geocoins" };
+type Intent = { kind: "post"; m: Extract<Mode, { kind: "post-record" }> } | { kind: "shot"; record: ChallengeNote } | { kind: "gamecoins" };
 
 export function AppContent() {
   // the language: the device remembers it; the splash and the ribbon change it
@@ -121,7 +121,7 @@ function GqApp() {
   const bread = useMidenFiWallet();
   const local = useLocalWallet(client, runExclusive);
   const wallet = LOCAL_WALLET ? local : bread;
-  const mintGeocoins = useGeocoin(client, runExclusive);
+  const mintGamecoins = useGamecoin(client, runExclusive);
 
   const params = new URLSearchParams(location.search);
   const sharedRecordId = params.get("record") ?? params.get("prize"); // ?prize= is the old link form
@@ -154,7 +154,7 @@ function GqApp() {
   const sound = useSound(trackOf(mode));
   // a Back press (or a newer run) makes an older run's late answer land nowhere
   const runToken = useRef(0);
-  /** The last Geocoin grant, so a second press does not mint again before Bread takes the first. */
+  /** The last Gamecoin grant, so a second press does not mint again before Bread takes the first. */
   const lastGrant = useRef<{ to: string; at: number } | null>(null);
 
   const me = wallet.connected && wallet.address ? accountFelts(parseAccountId(wallet.address)) : null;
@@ -260,7 +260,7 @@ function GqApp() {
   function perform(intent: Intent) {
     if (intent.kind === "post") return postMyRecord(intent.m);
     if (intent.kind === "shot") return takeShot(intent.record);
-    return getGeocoins();
+    return getGamecoins();
   }
 
   /**
@@ -366,12 +366,12 @@ function GqApp() {
     if (refusal) return say(refusal);
     const open = openShotsOn(notes, rival, record, height);
     if (open.length > 0) {
-      // one Geocoin per sitting: play the shot already on the table instead of paying again
+      // one Gamecoin per sitting: play the shot already on the table instead of paying again
       setMode({ kind: "play-rival", shots: open, record });
       return;
     }
     await run(
-      t("Inserting your Geocoin"),
+      t("Inserting your Gamecoin"),
       true,
       async () => {
         // refuse a quiz that does not come from the seed and this dataset
@@ -391,6 +391,7 @@ function GqApp() {
             idWord: wordFromHex(submitted.noteIds[0]),
             kind: "shot",
             storage: shotStorage(record.storage, rival, record.idWord, submitted.deadline),
+            faucet: record.faucet,
             amount: record.storage.minStake,
             consumed: false,
           },
@@ -404,7 +405,7 @@ function GqApp() {
     const rows = reportRows(decodeGame(shots[0].storage.game).cities, r.answers, shownPlaces);
     const claimUntil = blockToMs(shotDeadline(shots[0].storage), height);
     if (!plan.won) {
-      // nothing to sign on a loss: the Geocoin waits for the champion at the deadline; until then the shot can be played again
+      // nothing to sign on a loss: the Gamecoin waits for the champion at the deadline; until then the shot can be played again
       const retry = plan.again ? () => setMode({ kind: "play-rival", shots, record }) : undefined;
       setMode({ kind: "done", title: t("The record stands."), text: plan.text, rows, retry, claimUntil: retry && claimUntil });
       return;
@@ -422,7 +423,7 @@ function GqApp() {
           return settle(client, wallet, shots, plan.claimPrize ? record : undefined, gqAnswer(r.answers));
         },
         // the win stands on failure: the report stays and the claim can be sent again until the shot ends
-        { kind: "done", title: t("Record smashed!"), text: plan.text, rows, retry: claim, retryLabel: plan.claimPrize ? t("Claim my prize") : t("Get my Geocoin back"), claimUntil },
+        { kind: "done", title: t("Record smashed!"), text: plan.text, rows, retry: claim, retryLabel: plan.claimPrize ? t("Claim my prize") : t("Get my Gamecoin back"), claimUntil },
         () => {
           // the prize is ours: the record card must not offer it again
           if (plan.claimPrize && record) setSharedRecord((r) => (r && r.id === record.id ? { ...r, consumed: true } : r));
@@ -433,26 +434,26 @@ function GqApp() {
   };
 
   /** Mints the grant to the connected wallet; the local wallet then claims it, Bread claims by itself. */
-  async function getGeocoins() {
+  async function getGamecoins() {
     const token = ++runToken.current;
     setTrouble(null);
-    setMode({ kind: "busy", text: t("Getting Geocoins"), back: { kind: "lobby" }, stage: "network", since: Date.now(), track: trackOf(mode) });
+    setMode({ kind: "busy", text: t("Getting Gamecoins"), back: { kind: "lobby" }, stage: "network", since: Date.now(), track: trackOf(mode) });
     try {
       const grant = lastGrant.current;
-      const refusal = geocoinRefusal(await gcBalance(wallet), grant?.to === wallet.address && Date.now() - grant.at < GRANT_PENDING_MS, t);
+      const refusal = gamecoinRefusal(await gcBalance(wallet), grant?.to === wallet.address && Date.now() - grant.at < GRANT_PENDING_MS, t);
       if (refusal) {
         if (runToken.current !== token) return;
         setMode({ kind: "lobby" });
         return say(refusal);
       }
-      const txId = await withTimeout(mintGeocoins(wallet.address!), 180_000, "Getting Geocoins");
+      const txId = await withTimeout(mintGamecoins(wallet.address!), 180_000, "Getting Gamecoins");
       lastGrant.current = { to: wallet.address!, at: Date.now() };
       if (LOCAL_WALLET) await local.claim();
       if (runToken.current !== token) return;
-      setMode({ kind: "done", text: t("{gc} for you! Open your wallet to take them.", { gc: fmtGeocoin(GEOCOIN_GRANT, t) }), txId });
+      setMode({ kind: "done", text: t("{gc} for you! Open your wallet to take them.", { gc: fmtGamecoin(GAMECOIN_GRANT, t) }), txId });
     } catch (e) {
       if (runToken.current !== token) return;
-      oops(e, () => withWallet({ kind: "geocoins" }));
+      oops(e, () => withWallet({ kind: "gamecoins" }));
       setMode({ kind: "lobby" });
     }
   }
@@ -470,9 +471,9 @@ function GqApp() {
       {refreshing ? t("Refreshing…") : t("Refresh")}
     </button>
   );
-  const geocoinButton = (
-    <button className="btn" onClick={() => withWallet({ kind: "geocoins" })}>
-      {t("Empty pockets? Get Geocoins now!")}
+  const gamecoinButton = (
+    <button className="btn" onClick={() => withWallet({ kind: "gamecoins" })}>
+      {t("Empty pockets? Get Gamecoins now!")}
     </button>
   );
   const codeBox = (
@@ -545,11 +546,11 @@ function GqApp() {
         <div className="big-score">{t("{n} pts to beat", { n: record.storage.target.toLocaleString() })}</div>
         <div className="row">
           <span>{t("Prize")}</span>
-          <span className="value">{fmtGeocoin(record.amount, t)}</span>
+          <span className="value">{fmtGamecoin(record.amount, t)}</span>
         </div>
         <div className="row">
           <span>{t("One shot")}</span>
-          <span className="value">{fmtGeocoin(record.storage.minStake, t)}</span>
+          <span className="value">{fmtGamecoin(record.storage.minStake, t)}</span>
         </div>
         {state === "mine" && <p className="muted">{t("This is yours.")}</p>}
         {state === "already-challenged" && (
@@ -559,13 +560,13 @@ function GqApp() {
         )}
         {state === "open" && (
           <button className="btn primary wide" onClick={() => withWallet({ kind: "shot", record: record })}>
-            {t("Insert Geocoin")}
+            {t("Insert Gamecoin")}
           </button>
         )}
         <p className="muted terms" style={{ margin: "14px 0 0" }}>
-          {t("Win and get your Geocoin back plus the prize :)")}
+          {t("Win and get your Gamecoin back plus the prize :)")}
           <br />
-          {t("Lose and your Geocoin goes to the champion :(")}
+          {t("Lose and your Gamecoin goes to the champion :(")}
         </p>
       </section>
     );
@@ -620,9 +621,9 @@ function GqApp() {
               retry();
             })
           }
-          onGeocoins={() => {
+          onGamecoins={() => {
             setTrouble(null);
-            withWallet({ kind: "geocoins" });
+            withWallet({ kind: "gamecoins" });
           }}
           onClose={() => setTrouble(null)}
         />
@@ -660,7 +661,7 @@ function GqApp() {
           <div className="overlay">
             <div className="stack">
               {recordCard() ?? codeBox}
-              {geocoinButton}
+              {gamecoinButton}
             </div>
             <div className="beside">{openList}</div>
           </div>
@@ -686,7 +687,7 @@ function GqApp() {
                 }}
                 onCollect={(picked) => void run(picked.length > 1 ? t("Taking them") : t("Taking it"), false, () => collect(client, wallet, picked), { kind: "lobby" })}
               />
-              <p>{geocoinButton}</p>
+              <p>{gamecoinButton}</p>
             </>
           ) : null}
           <History
@@ -721,11 +722,11 @@ function GqApp() {
           <aside className="panel yellow">
             <div className="panel-title">{t("Post your record?")}</div>
             <p className="terms">
-              {t("Rivals must pay 1 Geocoin to try to beat you.")}
+              {t("Rivals must pay 1 Gamecoin to try to beat you.")}
               <br />
-              {t("If they do, they take your Geocoin :(")}
+              {t("If they do, they take your Gamecoin :(")}
               <br />
-              {t("Otherwise, their Geocoin is yours!!!")}
+              {t("Otherwise, their Gamecoin is yours!!!")}
             </p>
             <button className="btn primary wide" onClick={() => withWallet({ kind: "post", m: mode })}>
               {t("Post it")}

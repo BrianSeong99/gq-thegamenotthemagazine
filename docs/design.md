@@ -8,7 +8,7 @@ now**; a Rust port is planned once the compiler release after 0.11.0 ships
 
 Vocabulary: the **champion** posts a **record** (a *record note*: the score to
 beat and the prize). A **rival** takes a **shot** (a *shot note* holding one
-**Geocoin**, GC), bound to one record. The reusable part is the *challenge
+**Gamecoin**, GC), bound to one record. The reusable part is the *challenge
 mechanic*; GeoQuizz is one game plugged into it.
 
 ## 1. The game (GeoQuizz)
@@ -54,14 +54,15 @@ as `cities.json`; `dataset` is the SHA-256 of the file bytes, first 16 bytes as 
 Map: equirectangular SVG rendered from Natural Earth 110m country outlines
 (public domain). Click to lat/lon is a linear mapping. No map library.
 
-Stake: one amount, **1 Geocoin (GC)**, for everyone. The champion puts it in
+Stake: one amount, **1 Gamecoin (GC)**, for everyone. The champion puts it in
 the record note (that is the prize); each rival puts the same amount in their
-shot note to play. Geocoin is a fungible token from a faucet on testnet with
+shot note to play. Gamecoin is a fungible token from a faucet on testnet with
 **no authentication** (`miden::standards::auth::no_auth`): anyone may mint, the
-app's "Empty pockets? Get Geocoins now!" button does it from the browser
-(`geocoin` binary deploys and mints from the CLI; PoW or a captcha can come
+app's "Empty pockets? Get Gamecoins now!" button does it from the browser
+(`gamecoin` binary deploys and mints from the CLI; PoW or a captcha can come
 later). The contracts only know a generic `min_stake` and "same asset as the
-record", so another game can use another token or amount.
+record", so another game can use another token or amount. Gamecoin replaced Geocoin on
+2026-10-14; the app accepts both (`STAKE_FAUCETS`) and a shot stakes the asset of its record.
 
 ## 2. The challenge mechanic (generic)
 
@@ -70,7 +71,7 @@ record", so another game can use another token or amount.
 | artifact | paths | who consumes |
 |---|---|---|
 | `record.masm` | **claim** (rival, before expiry, winning answer, with their shot note in the same tx) / **reclaim** (champion, from expiry + `CLAIM_FUZZ` on) | prize assets go to the consumer |
-| `shot.masm`   | **settle** (rival, before the shot deadline, winning answer only: Geocoin back) / **collect** (champion, from the deadline + `CLAIM_FUZZ` on) | |
+| `shot.masm`   | **settle** (rival, before the shot deadline, winning answer only: Gamecoin back) / **collect** (champion, from the deadline + `CLAIM_FUZZ` on) | |
 
 Both include `challenge_core.masm` (storage layout, deadline checks, the
 "find my shot note" check, asset receipt) and call one game procedure,
@@ -106,12 +107,12 @@ hardcoded.
 
 A shot note is a copy of its record note's storage with `rival`,
 `shot_deadline` and `RECORD_ID` filled in. The deadline is short on purpose
-(~3 min = 60 blocks, about one play of the game): once the Geocoin is down,
+(~3 min = 60 blocks, about one play of the game): once the Gamecoin is down,
 the rival gets one sitting, not hours to rehearse the same ten cities.
 A shot settles before `min(shot_deadline, expiry_block)` and the
 champion collects from that block + `CLAIM_FUZZ` on, so a rival cannot pick a deadline
 past the record's own life. Both notes are **public**, tagged `NOTE_TAG` (one u32
-for the app), and carry Geocoin.
+for the app), and carry Gamecoin.
 
 ### Binding a shot to its record (the claim check)
 
@@ -130,7 +131,7 @@ initial assets, not their storage contents. So the record script:
 4. checks the note's *initial* assets (`input_note::get_initial_assets`) hold ≥ `min_stake` of
    the record's asset. Initial, because input notes run in the order the client gives them
    (sorted by id in practice): when the shot script runs first it has already moved its
-   Geocoin into the account, and `input_note::get_asset` would return an empty word
+   Gamecoin into the account, and `input_note::get_asset` would return an empty word
    (verified on testnet 2026-10-09, `ERR_WRONG_ASSET`; test `claim_works_whichever_note_runs_first`);
 5. aborts if no note passes.
 
@@ -153,15 +154,15 @@ a shot at a record with fewer than `MIN_SHOT_WINDOW_BLOCKS` left.
 
 ### Flow
 
-- Champion plays, posts a record note holding one Geocoin, with `target`,
-  `min_stake` (= one Geocoin), expiry and the quiz.
+- Champion plays, posts a record note holding one Gamecoin, with `target`,
+  `min_stake` (= one Gamecoin), expiry and the quiz.
 - Rival posts a shot note (1 GC) copying the record storage, then
   plays the same quiz.
 - Winner who is first: one transaction consumes the record (claim) and their
-  shot note (settle, win): prize plus Geocoin back.
+  shot note (settle, win): prize plus Gamecoin back.
 - Later winners: settle their shot note alone (refund) before its deadline.
 - Loser: nothing to sign. A losing answer cannot settle; the champion collects
-  the Geocoin from the shot deadline (~3 min) + `CLAIM_FUZZ` on. Record closure never refunds
+  the Gamecoin from the shot deadline (~3 min) + `CLAIM_FUZZ` on. Record closure never refunds
   shots.
 - Champion reclaims an unclaimed record from expiry + `CLAIM_FUZZ` on.
 
@@ -176,7 +177,7 @@ BasicWallet, so the standard `receive_asset` that the scripts'
 as `importNotes` bytes (NoteFile with inclusion proof) and referenced with
 explicit input notes plus per-note args. Strangers' public notes are read
 straight from the node by RPC (`NOTE_TAG`); the app's own client syncs and
-mints Geocoins.
+mints Gamecoins.
 
 ### Lightweight safeguards
 
@@ -200,7 +201,7 @@ mints Geocoins.
 5. Reference block can be back-dated by up to `CLAIM_FUZZ` blocks.
 6. Public notes expose scores, ids and amounts.
 7. A rival can post a shot and never play; the champion collects after the deadline.
-8. Anyone can mint Geocoin: it is testnet play money by design.
+8. Anyone can mint Gamecoin: it is testnet play money by design.
 
 ## 3. Why MASM (verified 2026-10-08)
 
@@ -286,7 +287,7 @@ gq/
   masm/challenge/        challenge_core.masm, record.masm, shot.masm   (reusable)
   masm/games/            gq_score.masm                                     (GeoQuizz)
   integration/           Rust: assemble scripts, rules reference + vectors, MockChain tests,
-                         bins: build_scripts, geocoin (deploy/mint/fees), testnet_flow, list_gq, probe
+                         bins: build_scripts, gamecoin (deploy/mint/fees), testnet_flow, list_gq, probe
   rules/                 vectors shared by MASM, Rust and TypeScript
   web/                   React app from frontend-template PR #31 (SDK 0.17) + Bread adapter
   docs/                  design.md, walkthrough.md, build-your-own-game.md

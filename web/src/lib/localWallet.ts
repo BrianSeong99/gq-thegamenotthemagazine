@@ -108,7 +108,7 @@ export function useLocalWallet(client: Client | null, runExclusive: <T>(fn: () =
         const r = await consume({ accountId: hex, notes: [noteId] });
         log("claimed", r.transactionId);
       }
-      // 3. whatever was sent to this account (Geocoin mints, prizes won): claim it, as Bread does by itself.
+      // 3. whatever was sent to this account (Gamecoin mints, prizes won): claim it, as Bread does by itself.
       setStatus("Claiming…");
       await claimIncoming(hex, 0);
       setId(hex);

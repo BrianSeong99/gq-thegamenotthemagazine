@@ -8,12 +8,12 @@ import { useT } from "@/lib/i18n";
 export function ErrorBox({
   trouble,
   onRetry,
-  onGeocoins,
+  onGamecoins,
   onClose,
 }: {
   trouble: Trouble;
   onRetry?: () => void;
-  onGeocoins?: () => void;
+  onGamecoins?: () => void;
   onClose: () => void;
 }) {
   const t = useT();
@@ -32,9 +32,9 @@ export function ErrorBox({
             {t("Try again")}
           </button>
         )}
-        {trouble.kind === "funds" && onGeocoins && (
-          <button className="btn primary" onClick={onGeocoins}>
-            {t("Get Geocoins")}
+        {trouble.kind === "funds" && onGamecoins && (
+          <button className="btn primary" onClick={onGamecoins}>
+            {t("Get Gamecoins")}
           </button>
         )}
         <button className="btn" onClick={onClose}>
@@ -60,7 +60,7 @@ export function ClaimButton({ until, label, onClaim }: { until: number; label: s
   const t = useT();
   const now = useNow();
   const left = Math.max(0, Math.floor((until - now) / 1000));
-  if (left === 0) return <p className="error-note">{t("Too late: your shot has ended. The champion can take your Geocoin.")}</p>;
+  if (left === 0) return <p className="error-note">{t("Too late: your shot has ended. The champion can take your Gamecoin.")}</p>;
   return (
     <>
       <p className="deadline">{t("Shot ends: {time}", { time: secondsToClock(left) })}</p>

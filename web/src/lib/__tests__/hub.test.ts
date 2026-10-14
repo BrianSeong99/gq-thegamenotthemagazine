@@ -1,5 +1,6 @@
 // Past games and boards are read from the chain alone: one test per rule.
 import { describe, expect, it } from "vitest";
+import { GC_FAUCET } from "@/config";
 import type { ChallengeNote } from "@/lib/chain";
 import type { AccountFelts, ChallengeStorage } from "@/lib/notes";
 import { translator } from "@/lib/i18n";
@@ -15,10 +16,10 @@ let n = 0;
 const base: ChallengeStorage = { expiryBlock: 1000, target: 4100, minStake: GC, champion: ME, rival: null, recordId: [0n, 0n, 0n, 0n], shotRoot: [0n, 0n, 0n, 0n], game: [], shotDeadline: 0 };
 function record(champion: AccountFelts, target: number, o: Partial<ChallengeNote> & { expiry?: number } = {}): ChallengeNote {
   const w = BigInt(++n);
-  return { id: `0xr${n}`, idWord: [w, w, w, w], kind: "record", storage: { ...base, champion, target, expiryBlock: o.expiry ?? 1000 }, amount: GC, consumed: o.consumedAt !== undefined, createdAt: n, ...o };
+  return { id: `0xr${n}`, idWord: [w, w, w, w], kind: "record", storage: { ...base, champion, target, expiryBlock: o.expiry ?? 1000 }, faucet: GC_FAUCET, amount: GC, consumed: o.consumedAt !== undefined, createdAt: n, ...o };
 }
 function shot(at: ChallengeNote, rival: AccountFelts, deadline: number, o: Partial<ChallengeNote> = {}): ChallengeNote {
-  return { id: `0xs${++n}`, idWord: [0n, 0n, 0n, BigInt(n)], kind: "shot", storage: { ...at.storage, rival, recordId: at.idWord, shotDeadline: deadline }, amount: GC, consumed: o.consumedAt !== undefined, createdAt: n, ...o };
+  return { id: `0xs${++n}`, idWord: [0n, 0n, 0n, BigInt(n)], kind: "shot", storage: { ...at.storage, rival, recordId: at.idWord, shotDeadline: deadline }, faucet: GC_FAUCET, amount: GC, consumed: o.consumedAt !== undefined, createdAt: n, ...o };
 }
 
 describe("shots belong to a record by its terms", () => {
@@ -130,12 +131,12 @@ describe("history", () => {
     ];
     const rows = history(notes, ME, 2000, name).map((h) => [h.result, h.context, h.score, h.detail, h.money, h.note, h.tone, h.moneyTone]);
     expect(rows).toEqual([
-      ["Defended", "", 6800, "2 tries lost", "1 Geocoin won", "Your Geocoin back.", "mint", "mint"],
-      ["Taken back", "", 3900, "Nobody tried.", "1 Geocoin back", "", "", ""],
-      ["You lost", "MUD's record: ", 8400, "", "1 Geocoin lost", "Went to MUD.", "pink", "pink"],
-      ["You won", "KQX's record: ", 5500, "Prize already taken.", "1 Geocoin back", "", "mint", ""],
-      ["You won", "MUD's record: ", 6200, "", "1 Geocoin won", "Your Geocoin back.", "mint", "mint"],
-      ["Beaten", "KQX beat ", 4100, "1 try lost", "1 Geocoin lost", "Prize went to KQX.", "pink", "pink"],
+      ["Defended", "", 6800, "2 tries lost", "1 Gamecoin won", "Your Gamecoin back.", "mint", "mint"],
+      ["Taken back", "", 3900, "Nobody tried.", "1 Gamecoin back", "", "", ""],
+      ["You lost", "MUD's record: ", 8400, "", "1 Gamecoin lost", "Went to MUD.", "pink", "pink"],
+      ["You won", "KQX's record: ", 5500, "Prize already taken.", "1 Gamecoin back", "", "mint", ""],
+      ["You won", "MUD's record: ", 6200, "", "1 Gamecoin won", "Your Gamecoin back.", "mint", "mint"],
+      ["Beaten", "KQX beat ", 4100, "1 try lost", "1 Gamecoin lost", "Prize went to KQX.", "pink", "pink"],
     ]);
   });
 
@@ -145,25 +146,25 @@ describe("history", () => {
     const notes = [theirs, shot(theirs, ME, 450), shot(theirs, ME, 900), mine, shot(mine, ME, 300)];
     const rows = history(notes, ME, 600, name).map((h) => [h.result, h.at, h.money, h.note]);
     expect(rows).toEqual([
-      ["You lost", 450, "1 Geocoin lost", "MUD can take the coin."],
-      ["You lost", 300, "1 Geocoin lost", "Locked: this shot was at your own record."],
+      ["You lost", 450, "1 Gamecoin lost", "MUD can take the coin."],
+      ["You lost", 300, "1 Gamecoin lost", "Locked: this shot was at your own record."],
     ]);
   });
 
-  it("a beaten record still counts what its champion collected from earlier losers; a defended one with nothing collected yet only has its Geocoin back", () => {
+  it("a beaten record still counts what its champion collected from earlier losers; a defended one with nothing collected yet only has its Gamecoin back", () => {
     const beaten = record(ME, 4100, { consumedAt: 300 });
     const defended = record(ME, 6800, { consumedAt: 1200 });
     const notes = [beaten, shot(beaten, MUD, 200, { consumedAt: 280 }), shot(beaten, KQX, 400, { consumedAt: 300 }), defended, shot(defended, MUD, 300)];
     const rows = history(notes, ME, 2000, name).map((h) => [h.result, h.detail, h.money, h.note]);
     expect(rows).toEqual([
-      ["Defended", "1 try lost", "1 Geocoin back", ""],
-      ["Beaten", "1 try lost", "1 Geocoin won, 1 Geocoin lost", "Prize went to KQX."],
+      ["Defended", "1 try lost", "1 Gamecoin back", ""],
+      ["Beaten", "1 try lost", "1 Gamecoin won, 1 Gamecoin lost", "Prize went to KQX."],
     ]);
   });
 });
 
 describe("boards", () => {
-  it("Geocoins won: lost shots a champion took plus prizes, never a winner's own Geocoin back", () => {
+  it("Gamecoins won: lost shots a champion took plus prizes, never a winner's own Gamecoin back", () => {
     const mine = record(ME, 100, { consumedAt: 2000 });
     const theirs = record(MUD, 100, { consumedAt: 150 });
     const notes = [mine, shot(mine, KQX, 200, { consumedAt: 1500 }), shot(mine, MUD, 300, { consumedAt: 1600 }), theirs, shot(theirs, KQX, 200, { consumedAt: 150 })];

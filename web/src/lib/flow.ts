@@ -3,7 +3,7 @@
 import type { ChallengeNote } from "./chain";
 import { noteDeadline, shotDeadline, ZERO_WORD, type AccountFelts, type ChallengeStorage, type Word4 } from "./notes";
 import type { Place } from "./quiz";
-import { BLOCK_SECONDS, CLAIM_FUZZ, GC_DECIMALS, GC_FAUCET, MIN_SHOT_WINDOW_BLOCKS, RECORD_LIFETIME_BLOCKS, STAKE, V1_ROOTS } from "@/config";
+import { BLOCK_SECONDS, CLAIM_FUZZ, GC_DECIMALS, MIN_SHOT_WINDOW_BLOCKS, RECORD_LIFETIME_BLOCKS, STAKE, STAKE_FAUCETS, V1_ROOTS } from "@/config";
 import { QUIZ_MAX, roundScore, type Answer, type City } from "./rules";
 import { en, type T } from "./i18n";
 
@@ -63,11 +63,11 @@ export function noteKind(root: string, current: { recordRoot: string; shotRoot: 
 /**
  * Whether a note the node serves under our tag with one of our script roots is one of ours: posted
  * by the account it names (the sender is set by the kernel, the storage by whoever made the note),
- * carrying exactly one asset, the Geocoin, and shaped the way this app writes it. A record names
+ * carrying exactly one asset, a Gamecoin (or the Geocoin before it), and shaped the way this app writes it. A record names
  * `shotRoot`, the shot script of its own version, so no stranger's script gets to settle shots at it.
  */
 export function acceptNote(n: { kind: "record" | "shot"; storage: ChallengeStorage; sender: AccountFelts; assets: { faucet: string; amount: bigint }[] }, shotRoot?: Word4): boolean {
-  if (n.assets.length !== 1 || n.assets[0].faucet !== GC_FAUCET) return false;
+  if (n.assets.length !== 1 || !STAKE_FAUCETS.includes(n.assets[0].faucet)) return false;
   const s = n.storage;
   if (n.kind === "record") return sameAccount(n.sender, s.champion) && !s.rival && s.shotDeadline === 0 && sameWord(s.recordId, ZERO_WORD) && !!shotRoot && sameWord(s.shotRoot, shotRoot);
   return sameAccount(n.sender, s.rival) && !sameWord(s.recordId, ZERO_WORD);
@@ -78,7 +78,7 @@ export type SettlePlan = { won: boolean; claimPrize: boolean; again: boolean; te
 
 /**
  * After a play: a win settles the open shots (and claims the prize if it is still there);
- * a loss sends nothing to the chain, the Geocoin waits for the champion at the deadline.
+ * a loss sends nothing to the chain, the Gamecoin waits for the champion at the deadline.
  */
 export function settlePlan(shots: ChallengeNote[], record: ChallengeNote | undefined, score: number, height: number, t: T = en): SettlePlan {
   if (shots.length === 0) throw new Error("no shot note to settle");
@@ -89,10 +89,10 @@ export function settlePlan(shots: ChallengeNote[], record: ChallengeNote | undef
   const text = claimPrize
     ? t("{score} points. You win!", { score })
     : won
-      ? t("{score} points. You beat it, but the prize is gone. Your Geocoin comes back.", { score })
+      ? t("{score} points. You beat it, but the prize is gone. Your Gamecoin comes back.", { score })
       : again
         ? t("{score} points. Not enough.", { score })
-        : t("{score} points. Not enough. Your Geocoin goes to the champion.", { score });
+        : t("{score} points. Not enough. Your Gamecoin goes to the champion.", { score });
   return { won, claimPrize, again, text };
 }
 
@@ -128,7 +128,7 @@ export function claimVerdict(shots: { consumedAt?: number; deadline: number; v1?
   if (shots.length > 0 && shots.every((s) => s.consumedAt !== undefined)) return "claimed";
   return "open";
 }
-export const SHOT_LOST = "Too late: your shot ended before the claim. The champion can take your Geocoin.";
+export const SHOT_LOST = "Too late: your shot ended before the claim. The champion can take your Gamecoin.";
 
 export type TroubleKind =
   | "said-no"
@@ -156,7 +156,8 @@ export function explain(e: unknown): Trouble {
   if (/NOT_GRANTED|reject|declin|denied|cancel/i.test(raw)) return trouble("said-no", "You said no in your wallet. Nothing was sent.");
   if (/WalletNotReady|not installed/i.test(raw)) return trouble("no-wallet", "We can't find the Bread wallet. Install it, then try again.");
   if (/WalletNotConnected|not connected|WalletDisconnected/i.test(raw)) return trouble("no-wallet", "Connect your wallet first.");
-  if (/^(\w+: )?You need .*Geocoin/.test(raw)) return trouble("funds", "Not enough Geocoins in your wallet. Get Geocoins first.");
+  if (/^(\w+: )?You need .*Gamecoin/.test(raw)) return trouble("funds", "Not enough Gamecoins in your wallet. Get Gamecoins first.");
+  if (/^(\w+: )?You need .*Geocoin/.test(raw)) return trouble("refused", "This record was set in Geocoin, the old coin. Only a Geocoin can take a shot at it.");
   if (/SummaryAnchorMismatch|chain anchor|ChainBehindBoundBlock|block header for block \d+ not found/i.test(raw))
     return trouble("out-of-step", "Your wallet was out of step with the network. Try again.");
   if (/^Too late: /.test(raw)) return trouble("too-late", raw, false);
@@ -199,13 +200,13 @@ export async function submitWithRetry<T>(attempt: (n: number) => Promise<T>, ret
   }
 }
 
-/** Base units to Geocoins: 1_000_000n is 1. */
+/** Base units to Gamecoins: 1_000_000n is 1. */
 export const toGc = (v: bigint) => Number(v) / 10 ** GC_DECIMALS;
 
-/** An amount of Geocoin in words: "1 Geocoin", "10 Geocoins". */
-export function fmtGeocoin(v: bigint, t: T = en): string {
+/** An amount of Gamecoin in words: "1 Gamecoin", "10 Gamecoins". */
+export function fmtGamecoin(v: bigint, t: T = en): string {
   const n = toGc(v);
-  return t(n === 1 ? "{n} Geocoin" : "{n} Geocoins", { n: n.toLocaleString(undefined, { maximumFractionDigits: GC_DECIMALS }) });
+  return t(n === 1 ? "{n} Gamecoin" : "{n} Gamecoins", { n: n.toLocaleString(undefined, { maximumFractionDigits: GC_DECIMALS }) });
 }
 
 /** The page's address without the record it was opened for (other parameters, like ?local=, stay). */
@@ -226,11 +227,11 @@ function utcLabel(ms: number): string {
 const POSTS: ((score: number, until: string) => string)[] = [
   (score, until) => `${score} points on GQ 😎\nInstall @joinbread & beat my record before ${until}:`,
   (score, until) => `My GQ record: ${score} points, open until ${until}.\nInstall @joinbread & beat it:`,
-  (score, until) => `${score} points. One Geocoin says you can't beat it before ${until}.\nInstall @joinbread & prove me wrong:`,
+  (score, until) => `${score} points. One Gamecoin says you can't beat it before ${until}.\nInstall @joinbread & prove me wrong:`,
   (score, until) => `Know your geography? ${score} points to beat on GQ until ${until}.\nInstall @joinbread & take a shot:`,
   (score, until) => `10 cities, 15 seconds each, ${score} points. Your move, until ${until}.\nInstall @joinbread & play GQ:`,
   (score, until) => `Champion of GQ with ${score} points, for now. Record expires ${until}.\nInstall @joinbread & come take it:`,
-  (score, until) => `I set ${score} points on GQ. Beat it before ${until} and my Geocoin is yours.\nInstall @joinbread & try:`,
+  (score, until) => `I set ${score} points on GQ. Beat it before ${until} and my Gamecoin is yours.\nInstall @joinbread & try:`,
   (score, until) => `Rivals wanted: ${score} points on GQ, open until ${until} 🌍\nInstall @joinbread & take your shot:`,
 ];
 
