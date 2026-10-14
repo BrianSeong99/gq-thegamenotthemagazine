@@ -216,8 +216,27 @@ describe("shared record link, connected as a stranger", () => {
   });
 });
 
+it("a family's other flags stack above the framed one, and a picked variant takes the slot", async () => {
+  window.history.replaceState({}, "", "/");
+  localStorage.removeItem("gq.lang");
+  render(<AppContent />);
+  expect(await screen.findByRole("button", { name: "English (US)" })).toHaveAttribute("aria-pressed", "true");
+  expect(screen.getByRole("button", { name: "English (UK)" })).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Português (Portugal)" })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Português (Brasil)" }));
+  expect(document.documentElement.lang).toBe("pt-BR");
+  expect(screen.queryByRole("button", { name: "English (UK)" })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Português (Portugal)" }));
+  expect(document.documentElement.lang).toBe("pt-PT");
+  expect(screen.getByRole("button", { name: "Português (Portugal)" })).toHaveAttribute("aria-pressed", "true");
+  expect(screen.getByRole("button", { name: "Português (Brasil)" })).not.toHaveAttribute("aria-pressed", "true");
+  expect(screen.getByRole("button", { name: "Clica para começar" })).toBeInTheDocument();
+  localStorage.removeItem("gq.lang");
+});
+
 it("a click anywhere on the splash picture starts the game", async () => {
   window.history.replaceState({}, "", "/");
+  localStorage.removeItem("gq.lang");
   const { container } = render(<AppContent />);
   await screen.findByRole("button", { name: /click to start/i });
   fireEvent.click(container.querySelector(".welcome > img")!);
@@ -229,11 +248,11 @@ describe("Simplified Chinese", () => {
     window.history.replaceState({}, "", "/");
     localStorage.removeItem("gq.lang");
     render(<AppContent />);
-    const cn = await screen.findByRole("button", { name: "中文" });
-    expect(screen.getByRole("button", { name: "English" })).toHaveAttribute("aria-pressed", "true");
+    const cn = await screen.findByRole("button", { name: "中文 (简体)" });
+    expect(screen.getByRole("button", { name: "English (US)" })).toHaveAttribute("aria-pressed", "true");
     fireEvent.click(cn);
     expect(cn).toHaveAttribute("aria-pressed", "true");
-    expect(screen.getByRole("button", { name: "English" })).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByRole("button", { name: "English (US)" })).toHaveAttribute("aria-pressed", "false");
     fireEvent.click(screen.getByRole("button", { name: /点击开始/ }));
     expect(document.documentElement.lang).toBe("zh-Hans");
     expect(localStorage.getItem("gq.lang")).toBe("zh-Hans");
@@ -241,8 +260,8 @@ describe("Simplified Chinese", () => {
     fireEvent.click(screen.getByRole("button", { name: "定位第一座城市" }));
     // the quiz names the city in Chinese (places.zh-Hans.json), the dataset untouched
     expect(await screen.findByText(/找到城\d！/)).toBeInTheDocument();
-    fireEvent.change(screen.getByRole("combobox", { name: "语言" }), { target: { value: "en" } });
-    expect(document.documentElement.lang).toBe("en");
+    fireEvent.change(screen.getByRole("combobox", { name: "语言" }), { target: { value: "en-US" } });
+    expect(document.documentElement.lang).toBe("en-US");
     expect(await screen.findByText(/find c\d!/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /player hub/i })).toBeInTheDocument();
   });
@@ -252,7 +271,7 @@ describe("Simplified Chinese", () => {
     localStorage.setItem("gq.lang", "zh-Hans");
     render(<AppContent />);
     expect(await screen.findByRole("button", { name: /点击开始/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "中文" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "中文 (简体)" })).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByText("横着拿手机，地图更好玩。")).toBeInTheDocument();
     localStorage.removeItem("gq.lang");
   });

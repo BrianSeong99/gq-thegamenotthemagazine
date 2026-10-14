@@ -1,7 +1,10 @@
 // French, keyed by the English line as written in the code (see i18n.ts). Terms: record,
-// tentative shot, Gamecoin, champion, rival, prix prize.
+// tentative shot, Gamecoin, champion, rival, prix prize. France is the base; Québec says
+// portefeuille and cellulaire, and writes ? ! ; without the space before.
 
-export const FR: Record<string, string> = {
+import { swap } from "./es";
+
+export const FR_FR: Record<string, string> = {
   // ribbon and splash
   "1P World Tour": "Tour du monde 1J",
   "Champion vs Rival": "Champion vs Rival",
@@ -228,3 +231,5 @@ export const FR: Record<string, string> = {
   "Your row": "Votre ligne",
   "Your rank": "Votre rang",
 };
+
+export const FR_CA = swap(FR_FR, [["le wallet", "le portefeuille"], ["Wallet", "Portefeuille"], ["wallet", "portefeuille"], ["votre téléphone", "votre cellulaire"], [" ?", "?"], [" !", "!"], [" ;", ";"]]);

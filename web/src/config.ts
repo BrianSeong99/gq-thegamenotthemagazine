@@ -42,7 +42,7 @@ export const SHOT_SCRIPT_V1_URL = "/scripts/v1/shot.bin";
 export const CLAIM_FUZZ = 64;
 export const CITIES_URL = "/cities.json";
 // The cities' names and countries in a language, by index of cities.json (shown, never hashed).
-export const placesUrl = (lang: string) => `/places.${lang}.json`;
+export const placesUrl = (file: string) => `/places.${file}.json`;
 
 export const NETWORK_POLL_INTERVAL_MS = 2_500;
 export const NETWORK_POLL_TIMEOUT_MS = 120_000;

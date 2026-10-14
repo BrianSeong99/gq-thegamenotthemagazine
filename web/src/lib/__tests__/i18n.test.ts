@@ -13,7 +13,7 @@ const literals = files(join(__dirname, "../..")).flatMap((f) => [...readFileSync
 const placeholders = (s: string) => [...s.matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort();
 
 describe.each(Object.keys(DICTS) as (keyof typeof DICTS)[])("%s dictionary", (lang) => {
-  const D = DICTS[lang];
+  const D = DICTS[lang]!;
   it("has every line the code hands to t(), with the same placeholders", () => {
     const missing = literals.filter((k) => !(k in D));
     expect(missing).toEqual([]);

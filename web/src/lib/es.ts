@@ -1,7 +1,8 @@
 // Spanish, keyed by the English line as written in the code (see i18n.ts). Terms: récord record,
-// intento shot, Gamecoin, campeón champion, rival, premio prize.
+// intento shot, Gamecoin, campeón champion, rival, premio prize. The base is the neutral tú form;
+// the variants at the bottom swap a few words, and Argentina speaks with vos.
 
-export const ES: Record<string, string> = {
+const ES: Record<string, string> = {
   // ribbon and splash
   "1P World Tour": "Vuelta al mundo 1J",
   "Champion vs Rival": "Campeón vs Rival",
@@ -227,4 +228,49 @@ export const ES: Record<string, string> = {
   "{title}: rank, nickname, {unit}": "{title}: puesto, apodo, {unit}",
   "Your row": "Tu fila",
   "Your rank": "Tu puesto",
+};
+
+/** Every line of `d` with each `[from, to]` pair swapped. */
+export const swap = (d: Record<string, string>, pairs: [string, string][]): Record<string, string> =>
+  Object.fromEntries(Object.entries(d).map(([k, v]) => [k, pairs.reduce((s, [a, b]) => s.split(a).join(b), v)]));
+
+export const ES_ES = swap(ES, [["billetera", "cartera"], ["Billetera", "Cartera"]]);
+export const ES_MX = swap(ES, [["billetera", "cartera"], ["Billetera", "Cartera"], ["el teléfono", "el celular"]]);
+export const ES_CO = swap(ES, [["el teléfono", "el celular"]]);
+export const ES_AR: Record<string, string> = {
+  ...swap(ES, [["el teléfono", "el celular"]]),
+  you: "vos",
+  "Turn your phone sideways: the map is much easier to play.": "Girá el celular: el mapa se juega mucho mejor.",
+  "This is taking long. Check your connection, or": "Esto tarda mucho. Revisá tu conexión, o",
+  "Locate.": "Localizá.",
+  "Challenge.": "Desafiá.",
+  "Win.": "Ganá.",
+  "Free to play. Once you're happy with your score, post it on X to challenge your rivals.": "Gratis. Cuando estés contento con tu puntuación, publicala en X y desafiá a tus rivales.",
+  "Find a challenge in CHAMPION VS RIVAL mode →": "Buscá un desafío en el modo CAMPEÓN VS RIVAL →",
+  "Still loading the cities, try again in a second.": "Las ciudades aún se cargan, probá en un segundo.",
+  "Find {city}!": "¡Encontrá {city}!",
+  "Beat my record!": "¡Superá mi récord!",
+  "Now find someone to beat you.": "Ahora buscá a alguien que te supere.",
+  "Paste a record link or code.": "Pegá el enlace o el código de un récord.",
+  "paste the link or code": "pegá el enlace o el código",
+  "Open the post and copy the GeoQuizz link.": "Abrí la publicación y copiá el enlace de GeoQuizz.",
+  "Insert Gamecoin": "Insertá un Gamecoin",
+  "Win and get your Gamecoin back plus the prize :)": "Ganá y recuperá tu Gamecoin más el premio :)",
+  "Lose and your Gamecoin goes to the champion :(": "Perdé y tu Gamecoin va al campeón :(",
+  "Empty pockets? Get Gamecoins now!": "¿Sin monedas? ¡Conseguí Gamecoins ya!",
+  "{gc} for you! Open your wallet to take them.": "¡{gc} para vos! Abrí tu billetera para recogerlos.",
+  "Your Gamecoins are on their way. Open your wallet to take them.": "Tus Gamecoins están en camino. Abrí tu billetera para recogerlos.",
+  "You still have {gc}. Get more when you have 1 or less.": "Aún tenés {gc}. Pedí más cuando tengas 1 o menos.",
+  "Approve it in your wallet.": "Aprobalo en tu billetera.",
+  "{action}… not done yet. Check your wallet.": "{action}… aún no termina. Revisá tu billetera.",
+  "It did not go through yet. Nothing is spent until it does, so try again.": "Aún no ha salido. No se gasta nada hasta que salga, así que reintentá.",
+  "We can't find the Bread wallet. Install it, then try again.": "No encontramos la billetera Bread. Instalala y reintentá.",
+  "Connect your wallet first.": "Conectá tu billetera primero.",
+  "Not enough Gamecoins in your wallet. Get Gamecoins first.": "No hay suficientes Gamecoins en tu billetera. Conseguí Gamecoins primero.",
+  "Your wallet was out of step with the network. Try again.": "Tu billetera iba desfasada con la red. Reintentá.",
+  "We can't find that record. Check the link.": "No encontramos ese récord. Revisá el enlace.",
+  "The Miden network is slow or busy right now. Try again in a moment.": "La red Miden va lenta o está ocupada. Reintentá en un momento.",
+  "Play the World Tour and post your record: rivals pay a Gamecoin to try to beat it!": "Jugá la Vuelta al mundo y publicá tu récord: ¡los rivales pagan un Gamecoin por intentar superarlo!",
+  "Connect to see your games.": "Conectate para ver tus partidas.",
+  "You need the Bread wallet first.": "Primero necesitás la billetera Bread.",
 };

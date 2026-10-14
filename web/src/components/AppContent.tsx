@@ -16,7 +16,7 @@ import { gcBalance, postShot, postRecord, settle, collect, setSubmitAttemptListe
 import { shotDeadline, shotStorage, ZERO_WORD, type AccountFelts, type ChallengeStorage } from "@/lib/notes";
 import { blockToMs, claimVerdict, explain, fmtGamecoin, NOT_FINISHED, SHOT_LOST, shotRefusal, withoutRecord, withTimeout, type Trouble, myOpenShotsOn as openShotsOn, outcomeText, parseCode, reportRows, settlePlan, sharedRecordState, type ReportRow } from "@/lib/flow";
 import { cityNames, datasetWord, decodeGame, encodeGame, quizCities, randomSeed, type Place, type Word4 } from "@/lib/quiz";
-import { LangContext, storedLang, storeLang, useT, type Lang } from "@/lib/i18n";
+import { LANGS, LangContext, storedLang, storeLang, useT, type Lang } from "@/lib/i18n";
 import { gqAnswer, type City } from "@/lib/rules";
 import { History } from "./History";
 import { Leaderboards } from "./Leaderboards";
@@ -129,17 +129,18 @@ function GqApp() {
   const [started, setStarted] = useState(!!sharedRecordId);
   const [tab, setTab] = useState<Tab>(sharedRecordId ? "vs" : "1p");
   const [places, setPlaces] = useState<Place[]>([]);
-  // the cities' names in the current language, by dataset index, fetched when a language other than English is on; the dataset itself stays as hashed
-  const [placeNames, setPlaceNames] = useState<{ lang: Lang; list: [string, string][] } | null>(null);
+  // the cities' names in the current language's family, by dataset index, fetched when a language with its own names is on; the dataset itself stays as hashed
+  const placesFile = LANGS.find((v) => v.lang === lang)?.places;
+  const [placeNames, setPlaceNames] = useState<{ file: string; list: [string, string][] } | null>(null);
   useEffect(() => {
-    if (lang === "en" || placeNames?.lang === lang) return;
-    fetch(placesUrl(lang))
+    if (!placesFile || placeNames?.file === placesFile) return;
+    fetch(placesUrl(placesFile))
       .then((r) => r.json())
-      .then((list: [string, string][]) => setPlaceNames({ lang, list }))
+      .then((list: [string, string][]) => setPlaceNames({ file: placesFile, list }))
       .catch((e) => console.warn("[gq] place names", e));
-  }, [lang, placeNames]);
+  }, [placesFile, placeNames]);
   /** The cities as the player reads them: names in the current language once loaded. */
-  const shownPlaces = useMemo(() => (placeNames?.lang === lang ? places.map((p, i) => (placeNames.list[i] ? { ...p, name: placeNames.list[i][0], country: placeNames.list[i][1] } : p)) : places), [lang, placeNames, places]);
+  const shownPlaces = useMemo(() => (placesFile && placeNames?.file === placesFile ? places.map((p, i) => (placeNames.list[i] ? { ...p, name: placeNames.list[i][0], country: placeNames.list[i][1] } : p)) : places), [placesFile, placeNames, places]);
   const [dataset, setDataset] = useState<Word4 | null>(null);
   const [notes, setNotes] = useState<ChallengeNote[]>([]);
   // the first read of every game's notes, history and boards wait for it

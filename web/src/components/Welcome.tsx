@@ -1,12 +1,15 @@
-// The attract screen: the city hero, one blinking start line in the middle, the flags bottom right.
-// A click anywhere on the picture starts; a cyan frame marks the current language, click another flag
-// and the start line, then the whole game, follow.
+// The attract screen: the city hero, one blinking start line in the middle, the flags bottom right,
+// one per language family. A click anywhere on the picture starts. A cyan frame marks the current
+// language; its family's other variants stack above it, and a picked variant takes the slot.
 
-import { LANGS, useLang, useT } from "@/lib/i18n";
+import { useState } from "react";
+import { FAMILIES, type Lang, useLang, useT, variantLabel } from "@/lib/i18n";
 
 export function Welcome({ onStart }: { onStart: () => void }) {
   const t = useT();
   const { lang, setLang } = useLang();
+  // the variant each family keeps in its slot after a pick, until the page is left
+  const [picked, setPicked] = useState<Record<string, Lang>>({});
   return (
     <div className="welcome-screen">
       <div className="welcome">
@@ -17,11 +20,29 @@ export function Welcome({ onStart }: { onStart: () => void }) {
           </button>
         </div>
         <div className="flags">
-          {LANGS.map((l) => (
-            <button key={l.lang} className="flag" aria-label={l.name} aria-pressed={l.lang === lang} onClick={() => setLang(l.lang)}>
-              <img src={l.flag} alt="" width={36} height={24} />
-            </button>
-          ))}
+          {FAMILIES.map((f) => {
+            const current = f.variants.find((v) => v.lang === lang);
+            const shown = current ?? f.variants.find((v) => v.lang === picked[f.name]) ?? f.variants[0];
+            const pick = (l: Lang) => {
+              setPicked({ ...picked, [f.name]: l });
+              setLang(l);
+            };
+            return (
+              <div key={f.name} className="family">
+                {current &&
+                  f.variants
+                    .filter((v) => v !== current)
+                    .map((v) => (
+                      <button key={v.lang} className="flag" aria-label={variantLabel(v)} onClick={() => pick(v.lang)}>
+                        <img src={v.flag} alt="" width={36} height={24} />
+                      </button>
+                    ))}
+                <button className="flag" aria-label={variantLabel(shown)} aria-pressed={!!current} onClick={() => pick(shown.lang)}>
+                  <img src={shown.flag} alt="" width={36} height={24} />
+                </button>
+              </div>
+            );
+          })}
         </div>
       </div>
       <p className="rotate-hint">{t("Turn your phone sideways: the map is much easier to play.")}</p>

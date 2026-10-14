@@ -1,7 +1,7 @@
 // The arcade chrome around every screen: one ribbon with the wordmark, the tabs, sound, language and wallet.
 
 import type { ReactNode } from "react";
-import { LANGS, type Lang, useLang, useT } from "@/lib/i18n";
+import { FAMILIES, type Lang, useLang, useT } from "@/lib/i18n";
 import { TAB_LABEL, type Tab } from "@/lib/tabs";
 
 export function Shell({
@@ -64,10 +64,14 @@ export function Shell({
         </button>
         {/* another language, in place: the screen, the quiz and the wallet stay as they are */}
         <select className="lang" aria-label={t("Language")} value={lang} onChange={(e) => setLang(e.target.value as Lang)}>
-          {LANGS.map((l) => (
-            <option key={l.lang} value={l.lang} lang={l.lang}>
-              {l.name}
-            </option>
+          {FAMILIES.map((f) => (
+            <optgroup key={f.name} label={f.name}>
+              {f.variants.map((v) => (
+                <option key={v.lang} value={v.lang} lang={v.lang}>
+                  {f.name} ({v.name})
+                </option>
+              ))}
+            </optgroup>
           ))}
         </select>
         <div className="account">
