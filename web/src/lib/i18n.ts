@@ -59,6 +59,8 @@ export const FAMILIES: { name: string; variants: Variant[] }[] = [
   },
   { name: "Français", variants: [{ lang: "fr-FR", flag: "/brand/flag-fr.svg", name: "France", places: "fr" }, { lang: "fr-CA", flag: "/brand/flag-qc.svg", name: "Québec", places: "fr" }] },
   { name: "Português", variants: [{ lang: "pt-BR", flag: "/brand/flag-br.svg", name: "Brasil", places: "pt-BR" }, { lang: "pt-PT", flag: "/brand/flag-pt.svg", name: "Portugal", places: "pt-PT" }] },
+  { name: "Русский", variants: [{ lang: "ru", flag: "/brand/flag-ru.svg", name: "Россия", places: "ru" }] },
+  { name: "Bahasa Indonesia", variants: [{ lang: "id", flag: "/brand/flag-id.svg", name: "Indonesia", places: "id" }] },
   {
     name: "Deutsch",
     variants: [
@@ -68,11 +70,9 @@ export const FAMILIES: { name: string; variants: Variant[] }[] = [
     ],
   },
   { name: "日本語", variants: [{ lang: "ja", flag: "/brand/flag-jp.svg", name: "日本", places: "ja" }] },
+  { name: "Türkçe", variants: [{ lang: "tr", flag: "/brand/flag-tr.svg", name: "Türkiye", places: "tr" }] },
   { name: "한국어", variants: [{ lang: "ko", flag: "/brand/flag-kr.svg", name: "한국", places: "ko" }] },
   { name: "Українська", variants: [{ lang: "uk", flag: "/brand/flag-ua.svg", name: "Україна", places: "uk" }] },
-  { name: "Türkçe", variants: [{ lang: "tr", flag: "/brand/flag-tr.svg", name: "Türkiye", places: "tr" }] },
-  { name: "Bahasa Indonesia", variants: [{ lang: "id", flag: "/brand/flag-id.svg", name: "Indonesia", places: "id" }] },
-  { name: "Русский", variants: [{ lang: "ru", flag: "/brand/flag-ru.svg", name: "Россия", places: "ru" }] },
 ];
 export const LANGS = FAMILIES.flatMap((f) => f.variants);
 /** What a flag or picker entry calls a variant: "Español (Argentina)". */
