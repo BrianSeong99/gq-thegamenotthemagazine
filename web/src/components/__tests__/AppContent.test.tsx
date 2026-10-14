@@ -222,11 +222,10 @@ describe("Simplified Chinese", () => {
     localStorage.removeItem("gq.lang");
     render(<AppContent />);
     const cn = await screen.findByRole("button", { name: "中文" });
-    expect(cn).toHaveClass("blink");
     expect(screen.getByRole("button", { name: "English" })).toHaveAttribute("aria-pressed", "true");
     fireEvent.click(cn);
-    expect(cn).not.toHaveClass("blink");
-    expect(screen.getByRole("button", { name: "English" })).toHaveClass("blink");
+    expect(cn).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "English" })).toHaveAttribute("aria-pressed", "false");
     fireEvent.click(screen.getByRole("button", { name: /点击开始/ }));
     expect(document.documentElement.lang).toBe("zh-Hans");
     expect(localStorage.getItem("gq.lang")).toBe("zh-Hans");

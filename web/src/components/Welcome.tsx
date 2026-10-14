@@ -1,5 +1,5 @@
 // The attract screen: the city hero, one blinking start line in the middle, the flags bottom right.
-// The flag of the other language blinks: click it and the start line, then the whole game, follow.
+// A cyan frame marks the current language: click the other flag and the start line, then the whole game, follow.
 
 import { useLang, useT, type Lang } from "@/lib/i18n";
 
@@ -22,7 +22,7 @@ export function Welcome({ onStart }: { onStart: () => void }) {
         </div>
         <div className="flags">
           {FLAGS.map(([l, src, name]) => (
-            <button key={l} className={l === lang ? "flag" : "flag blink"} aria-label={name} aria-pressed={l === lang} onClick={() => setLang(l)}>
+            <button key={l} className="flag" aria-label={name} aria-pressed={l === lang} onClick={() => setLang(l)}>
               <img src={src} alt="" width={36} height={24} />
             </button>
           ))}

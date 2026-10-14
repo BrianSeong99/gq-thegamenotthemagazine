@@ -140,7 +140,7 @@ main { max-width: 1440px; margin: 0 auto; padding: 28px 4% 56px; }
 .welcome .flag { display: grid; place-items: center; min-width: 44px; min-height: 44px; padding: 4px; background: var(--void); border: 3px solid var(--rule); cursor: pointer; }
 .welcome .flag img { width: 36px; height: auto; image-rendering: pixelated; }
 .welcome .flag[aria-pressed="true"] { border-color: var(--cyan); }
-.welcome .flag:hover { animation: none; border-color: var(--yellow); }
+.welcome .flag:hover { border-color: var(--yellow); }
 @keyframes blink { 50% { opacity: 0; } }
 /* Gamecoins waiting: the Player Hub tab blinks, its take buttons flash yellow and white */
 .blink { animation: blink 1.1s steps(1) infinite; }
