@@ -245,6 +245,13 @@ describe("Gamecoin in words", () => {
     expect(text).toContain("@joinbread");
     expect(new URL(x).searchParams.get("url")).toBe(url);
   });
+  it("names the map of a stage record: GQ Asia in the X post, the Chinese name in the Weibo post", () => {
+    const at = Date.UTC(2026, 9, 13, 14, 5);
+    const { x, weibo } = recordLinks("0xabc", 6239, at, [], "Asia", "亚洲");
+    expect(new URL(x).searchParams.get("text")).toContain("GQ Asia");
+    expect(new URL(weibo).searchParams.get("title")).toBe("我在 GeoQuizz 亚洲得了 6239 分。来挑战我的纪录！");
+    expect(new URL(recordLinks("0xabc", 6239, at).x).searchParams.get("text")).not.toContain("GQ Asia");
+  });
   it("brags about a hard city, teases with an easy one, says nothing about the rest", () => {
     const at = Date.UTC(2026, 9, 13, 14, 5);
     const text = (id: string, cities: string[]) => new URL(recordLinks(id, 9690, at, cities).x).searchParams.get("text")!;

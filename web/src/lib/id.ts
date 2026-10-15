@@ -56,6 +56,7 @@ export const ID: Record<string, string> = {
   "Record posted!": "Rekor terunggah!",
   "Now find someone to beat you.": "Sekarang cari orang yang mau mengalahkanmu.",
   "Share on X": "Bagikan di X",
+  "Share on Weibo": "Bagikan di Weibo",
   "Copy link": "Salin tautan",
   "Copied!": "Tersalin!",
   "Have a code?": "Punya kode?",

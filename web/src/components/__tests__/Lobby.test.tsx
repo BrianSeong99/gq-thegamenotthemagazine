@@ -6,6 +6,7 @@ import { GC_FAUCET } from "@/config";
 import type { ChallengeNote } from "@/lib/chain";
 import type { ChallengeStorage } from "@/lib/notes";
 import { encodeGame } from "@/lib/quiz";
+import { registerDataset, stageById } from "@/lib/stages";
 import { Lobby } from "../Lobby";
 
 const champion = { suffix: 1n, prefix: 2n };
@@ -22,7 +23,9 @@ const base: ChallengeStorage = {
   shotDeadline: 0,
 };
 const places = [{ name: "Funafuti", country: "Tuvalu", lat: 0, lon: 0 }];
-const game = encodeGame({ seed: [0n, 0n, 0n, 0n], dataset: [0n, 0n, 0n, 0n], cities: Array.from({ length: 10 }, () => ({ idx: 0, lat: 0, lon: 0, cos: 0 })) });
+// an Asia record: its dataset word is the Asia list's
+registerDataset(stageById("asia"), [8n, 8n, 8n, 8n]);
+const game = encodeGame({ seed: [0n, 0n, 0n, 0n], dataset: [8n, 8n, 8n, 8n], cities: Array.from({ length: 10 }, () => ({ idx: 0, lat: 0, lon: 0, cos: 0 })) });
 const prize: ChallengeNote = { id: "0xp", idWord: [9n, 9n, 9n, 9n], kind: "record", storage: { ...base, game }, faucet: GC_FAUCET, amount: 1_000_000n, consumed: false };
 const myShot: ChallengeNote = {
   id: "0xc",
@@ -54,6 +57,7 @@ describe("Lobby", () => {
     const href = screen.getByRole("link", { name: /share on x/i }).getAttribute("href")!;
     expect(href).toContain(encodeURIComponent("?record=0xp"));
     expect(decodeURIComponent(href)).toContain("Funafuti");
+    expect(decodeURIComponent(href)).toContain("GQ Asia");
     expect(screen.queryByText(/on it/i)).toBeNull();
     rerender(<Lobby me={champion} notes={[prize]} places={() => places} height={1063} {...h} />);
     expect(screen.queryByRole("button", { name: /take it back/i })).toBeNull();

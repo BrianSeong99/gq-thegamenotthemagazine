@@ -247,15 +247,16 @@ const EASY_POSTS: ((score: number, until: string, city: string, gq: string) => s
   (score, until, city, gq) => `My run had ${city} in it. ${score} points on ${gq}, open until ${until}.\nInstall @joinbread & do better:`,
 ];
 
-// the Weibo post, one line: Chinese players share there, not on X
-const WEIBO_POST = (score: number) => `我在 GeoQuizz 得了 ${score} 分。来挑战我的纪录！`;
+// the Weibo post, one line, the map's Chinese name after the game's
+const WEIBO_POST = (score: number, map?: string) => `我在 GeoQuizz ${map ?? ""}得了 ${score} 分。来挑战我的纪录！`;
 
 /**
  * The shareable link to a record, and the X post that carries it (the Weibo one too); `expiresAt`
  * is the record's expiry in ms, `cities` the names of its run, `stage` the stage's English name
- * when it is not the World Tour ("GQ Europe"). A hard city gets bragged about, an easy one teased with.
+ * when it is not the World Tour ("GQ Europe") and `stageZh` its Chinese one for Weibo. A hard city
+ * gets bragged about, an easy one teased with.
  */
-export function recordLinks(recordId: string, score: number, expiresAt: number, cities: string[] = [], stage?: string) {
+export function recordLinks(recordId: string, score: number, expiresAt: number, cities: string[] = [], stage?: string, stageZh?: string) {
   const url = `${location.origin}${location.pathname}?record=${recordId}`;
   const pick = [...recordId].reduce((sum, c) => sum + c.charCodeAt(0), 0);
   const hard = cities.filter((c) => HARD_CITIES.includes(c));
@@ -270,7 +271,7 @@ export function recordLinks(recordId: string, score: number, expiresAt: number, 
   return {
     url,
     x: `https://x.com/intent/post?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`,
-    weibo: `https://service.weibo.com/share/share.php?url=${encodeURIComponent(url)}&title=${encodeURIComponent(WEIBO_POST(score))}`,
+    weibo: `https://service.weibo.com/share/share.php?url=${encodeURIComponent(url)}&title=${encodeURIComponent(WEIBO_POST(score, stageZh))}`,
   };
 }
 

@@ -63,6 +63,7 @@ export const PT_BR: Record<string, string> = {
   "Record posted!": "Recorde publicado!",
   "Now find someone to beat you.": "Agora encontre alguém para te vencer.",
   "Share on X": "Compartilhar no X",
+  "Share on Weibo": "Compartilhar no Weibo",
   "Copy link": "Copiar link",
   "Copied!": "Copiado!",
 

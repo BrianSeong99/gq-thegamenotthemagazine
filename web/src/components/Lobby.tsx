@@ -65,7 +65,7 @@ export function Lobby({ me, notes, height, places, onSettle, onCollect }: LobbyP
             <>
               <p className="muted">{t("Waiting for a rival…")}</p>
               <LostSoFar n={triesLost(p, notes, height)} />
-              <ShareButtons recordId={p.id} score={p.storage.target} expiresAt={blockToMs(p.storage.expiryBlock, height)} cities={cityNames(recordCities(p.storage.game), places(p.storage.game))} />
+              <ShareButtons recordId={p.id} score={p.storage.target} expiresAt={blockToMs(p.storage.expiryBlock, height)} cities={cityNames(recordCities(p.storage.game), places(p.storage.game))} stage={stageTag(p.storage.game) === "World" ? undefined : stageTag(p.storage.game)} />
             </>
           )}
         </section>

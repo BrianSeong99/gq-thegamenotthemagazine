@@ -63,7 +63,8 @@ export const ZH: Record<string, string> = {
   "Posting your record": "发布纪录中",
   "Record posted!": "纪录已发布！",
   "Now find someone to beat you.": "现在去找人来打破它吧。",
-  "Share on X": "分享到微博",
+  "Share on X": "分享到 X",
+  "Share on Weibo": "分享到微博",
   "Copy link": "复制链接",
   "Copied!": "已复制",
 
