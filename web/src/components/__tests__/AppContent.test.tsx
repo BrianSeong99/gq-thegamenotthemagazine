@@ -170,7 +170,11 @@ describe("1P stages", () => {
   it("without a record of mine every stage is locked and says what it needs", async () => {
     chain.notes = [];
     await start();
-    expect(await screen.findByRole("button", { name: /^America: 3,000 pts to unlock$/ })).toBeDisabled();
+    const america = await screen.findByRole("button", { name: /^America: 3,000 pts to unlock$/ });
+    expect(america).toBeDisabled();
+    // the whole line on a desktop, the number alone beside the lock on a phone (CSS picks), the button's name always the whole line
+    expect(america.querySelector(".need .full")).toHaveTextContent("3,000 pts to unlock");
+    expect(america.querySelector(".need .short")).toHaveTextContent(/^3,000$/);
     expect(screen.getByRole("img", { name: "World map" })).toBeInTheDocument();
   });
 
