@@ -75,8 +75,8 @@ vi.mock("@/lib/bread", () => ({
 // the app fetches the dataset and the map; the quiz check must see the record's own cities
 vi.mock("@/lib/quiz", async (orig) => ({
   ...(await orig<typeof import("@/lib/quiz")>()),
-  // the World Tour list hashes to the record's dataset word, the stage lists to another
-  datasetWord: async (bytes: Uint8Array) => (new TextDecoder().decode(bytes).startsWith('["/') ? [9n, 9n, 9n, 9n] : [0n, 0n, 0n, 0n]),
+  // the World Tour list (cities c0…c9) hashes to the record's dataset word, the stage lists (s0…s9) all to another
+  datasetWord: async (bytes: Uint8Array) => (new TextDecoder().decode(bytes).includes('"s0"') ? [9n, 9n, 9n, 9n] : [0n, 0n, 0n, 0n]),
   quizCities: async () => cities,
 }));
 
@@ -95,8 +95,8 @@ beforeEach(() => {
     "fetch",
     vi.fn(async (url: string) => ({
       ok: true,
-      // the World Tour list; the stage lists are empty here (each hashes to its own dataset word)
-      arrayBuffer: async () => new TextEncoder().encode(url.endsWith("/cities.json") ? JSON.stringify(cities.map((c) => ({ name: `c${c.idx}`, country: "x", lat: 0, lon: 0 }))) : `["${url}"]`).buffer,
+      // the World Tour list names its cities c0…c9, every stage list s0…s9 (all four hash to the same word; the last registered, Asia, owns it)
+      arrayBuffer: async () => new TextEncoder().encode(JSON.stringify(cities.map((c) => ({ name: `${url.endsWith("/cities.json") ? "c" : "s"}${c.idx}`, country: "x", lat: 0, lon: 0 })))).buffer,
       json: async () => (url.includes("places.zh") ? Object.fromEntries(cities.map((c) => [`c${c.idx}|x`, [`城${c.idx}`, "国"]])) : {}),
     })),
   );
@@ -178,8 +178,19 @@ describe("1P stages", () => {
     expect(screen.getByRole("img", { name: "World map" })).toBeInTheDocument();
   });
 
+  it("a shot at an Asia record plays on the Asia map with the Asia cities", async () => {
+    const game = encodeGame({ seed: [0n, 0n, 0n, 0n], dataset: [9n, 9n, 9n, 9n], cities });
+    chain.shared = { ...prize, storage: { ...storage, game } };
+    chain.notes = [chain.shared, { ...prize, id: "0xmine", createdAt: 5, storage: { ...storage, champion: me, target: 6500 } }];
+    bread.postShot.mockResolvedValue({ txId: "tx", noteIds: ["0xnew"], deadline: 220 });
+    window.history.replaceState({}, "", "/?record=0xp");
+    render(<AppContent />);
+    fireEvent.click(await screen.findByRole("button", { name: /insert gamecoin/i }));
+    expect(await screen.findByText(/find s0!/i)).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "Asia" })).toBeInTheDocument();
+  });
+
   it("a record on a locked stage shows the map and the score I need, and Insert Gamecoin refuses", async () => {
-    // the stage lists all hash to the second dataset word here, the last of them registered is Asia
     const game = encodeGame({ seed: [0n, 0n, 0n, 0n], dataset: [9n, 9n, 9n, 9n], cities });
     chain.shared = { ...prize, storage: { ...storage, game } };
     chain.notes = [chain.shared];
@@ -344,6 +355,26 @@ describe("Simplified Chinese", () => {
     expect(await screen.findByText(/找到城\d！/)).toBeInTheDocument();
     // no language switch inside the game: the splash is the only place
     expect(screen.queryByRole("combobox")).toBeNull();
+  });
+
+  it("the X post stays English: a Hub card's share names Paris, not 巴黎", async () => {
+    window.history.replaceState({}, "", "/");
+    localStorage.setItem("gq.lang", "zh-Hans");
+    const f = fetch;
+    vi.stubGlobal("fetch", async (url: string) =>
+      url.endsWith("/cities.json")
+        ? { ok: true, arrayBuffer: async () => new TextEncoder().encode(JSON.stringify(cities.map((c) => ({ name: c.idx ? `c${c.idx}` : "Paris", country: "x", lat: 0, lon: 0 })))).buffer }
+        : url.includes("places.zh")
+          ? { ok: true, json: async () => ({ "Paris|x": ["巴黎", "国"] }) }
+          : f(url),
+    );
+    chain.notes = [{ ...prize, createdAt: 5, storage: { ...storage, champion: me } }];
+    render(<AppContent />);
+    fireEvent.click(await screen.findByRole("button", { name: /点击开始/ }));
+    fireEvent.click(screen.getByRole("button", { name: "玩家中心" }));
+    const href = (await screen.findByRole("link", { name: "分享到 X" })).getAttribute("href")!;
+    expect(decodeURIComponent(href)).toContain("Paris");
+    localStorage.removeItem("gq.lang");
   });
 
   it("remembers the language on the next visit: the splash starts in Chinese", async () => {

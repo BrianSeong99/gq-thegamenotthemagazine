@@ -2,12 +2,13 @@
 
 import { useState } from "react";
 import { recordLinks } from "@/lib/flow";
-import { translator, useLang, useT } from "@/lib/i18n";
+import { useLang, useT } from "@/lib/i18n";
+import type { Stage } from "@/lib/stages";
 
-export function ShareButtons({ recordId, score, expiresAt, cities, stage }: { recordId: string; score: number; expiresAt: number; cities: string[]; stage?: string }) {
+export function ShareButtons({ recordId, score, expiresAt, cities, stage }: { recordId: string; score: number; expiresAt: number; cities: string[]; stage?: Stage }) {
   const t = useT();
   const { lang } = useLang();
-  const { url, x, weibo } = recordLinks(recordId, score, expiresAt, cities, stage, stage && translator("zh-Hans")(stage));
+  const { url, x, weibo } = recordLinks(recordId, score, expiresAt, cities, stage);
   const [copied, setCopied] = useState(false);
   return (
     <div className="share">

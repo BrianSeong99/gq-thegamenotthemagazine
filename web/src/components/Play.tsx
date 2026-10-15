@@ -7,7 +7,7 @@ import { latToCd, lonToCd, quizScore, roundScore, TIME_CAP, type Answer, type Ci
 import type { Place } from "@/lib/quiz";
 import { blocksToClock, secondsToClock } from "@/lib/flow";
 import { useT } from "@/lib/i18n";
-import { WORLD, type Stage } from "@/lib/stages";
+import type { Stage } from "@/lib/stages";
 
 export type PlayResult = { answers: Answer[]; score: number };
 
@@ -22,14 +22,14 @@ export function Play({
   places,
   onDone,
   rival,
-  stage = WORLD,
+  stage,
 }: {
   cities: City[];
   places: Place[];
   onDone: (r: PlayResult) => void;
   /** Playing a shot: the rival sprite and the shot clock (blocks left) show in the HUD. */
   rival?: { blocksLeft: number };
-  stage?: Stage;
+  stage: Stage;
 }) {
   const t = useT();
   const [round, setRound] = useState(0);

@@ -2,7 +2,7 @@
 // link, code or from the open list, take a shot) / Player Hub (my records, my shots, what rivals left me).
 // The app's own Miden client only reads the chain (and mints Gamecoins); the wallet signs the rest.
 
-import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useContext, useEffect, useMemo, useRef, useState, type ComponentProps } from "react";
 import { flushSync } from "react-dom";
 import { useMidenClient, useMiden } from "@miden-sdk/react";
 import { useMidenFiWallet } from "@miden-sdk/miden-wallet-adapter-react";
@@ -16,7 +16,7 @@ import { gcBalance, postShot, postRecord, settle, collect, setSubmitAttemptListe
 import { shotDeadline, shotStorage, ZERO_WORD, type AccountFelts, type ChallengeStorage } from "@/lib/notes";
 import { blockToMs, claimVerdict, explain, fmtGamecoin, NOT_FINISHED, sameAccount, SHOT_LOST, shotRefusal, withoutRecord, withTimeout, type Trouble, myOpenShotsOn as openShotsOn, outcomeText, parseCode, reportRows, settlePlan, sharedRecordState, type ReportRow } from "@/lib/flow";
 import { cityNames, datasetWord, decodeGame, encodeGame, gameStage, quizCities, randomSeed, type Place, type Word4 } from "@/lib/quiz";
-import { registerDataset, STAGES, stageById, type Stage as GameStage, type StageId } from "@/lib/stages";
+import { registerDataset, STAGES, stageById, WORLD, type Stage as GameStage, type StageId } from "@/lib/stages";
 import { LANGS, LangContext, PIXEL12, storedLang, storeLang, useT, type Lang } from "@/lib/i18n";
 import { gqAnswer, type City } from "@/lib/rules";
 import { History } from "./History";
@@ -41,7 +41,7 @@ type Mode =
   /** `track`: the music of the screen it came from, which keeps playing while it waits */
   | { kind: "busy"; text: string; back: Mode; stage: Stage; since: number; track: Track }
   /** `claimed`: the record is won, OK leaves it behind; after a round (`rows` or `share`) OK goes back to the splash screen */
-  | { kind: "done"; title?: string; text: string; rows?: ReportRow[]; txId?: string; share?: { recordId: string; score: number; expiresAt: number; cities: string[] }; retry?: () => void; retryLabel?: string; claimed?: boolean;
+  | { kind: "done"; title?: string; text: string; rows?: ReportRow[]; txId?: string; share?: ComponentProps<typeof ShareButtons>; retry?: () => void; retryLabel?: string; claimed?: boolean;
       /** when a retried claim stops making sense: the shot's end, as a clock time (ms) */
       claimUntil?: number };
 
@@ -149,23 +149,19 @@ function GqApp({ onStarted }: { onStarted?: () => void }) {
       .then((names: Record<string, [string, string]>) => setPlaceNames({ file: placesFile, names }))
       .catch((e) => console.warn("[gq] place names", e));
   }, [placesFile, placeNames]);
+  /** A stage's city list as loaded: English names, the ones the post and the quiz check use. */
+  const listOf = (s: GameStage | undefined): Place[] => (s && datasets[s.id]?.places) ?? [];
   /** A stage's cities as the player reads them: names in the current language once loaded. */
-  const placesOf = useCallback(
-    (s: GameStage | undefined): Place[] => {
-      const list = s ? (datasets[s.id]?.places ?? []) : [];
-      if (!placesFile || placeNames?.file !== placesFile) return list;
-      return list.map((p) => {
-        const n = placeNames.names[`${p.name}|${p.country}`];
-        return n ? { ...p, name: n[0], country: n[1] } : p;
-      });
-    },
-    [datasets, placesFile, placeNames],
-  );
-  /** The stage a note's game data plays on, and its cities in the player's language. */
-  const placesOfGame = useCallback((game: bigint[]) => placesOf(gameStage(game)), [placesOf]);
+  const placesOf = (s: GameStage | undefined): Place[] => {
+    const list = listOf(s);
+    if (!placesFile || placeNames?.file !== placesFile) return list;
+    return list.map((p) => {
+      const n = placeNames.names[`${p.name}|${p.country}`];
+      return n ? { ...p, name: n[0], country: n[1] } : p;
+    });
+  };
   const dataset = datasets[stageId]?.word ?? null;
   const places = placesOf(stage);
-  const shownPlaces = places;
   const [notes, setNotes] = useState<ChallengeNote[]>([]);
   // the first read of every game's notes, history and boards wait for it
   const [notesRead, setNotesRead] = useState(false);
@@ -385,7 +381,7 @@ function GqApp({ onStarted }: { onStarted?: () => void }) {
         return postRecord(client, wallet, storage, STAKE);
       },
       m,
-      ({ txId, noteIds }) => ({ kind: "done", title: t("Record posted!"), text: t("Now find someone to beat you."), txId, share: { recordId: noteIds[0], score: m.result.score, expiresAt: blockToMs(height + RECORD_LIFETIME_BLOCKS, height), cities: cityNames(m.cities, placesOf(m.stage)), stage: m.stage.id === "world" ? undefined : m.stage.name } }),
+      ({ txId, noteIds }) => ({ kind: "done", title: t("Record posted!"), text: t("Now find someone to beat you."), txId, share: { recordId: noteIds[0], score: m.result.score, expiresAt: blockToMs(height + RECORD_LIFETIME_BLOCKS, height), cities: cityNames(m.cities, listOf(m.stage)), stage: m.stage } }),
     );
   }
 
@@ -397,8 +393,7 @@ function GqApp({ onStarted }: { onStarted?: () => void }) {
     const refusal = shotRefusal(record, height, rival);
     if (refusal) return say(refusal);
     const recordStage = gameStage(record.storage.game);
-    const recordDataset = recordStage && datasets[recordStage.id]?.word;
-    if (!recordStage || !recordDataset) return say(t("This record uses another city list. It can't be played here."));
+    if (!recordStage) return say(t("This record uses another city list. It can't be played here."));
     if (!unlocked(recordStage)) return say(t("You need a record above {n} pts to play {stage}.", { n: recordStage.threshold.toLocaleString(), stage: t(recordStage.name) }));
     const open = openShotsOn(notes, rival, record, height);
     if (open.length > 0) {
@@ -412,9 +407,8 @@ function GqApp({ onStarted }: { onStarted?: () => void }) {
       async () => {
         // refuse a quiz that does not come from the seed and this dataset
         const game = decodeGame(record.storage.game);
-        const expected = await quizCities(game.seed, datasets[recordStage.id]!.places, recordStage);
-        const same = expected.every((c, i) => JSON.stringify(c) === JSON.stringify(game.cities[i]));
-        if (!same || game.dataset.some((f, i) => f !== recordDataset[i])) throw new Error("This record's quiz does not match the dataset.");
+        const expected = await quizCities(game.seed, listOf(recordStage), recordStage);
+        if (!expected.every((c, i) => JSON.stringify(c) === JSON.stringify(game.cities[i]))) throw new Error("This record's quiz does not match the dataset.");
         return postShot(client, wallet, record, rival);
       },
       { kind: "lobby" },
@@ -438,7 +432,7 @@ function GqApp({ onStarted }: { onStarted?: () => void }) {
 
   const settleAfterPlay = (shots: ChallengeNote[], record: ChallengeNote | undefined) => (r: PlayResult) => {
     const plan = settlePlan(shots, record, r.score, height, t);
-    const rows = reportRows(decodeGame(shots[0].storage.game).cities, r.answers, placesOfGame(shots[0].storage.game));
+    const rows = reportRows(decodeGame(shots[0].storage.game).cities, r.answers, placesOf(gameStage(shots[0].storage.game)));
     const claimUntil = blockToMs(shotDeadline(shots[0].storage), height);
     if (!plan.won) {
       // nothing to sign on a loss: the Gamecoin waits for the champion at the deadline; until then the shot can be played again
@@ -727,7 +721,7 @@ function GqApp({ onStarted }: { onStarted?: () => void }) {
                 me={me}
                 notes={notes}
                 height={height}
-                places={placesOfGame}
+                places={(game) => listOf(gameStage(game))}
                 onSettle={(shot, record) => {
                   const open = record && me ? myOpenShotsOn(record) : [];
                   setMode({ kind: "play-rival", shots: open.length > 0 ? open : [shot], record });
@@ -789,8 +783,9 @@ function GqApp({ onStarted }: { onStarted?: () => void }) {
 
       {mode.kind === "play-rival" && (
         <Play
+          stage={gameStage(mode.shots[0].storage.game) ?? WORLD}
           cities={decodeGame(mode.shots[0].storage.game).cities}
-          places={shownPlaces}
+          places={placesOf(gameStage(mode.shots[0].storage.game))}
           rival={{ blocksLeft: shotDeadline(mode.shots[0].storage) - height }}
           onDone={settleAfterPlay(mode.shots, mode.record)}
         />

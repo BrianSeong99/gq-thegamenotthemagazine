@@ -2,6 +2,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { ChallengeNote } from "../chain";
 import type { ChallengeStorage, Word4 } from "../notes";
+import { stageById, WORLD } from "../stages";
 import { GC_FAUCET, GEOCOIN_FAUCET, MIN_SHOT_WINDOW_BLOCKS, V1_ROOTS } from "@/config";
 import {
   acceptNote,
@@ -247,10 +248,10 @@ describe("Gamecoin in words", () => {
   });
   it("names the map of a stage record: GQ Asia in the X post, the Chinese name in the Weibo post", () => {
     const at = Date.UTC(2026, 9, 13, 14, 5);
-    const { x, weibo } = recordLinks("0xabc", 6239, at, [], "Asia", "亚洲");
+    const { x, weibo } = recordLinks("0xabc", 6239, at, [], stageById("asia"));
     expect(new URL(x).searchParams.get("text")).toContain("GQ Asia");
     expect(new URL(weibo).searchParams.get("title")).toBe("我在 GeoQuizz 亚洲得了 6239 分。来挑战我的纪录！");
-    expect(new URL(recordLinks("0xabc", 6239, at).x).searchParams.get("text")).not.toContain("GQ Asia");
+    expect(new URL(recordLinks("0xabc", 6239, at, [], WORLD).x).searchParams.get("text")).not.toContain("GQ ");
   });
   it("brags about a hard city, teases with an easy one, says nothing about the rest", () => {
     const at = Date.UTC(2026, 9, 13, 14, 5);

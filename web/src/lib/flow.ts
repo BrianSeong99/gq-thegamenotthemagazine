@@ -5,7 +5,8 @@ import { noteDeadline, shotDeadline, ZERO_WORD, type AccountFelts, type Challeng
 import type { Place } from "./quiz";
 import { BLOCK_SECONDS, CLAIM_FUZZ, GC_DECIMALS, MIN_SHOT_WINDOW_BLOCKS, RECORD_LIFETIME_BLOCKS, STAKE, STAKE_FAUCETS, V1_ROOTS } from "@/config";
 import { QUIZ_MAX, roundScore, type Answer, type City } from "./rules";
-import { en, type T } from "./i18n";
+import { en, translator, type T } from "./i18n";
+import type { Stage } from "./stages";
 
 export const sameAccount = (a: AccountFelts | null | undefined, b: AccountFelts | null | undefined) =>
   !!a && !!b && a.suffix === b.suffix && a.prefix === b.prefix;
@@ -252,17 +253,18 @@ const WEIBO_POST = (score: number, map?: string) => `我在 GeoQuizz ${map ?? ""
 
 /**
  * The shareable link to a record, and the X post that carries it (the Weibo one too); `expiresAt`
- * is the record's expiry in ms, `cities` the names of its run, `stage` the stage's English name
- * when it is not the World Tour ("GQ Europe") and `stageZh` its Chinese one for Weibo. A hard city
- * gets bragged about, an easy one teased with.
+ * is the record's expiry in ms, `cities` the English names of its run, `stage` the stage it was
+ * played on (a region names the game: "GQ Europe", in Chinese on Weibo). A hard city gets bragged
+ * about, an easy one teased with.
  */
-export function recordLinks(recordId: string, score: number, expiresAt: number, cities: string[] = [], stage?: string, stageZh?: string) {
+export function recordLinks(recordId: string, score: number, expiresAt: number, cities: string[] = [], stage?: Stage) {
   const url = `${location.origin}${location.pathname}?record=${recordId}`;
   const pick = [...recordId].reduce((sum, c) => sum + c.charCodeAt(0), 0);
   const hard = cities.filter((c) => HARD_CITIES.includes(c));
   const easy = cities.filter((c) => EASY_CITIES.includes(c));
   const until = utcLabel(expiresAt);
-  const gq = stage ? `GQ ${stage}` : "GQ";
+  const region = stage && stage.id !== "world" ? stage.name : undefined;
+  const gq = region ? `GQ ${region}` : "GQ";
   const text = hard.length
     ? HARD_POSTS[pick % HARD_POSTS.length](score, until, hard[pick % hard.length], gq)
     : easy.length
@@ -271,7 +273,7 @@ export function recordLinks(recordId: string, score: number, expiresAt: number, 
   return {
     url,
     x: `https://x.com/intent/post?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`,
-    weibo: `https://service.weibo.com/share/share.php?url=${encodeURIComponent(url)}&title=${encodeURIComponent(WEIBO_POST(score, stageZh))}`,
+    weibo: `https://service.weibo.com/share/share.php?url=${encodeURIComponent(url)}&title=${encodeURIComponent(WEIBO_POST(score, region && translator("zh-Hans")(region)))}`,
   };
 }
 

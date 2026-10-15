@@ -4,7 +4,7 @@
 import type { ChallengeNote } from "@/lib/chain";
 import { blocksToClock, blockToMs, fmtGamecoin, sameAccount, sameWord } from "@/lib/flow";
 import { owed, stageTag, triesLost, whenLabel } from "@/lib/hub";
-import { cityNames, recordCities, type Place, type Word4 } from "@/lib/quiz";
+import { cityNames, gameStage, recordCities, type Place, type Word4 } from "@/lib/quiz";
 import { CLAIM_FUZZ } from "@/config";
 import { noteDeadline as deadline, type AccountFelts } from "@/lib/notes";
 import { ShareButtons } from "./ShareButtons";
@@ -14,7 +14,7 @@ type LobbyProps = {
   me: AccountFelts | null;
   notes: ChallengeNote[];
   height: number;
-  /** the city list a note's game data plays on, in the player's language */
+  /** the city list a note's game data plays on, English names for the post */
   places: (game: bigint[]) => Place[];
   onSettle: (shot: ChallengeNote, record: ChallengeNote | undefined) => void;
   onCollect: (notes: ChallengeNote[]) => void;
@@ -65,7 +65,7 @@ export function Lobby({ me, notes, height, places, onSettle, onCollect }: LobbyP
             <>
               <p className="muted">{t("Waiting for a rival…")}</p>
               <LostSoFar n={triesLost(p, notes, height)} />
-              <ShareButtons recordId={p.id} score={p.storage.target} expiresAt={blockToMs(p.storage.expiryBlock, height)} cities={cityNames(recordCities(p.storage.game), places(p.storage.game))} stage={stageTag(p.storage.game) === "World" ? undefined : stageTag(p.storage.game)} />
+              <ShareButtons recordId={p.id} score={p.storage.target} expiresAt={blockToMs(p.storage.expiryBlock, height)} cities={cityNames(recordCities(p.storage.game), places(p.storage.game))} stage={gameStage(p.storage.game)} />
             </>
           )}
         </section>
