@@ -244,7 +244,9 @@ describe("Gamecoin in words", () => {
     expect(text).toContain("9690");
     expect(text).toContain("13 Oct 14:05 UTC");
     expect(text).toContain("@joinbread");
-    expect(new URL(x).searchParams.get("url")).toBe(url);
+    // the link on its own line after a full stop: X swaps it for the card, so no colon is left hanging
+    expect(text).toMatch(new RegExp(`\\.\n${url.replace(/[?.]/g, "\\$&")}$`));
+    expect(new URL(x).searchParams.get("url")).toBeNull();
   });
   it("names the map of a stage record: GQ Asia in the X post, the Chinese name in the Weibo post", () => {
     const at = Date.UTC(2026, 9, 13, 14, 5);
