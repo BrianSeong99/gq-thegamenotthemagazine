@@ -41,7 +41,7 @@ export function WorldMap({
       onClick={handleClick}
       style={{ cursor: disabled || !onPick ? "default" : "crosshair" }}
     >
-      <image href={stage.map} x={frame.x} y={frame.y} width={frame.w} height={frame.h} />
+      <image href={stage.map} x={frame.x} y={frame.y} width={frame.w} height={frame.h} preserveAspectRatio="none" />
       {stage.id === "world" && MERIDIANS.map((x) => <line key={`v${x}`} className="grid" x1={x} y1={0} x2={x} y2={MAP_H} />)}
       {stage.id === "world" && PARALLELS.map((y) => <line key={`h${y}`} className="grid" x1={0} y1={y} x2={MAP_W} y2={y} />)}
       {marks.map((m, i) => {
