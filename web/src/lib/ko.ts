@@ -209,6 +209,7 @@ export const KO: Record<string, string> = {
   "Your rank": "내 순위",
   // stages
   "World Tour": "월드 투어",
+  "World": "세계",
   America: "아메리카",
   Africa: "아프리카",
   Europe: "유럽",

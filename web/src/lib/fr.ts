@@ -231,6 +231,7 @@ export const FR_FR: Record<string, string> = {
   "Your rank": "Votre rang",
   // stages
   "World Tour": "Tour du monde",
+  "World": "Monde",
   America: "Amérique",
   Africa: "Afrique",
   Europe: "Europe",

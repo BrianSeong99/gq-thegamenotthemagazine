@@ -186,8 +186,8 @@ main { max-width: 1440px; margin: 0 auto; padding: 28px 4% 56px; }
 .stage { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 4px; background: var(--void); border: 3px solid var(--rule); color: var(--yellow); font: 12px/1.3 var(--display); text-transform: uppercase; cursor: pointer; }
 .stage:hover { border-color: var(--cyan); }
 .stage img { width: 100%; height: 36px; object-fit: cover; image-rendering: pixelated; border: 1px solid var(--rule); animation: pan 24s linear infinite; }
-/* the tile pans the whole map: from the middle down to the bottom, up to the top, back to the middle */
-@keyframes pan { 0% { object-position: 50% 50%; } 25% { object-position: 50% 100%; } 75% { object-position: 50% 0; } 100% { object-position: 50% 50%; } }
+/* the tile pans its map at one speed: from the middle down to three quarters (the bottom sixth holds no city), up to the top, back to the middle */
+@keyframes pan { 0% { object-position: 50% 50%; } 16.667% { object-position: 50% 75%; } 66.667% { object-position: 50% 0; } 100% { object-position: 50% 50%; } }
 .stage.locked, .stage:disabled { opacity: 1; color: var(--muted); cursor: default; }
 .stage.locked:hover { border-color: var(--rule); }
 .stage.locked img { filter: grayscale(1) brightness(0.45); }

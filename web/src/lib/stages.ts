@@ -31,15 +31,15 @@ const stage = (id: StageId, name: string, threshold: number, lon0: number, lon1:
 });
 /**
  * In the order of the tiles: the World Tour, then by the score to unlock. A region's frame is 3:2
- * (sea on the sides of the tall continents, so it fits a desktop screen) with its bottom sixth free
- * of cities, where the stage tiles sit. Bounds mirror tasks/maps/pixelmap.py.
+ * (wide around the tall continents, so it fits a desktop screen) with its bottom sixth free of
+ * cities, where the stage tiles sit. Bounds mirror tasks/maps/pixelmap.py.
  */
 export const STAGES: Stage[] = [
   stage("world", "World Tour", 0, -180, 180, -90, 90),
-  stage("america", "America", 3000, -214, 14, -80, 72),
+  stage("america", "America", 3000, -230.5, 30.5, -84, 90),
   stage("africa", "Africa", 4000, -50.75, 82.75, -50, 39),
   stage("europe", "Europe", 5000, -25.25, 45.25, 25, 72),
-  stage("asia", "Asia", 6000, 1, 214, -70, 72),
+  stage("asia", "Asia", 6000, -14, 229, -72, 90),
 ];
 export const WORLD = STAGES[0];
 export const stageById = (id: StageId): Stage => STAGES.find((s) => s.id === id)!;

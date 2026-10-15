@@ -229,6 +229,7 @@ export const ZH: Record<string, string> = {
   "Your rank": "你的排名",
   // stages
   "World Tour": "环游世界",
+  "World": "世界",
   America: "美洲",
   Africa: "非洲",
   Europe: "欧洲",

@@ -229,6 +229,7 @@ const ES: Record<string, string> = {
   "Your rank": "Tu puesto",
   // stages
   "World Tour": "Vuelta al mundo",
+  "World": "Mundo",
   America: "América",
   Africa: "África",
   Europe: "Europa",
