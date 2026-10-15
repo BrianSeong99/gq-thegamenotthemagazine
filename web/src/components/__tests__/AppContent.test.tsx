@@ -144,6 +144,30 @@ describe("1P stages", () => {
     expect(screen.queryByRole("button", { name: "Europe" })).toBeNull();
   });
 
+  it("say Loading, not locked, until the notes are read and the wallet is back", async () => {
+    let release!: () => void;
+    vi.mocked(listChallengeNotes).mockImplementationOnce(() => new Promise((r) => (release = () => r(chain.notes))));
+    chain.notes = [{ ...prize, id: "0xmine", createdAt: 5, storage: { ...storage, champion: me, target: 5200 } }];
+    const { container } = render(<AppContent />);
+    await screen.findByRole("button", { name: /click to start/i });
+    fireEvent.click(container.querySelector(".welcome > img")!);
+    expect(await screen.findByRole("button", { name: "America: Loading" })).toBeDisabled();
+    expect(screen.queryByText(/pts to unlock/)).toBeNull();
+    release();
+    expect(await screen.findByRole("button", { name: "America" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: /^Asia: 6,000 pts to unlock$/ })).toBeDisabled();
+  });
+
+  it("say Loading while the wallet is still reconnecting", async () => {
+    wallet.connected = false;
+    wallet.connecting = true;
+    const { container } = render(<AppContent />);
+    await screen.findByRole("button", { name: /click to start/i });
+    fireEvent.click(container.querySelector(".welcome > img")!);
+    expect(await screen.findByRole("button", { name: "America: Loading" })).toBeDisabled();
+    wallet.connecting = false;
+  });
+
   it("without a record of mine every stage is locked and says what it needs", async () => {
     chain.notes = [];
     const { container } = render(<AppContent />);

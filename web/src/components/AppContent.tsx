@@ -199,7 +199,9 @@ function GqApp({ onStarted }: { onStarted?: () => void }) {
   const nameOf = (a: AccountFelts) => names.get(keyOf(a)) ?? lettersBackward(bech32Of(a)).slice(0, 3);
   /** My best posted record, on any map: what the stages unlock on. */
   const myBest = useMemo(() => (me ? Math.max(0, ...notes.filter((n) => n.kind === "record" && sameAccount(n.storage.champion, me)).map((n) => n.storage.target)) : 0), [notes, me]);
-  const unlocked = (s: GameStage) => s.threshold <= myBest
+  const unlocked = (s: GameStage) => s.threshold <= myBest;
+  /** The tiles cannot tell locked from not-yet-known until the notes are read and the wallet is back. */
+  const stagesLoading = !notesRead || (!me && wallet.connecting);
 
   /** A failure in plain words, with a way to try again when there is one. */
   const oops = (e: unknown, retry?: () => void) => setTrouble({ t: explain(e), retry });
@@ -677,7 +679,7 @@ function GqApp({ onStarted }: { onStarted?: () => void }) {
           <div className="cols tour">
             <div className="panel map-frame">
               <WorldMap stage={stage} />
-              <StageTiles shown={stage} unlocked={unlocked} onPick={setStageId} />
+              <StageTiles shown={stage} unlocked={unlocked} loading={stagesLoading} onPick={setStageId} />
             </div>
             <div>
               <aside className="panel">
