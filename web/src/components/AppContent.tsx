@@ -65,7 +65,7 @@ const trackOf = (m: Mode): Track =>
 /** Something that needs a connected wallet; it runs once the wallet is there. */
 type Intent = { kind: "post"; m: Extract<Mode, { kind: "post-record" }> } | { kind: "shot"; record: ChallengeNote } | { kind: "gamecoins" };
 
-export function AppContent() {
+export function AppContent({ onStarted }: { onStarted?: () => void } = {}) {
   // the language: the device remembers it; the splash and the ribbon change it
   const [lang, setLangState] = useState<Lang>(storedLang);
   const setLang = (l: Lang) => {
@@ -78,12 +78,12 @@ export function AppContent() {
   }, [lang]);
   return (
     <LangContext.Provider value={{ lang, setLang }}>
-      <Gate />
+      <Gate onStarted={onStarted} />
     </LangContext.Provider>
   );
 }
 
-function Gate() {
+function Gate({ onStarted }: { onStarted?: () => void }) {
   const t = useT();
   // `useMidenClient()` throws until the provider has created the client, so gate on readiness first.
   const { isReady, error } = useMiden();
@@ -113,10 +113,10 @@ function Gate() {
       </main>
     );
   }
-  return <GqApp />;
+  return <GqApp onStarted={onStarted} />;
 }
 
-function GqApp() {
+function GqApp({ onStarted }: { onStarted?: () => void }) {
   const t = useT();
   const { lang } = useContext(LangContext);
   const client = useMidenClient();
@@ -130,6 +130,9 @@ function GqApp() {
   const sharedRecordId = params.get("record") ?? params.get("prize"); // ?prize= is the old link form
 
   const [started, setStarted] = useState(!!sharedRecordId);
+  useEffect(() => {
+    if (started) onStarted?.();
+  }, [started, onStarted]);
   const [tab, setTab] = useState<Tab>(sharedRecordId ? "vs" : "1p");
   // every stage's city list (the World Tour's is cities.json) with its dataset hash; all five load at the start
   const [datasets, setDatasets] = useState<Partial<Record<StageId, { places: Place[]; word: Word4 }>>>({});

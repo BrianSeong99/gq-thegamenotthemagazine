@@ -6,7 +6,8 @@ import { APP_NAME, MIDEN_RPC_URL, MIDEN_PROVER } from "@/config";
 
 // MidenProvider sits outside the signer provider: with a signer above it, it would wait for the
 // wallet to connect before creating its client, and the app reads the chain before anyone connects.
-export function AppProviders({ children }: { children: ReactNode }) {
+/** `autoConnect`: once the game is on (not on the splash), Bread reconnects by itself. */
+export function AppProviders({ children, autoConnect = false }: { children: ReactNode; autoConnect?: boolean }) {
   return (
     <MidenProvider
       config={{ rpcUrl: MIDEN_RPC_URL, prover: MIDEN_PROVER, useWorker: true }}
@@ -15,7 +16,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
       <MidenFiSignerProvider
         appName={APP_NAME}
         network={WalletAdapterNetwork.Testnet}
-        autoConnect={true}
+        autoConnect={autoConnect}
       >
         {children}
       </MidenFiSignerProvider>
