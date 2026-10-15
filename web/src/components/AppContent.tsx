@@ -2,14 +2,14 @@
 // link, code or from the open list, take a shot) / Player Hub (my records, my shots, what rivals left me).
 // The app's own Miden client only reads the chain (and mints Gamecoins); the wallet signs the rest.
 
-import { useCallback, useContext, useEffect, useMemo, useRef, useState, type ComponentProps } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ComponentProps } from "react";
 import { flushSync } from "react-dom";
 import { useMidenClient, useMiden } from "@miden-sdk/react";
 import { useMidenFiWallet } from "@miden-sdk/miden-wallet-adapter-react";
 import { LOCAL_WALLET, useLocalWallet } from "@/lib/localWallet";
 import { GAMECOIN_GRANT, gamecoinRefusal, GRANT_PENDING_MS, useGamecoin } from "@/lib/gamecoin";
 import { useSound, type Track } from "@/lib/useSound";
-import { CITIES_URL, RECORD_LIFETIME_BLOCKS, STAKE, TEST_ACCOUNTS } from "@/config";
+import { RECORD_LIFETIME_BLOCKS, STAKE, TEST_ACCOUNTS } from "@/config";
 import { accountFelts, bech32Of, fetchChallengeNote, hexOf, knownNote, listChallengeNotes, loadScripts, parseAccountId, syncNotes, wordFromHex, type ChallengeNote } from "@/lib/chain";
 import { boards, history as pastGames, keyOf, lettersBackward, nicknames, owed, playersInOrder, stageTag } from "@/lib/hub";
 import { gcBalance, postShot, postRecord, settle, collect, setSubmitAttemptListener, setSubmitStageListener, waitFor, type Submitted } from "@/lib/bread";
@@ -17,7 +17,7 @@ import { shotDeadline, shotStorage, ZERO_WORD, type AccountFelts, type Challenge
 import { blockToMs, claimVerdict, explain, fmtGamecoin, NOT_FINISHED, sameAccount, SHOT_LOST, shotRefusal, withoutRecord, withTimeout, type Trouble, myOpenShotsOn as openShotsOn, outcomeText, parseCode, reportRows, settlePlan, sharedRecordState, type ReportRow } from "@/lib/flow";
 import { cityNames, datasetWord, decodeGame, encodeGame, gameStage, quizCities, randomSeed, type Place, type Word4 } from "@/lib/quiz";
 import { registerDataset, STAGES, stageById, WORLD, type Stage as GameStage, type StageId } from "@/lib/stages";
-import { LANGS, LangContext, PIXEL12, storedLang, storeLang, useT, type Lang } from "@/lib/i18n";
+import { LANGS, LangContext, PIXEL12, storedLang, storeLang, useLang, useT, type Lang } from "@/lib/i18n";
 import { gqAnswer, type City } from "@/lib/rules";
 import { History } from "./History";
 import { Leaderboards } from "./Leaderboards";
@@ -27,7 +27,6 @@ import { Play, type PlayResult } from "./Play";
 import { Shell } from "./Shell";
 import { ClaimButton, EndsIn, ErrorBox, Waiting, type Stage } from "./Status";
 import { type Tab } from "@/lib/tabs";
-import { placesUrl } from "@/config";
 import { StageTiles } from "./StageTiles";
 import { Welcome } from "./Welcome";
 import { WorldMap } from "./WorldMap";
@@ -65,7 +64,7 @@ const trackOf = (m: Mode): Track =>
 /** Something that needs a connected wallet; it runs once the wallet is there. */
 type Intent = { kind: "post"; m: Extract<Mode, { kind: "post-record" }> } | { kind: "shot"; record: ChallengeNote } | { kind: "gamecoins" };
 
-export function AppContent({ onStarted }: { onStarted?: () => void } = {}) {
+export function AppContent({ onStarted }: { onStarted?: () => void }) {
   // the language: the device remembers it; the splash and the ribbon change it
   const [lang, setLangState] = useState<Lang>(storedLang);
   const setLang = (l: Lang) => {
@@ -118,9 +117,9 @@ function Gate({ onStarted }: { onStarted?: () => void }) {
 
 function GqApp({ onStarted }: { onStarted?: () => void }) {
   const t = useT();
-  const { lang } = useContext(LangContext);
+  const { lang } = useLang();
   const client = useMidenClient();
-  const { runExclusive, isReady } = useMiden();
+  const { runExclusive } = useMiden();
   const bread = useMidenFiWallet();
   const local = useLocalWallet(client, runExclusive);
   const wallet = LOCAL_WALLET ? local : bread;
@@ -144,7 +143,7 @@ function GqApp({ onStarted }: { onStarted?: () => void }) {
   const [placeNames, setPlaceNames] = useState<{ file: string; names: Record<string, [string, string]> } | null>(null);
   useEffect(() => {
     if (!placesFile || placeNames?.file === placesFile) return;
-    fetch(placesUrl(placesFile))
+    fetch(`/places.${placesFile}.json`)
       .then((r) => r.json())
       .then((names: Record<string, [string, string]>) => setPlaceNames({ file: placesFile, names }))
       .catch((e) => console.warn("[gq] place names", e));
@@ -194,10 +193,11 @@ function GqApp({ onStarted }: { onStarted?: () => void }) {
   }, [publicNotes, meKey]);
   const nameOf = (a: AccountFelts) => names.get(keyOf(a)) ?? lettersBackward(bech32Of(a)).slice(0, 3);
   /** My best posted record, on any map: what the stages unlock on. */
-  const myBest = useMemo(() => (me ? Math.max(0, ...notes.filter((n) => n.kind === "record" && sameAccount(n.storage.champion, me)).map((n) => n.storage.target)) : 0), [notes, me]);
+  const myBest = Math.max(0, ...notes.filter((n) => n.kind === "record" && sameAccount(n.storage.champion, me)).map((n) => n.storage.target));
   const unlocked = (s: GameStage) => s.threshold <= myBest;
+  const needs = (s: GameStage) => t("You need a record above {n} pts to play {stage}.", { n: s.threshold.toLocaleString(), stage: t(s.name) });
   /** The tiles appear once they can tell locked from open: the notes read and the wallet back. */
-  const stagesKnown = notesRead && !(!me && wallet.connecting);
+  const stagesKnown = notesRead && (!!me || !wallet.connecting);
 
   /** A failure in plain words, with a way to try again when there is one. */
   const oops = (e: unknown, retry?: () => void) => setTrouble({ t: explain(e), retry });
@@ -217,7 +217,7 @@ function GqApp({ onStarted }: { onStarted?: () => void }) {
 
   useEffect(() => {
     for (const s of STAGES)
-      withTimeout(fetch(s.id === "world" ? CITIES_URL : s.cities), 30_000, "Loading the cities")
+      withTimeout(fetch(s.cities), 30_000, "Loading the cities")
         .then(async (r) => {
           if (!r.ok) throw new Error(`Loading the cities: HTTP ${r.status}`);
           const bytes = new Uint8Array(await r.arrayBuffer());
@@ -238,7 +238,6 @@ function GqApp({ onStarted }: { onStarted?: () => void }) {
   const notesReadRef = useRef(false);
   const refresh = useCallback(
     async (withNotes = true) => {
-      if (!isReady || !client) return;
       if (withNotes) setRefreshing(true);
       try {
         const h = await withTimeout(runExclusive(() => syncNotes(client)), 30_000, "Syncing");
@@ -256,17 +255,17 @@ function GqApp({ onStarted }: { onStarted?: () => void }) {
         if (withNotes) setRefreshing(false);
       }
     },
-    [client, isReady, runExclusive],
+    [client, runExclusive],
   );
 
   useEffect(() => {
     void refresh();
-    const t = setInterval(() => void refresh(!notesReadRef.current), 15_000);
-    return () => clearInterval(t);
+    const timer = setInterval(() => void refresh(!notesReadRef.current), 15_000);
+    return () => clearInterval(timer);
   }, [refresh]);
 
   const connect = (): void => void wallet.connect().catch((e) => oops(e, connect));
-  const connected = wallet.connected && !!wallet.address;
+  const connected = !!me;
 
   /** Runs `intent` now, or connects first (Bread opens its popup, the test wallet creates itself) and runs it then. */
   function withWallet(intent: Intent) {
@@ -351,7 +350,7 @@ function GqApp({ onStarted }: { onStarted?: () => void }) {
   }
 
   function startChampion() {
-    if (!dataset || places.length === 0) return say(t("Still loading the cities, try again in a second."));
+    if (!dataset) return say(t("Still loading the cities, try again in a second."));
     setTrouble(null);
     const seed = randomSeed();
     quizCities(seed, places, stage)
@@ -394,7 +393,7 @@ function GqApp({ onStarted }: { onStarted?: () => void }) {
     if (refusal) return say(refusal);
     const recordStage = gameStage(record.storage.game);
     if (!recordStage) return say(t("This record uses another city list. It can't be played here."));
-    if (!unlocked(recordStage)) return say(t("You need a record above {n} pts to play {stage}.", { n: recordStage.threshold.toLocaleString(), stage: t(recordStage.name) }));
+    if (!unlocked(recordStage)) return say(needs(recordStage));
     const open = openShotsOn(notes, rival, record, height);
     if (open.length > 0) {
       // one Gamecoin per sitting: play the shot already on the table instead of paying again
@@ -437,7 +436,7 @@ function GqApp({ onStarted }: { onStarted?: () => void }) {
     if (!plan.won) {
       // nothing to sign on a loss: the Gamecoin waits for the champion at the deadline; until then the shot can be played again
       const retry = plan.again ? () => setMode({ kind: "play-rival", shots, record }) : undefined;
-      setMode({ kind: "done", title: t("The record stands."), text: plan.text, rows, retry, claimUntil: retry && claimUntil });
+      setMode({ kind: "done", title: t("The record stands."), text: plan.text, rows, retry, claimUntil });
       return;
     }
     const claim = (): void =>
@@ -594,17 +593,10 @@ function GqApp({ onStarted }: { onStarted?: () => void }) {
           <span className="value">{fmtGamecoin(record.storage.minStake, t)}</span>
         </div>
         {state === "mine" && <p className="muted">{t("This is yours.")}</p>}
-        {recordStage && !unlocked(recordStage) && state !== "mine" && (
-          <p className="muted">{t("You need a record above {n} pts to play {stage}.", { n: recordStage.threshold.toLocaleString(), stage: t(recordStage.name) })}</p>
-        )}
-        {state === "already-challenged" && (
-          <button className="btn primary wide" onClick={() => withWallet({ kind: "shot", record: record })}>
-            {t("Play")}
-          </button>
-        )}
-        {state === "open" && (
-          <button className="btn primary wide" onClick={() => withWallet({ kind: "shot", record: record })}>
-            {t("Insert Gamecoin")}
+        {recordStage && !unlocked(recordStage) && state !== "mine" && <p className="muted">{needs(recordStage)}</p>}
+        {(state === "open" || state === "already-challenged") && (
+          <button className="btn primary wide" onClick={() => withWallet({ kind: "shot", record })}>
+            {state === "open" ? t("Insert Gamecoin") : t("Play")}
           </button>
         )}
         <p className="muted terms" style={{ margin: "14px 0 0" }}>
@@ -616,8 +608,8 @@ function GqApp({ onStarted }: { onStarted?: () => void }) {
     );
   };
 
-  const openTab = (t: Tab) => {
-    setTab(t);
+  const openTab = (next: Tab) => {
+    setTab(next);
     setTrouble(null);
     setMode({ kind: "lobby" });
   };
@@ -630,22 +622,20 @@ function GqApp({ onStarted }: { onStarted?: () => void }) {
     setStarted(false);
   };
 
-  const walletLabel = wallet.connected && me ? `${LOCAL_WALLET ? t("Test wallet") : t("Wallet")} / ${nameOf(me)}` : null;
+  const walletLabel = me ? `${LOCAL_WALLET ? t("Test wallet") : t("Wallet")} / ${nameOf(me)}` : null;
+  const title1p = stage.id === "world" ? t("1P World Tour") : t("1P {stage}", { stage: t(stage.name) });
 
-  if (!started)
-    return (
-      <Welcome onStart={() => setStarted(true)} />
-    );
+  if (!started) return <Welcome onStart={() => setStarted(true)} />;
 
   return (
     <Shell
       tab={tab}
-      labels={stage.id === "world" ? {} : { "1p": t("1P {stage}", { stage: t(stage.name) }) }}
+      title1p={title1p}
       onTab={openTab}
       onHome={goHome}
       walletLabel={walletLabel}
       netSlow={netSlow}
-      hubAlert={wallet.connected && owed(notes, height, me).length > 0}
+      hubAlert={owed(notes, height, me).length > 0}
       onWallet={() => (wallet.connected ? void wallet.disconnect() : connect())}
       soundOn={sound.on}
       onSound={sound.toggle}
@@ -681,10 +671,10 @@ function GqApp({ onStarted }: { onStarted?: () => void }) {
             </div>
             <div>
               <aside className="panel">
-                <div className="panel-title">{stage.id === "world" ? t("1P World Tour") : t("1P {stage}", { stage: t(stage.name) })}</div>
+                <div className="panel-title">{title1p}</div>
                 <p>{t("10 cities, 15 seconds each.")}</p>
                 <p className="muted">{t("Free to play. Once you're happy with your score, post it on X to challenge your rivals.")}</p>
-                <button className="btn primary wide" onClick={startChampion} disabled={!dataset || places.length === 0}>
+                <button className="btn primary wide" onClick={startChampion} disabled={!dataset}>
                   {t("Locate first city")}
                 </button>
               </aside>

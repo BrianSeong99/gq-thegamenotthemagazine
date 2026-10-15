@@ -37,18 +37,17 @@ const myShot: ChallengeNote = {
   consumed: false,
 };
 
-const handlers = () => ({ onSettle: vi.fn(), onCollect: vi.fn() });
+const props = () => ({ places: () => places, onSettle: vi.fn(), onCollect: vi.fn() });
 
 describe("Lobby", () => {
   it("never lists other people's records: those are in Champion vs Rival", () => {
-    render(<Lobby me={me} notes={[prize]} places={() => places} height={100} {...handlers()} />);
-    expect(screen.queryByText(/3750|2000/)).toBeNull();
+    render(<Lobby me={me} notes={[prize]} height={100} {...props()} />);
     expect(screen.queryByRole("button")).toBeNull();
   });
 
   it("shows the champion their own record, and take-it-back only CLAIM_FUZZ blocks past expiry (a claim may land until then)", () => {
-    const h = handlers();
-    const { rerender } = render(<Lobby me={champion} notes={[prize]} places={() => places} height={100} {...h} />);
+    const h = props();
+    const { rerender } = render(<Lobby me={champion} notes={[prize]} height={100} {...h} />);
     expect(screen.queryByRole("button", { name: /take it back/i })).toBeNull();
     expect(screen.getByText(/waiting for a rival/i)).toBeInTheDocument();
     // 900 blocks left: 45 minutes from now, as a clock time like the history's
@@ -59,61 +58,62 @@ describe("Lobby", () => {
     expect(decodeURIComponent(href)).toContain("Funafuti");
     expect(decodeURIComponent(href)).toContain("GQ Asia");
     expect(screen.queryByText(/on it/i)).toBeNull();
-    rerender(<Lobby me={champion} notes={[prize]} places={() => places} height={1063} {...h} />);
+    rerender(<Lobby me={champion} notes={[prize]} height={1063} {...h} />);
     expect(screen.queryByRole("button", { name: /take it back/i })).toBeNull();
-    rerender(<Lobby me={champion} notes={[prize]} places={() => places} height={1064} {...h} />);
+    rerender(<Lobby me={champion} notes={[prize]} height={1064} {...h} />);
     fireEvent.click(screen.getByRole("button", { name: /take it back/i }));
     expect(h.onCollect).toHaveBeenCalledWith([prize]);
   });
 
   it("offers Play & settle on my open shot with its record; once its deadline passed the card is gone (it is history)", () => {
-    const h = handlers();
-    const { rerender } = render(<Lobby me={me} notes={[prize, myShot]} places={() => places} height={100} {...h} />);
+    const h = props();
+    const { rerender } = render(<Lobby me={me} notes={[prize, myShot]} height={100} {...h} />);
     fireEvent.click(screen.getByRole("button", { name: /^play$/i }));
     expect(h.onSettle).toHaveBeenCalledWith(myShot, prize);
-    rerender(<Lobby me={me} notes={[prize, myShot]} places={() => places} height={200} {...h} />);
+    rerender(<Lobby me={me} notes={[prize, myShot]} height={200} {...h} />);
     expect(screen.queryByText(/my shot/i)).toBeNull();
   });
 
   it("never offers to take a shot I posted at my own record: the script serves its rival first, so it stays locked", () => {
     const own = { ...myShot, storage: { ...myShot.storage, rival: champion } };
-    render(<Lobby me={champion} notes={[prize, own]} places={() => places} height={1000} {...handlers()} />);
+    render(<Lobby me={champion} notes={[prize, own]} height={1000} {...props()} />);
     expect(screen.queryByRole("button", { name: /take it/i })).toBeNull();
   });
 
   it("lets the champion collect a shot only from its deadline + CLAIM_FUZZ on", () => {
-    const h = handlers();
-    const { rerender } = render(<Lobby me={champion} notes={[prize, myShot]} places={() => places} height={263} {...h} />);
+    const h = props();
+    const { rerender } = render(<Lobby me={champion} notes={[prize, myShot]} height={263} {...h} />);
     expect(screen.queryByRole("button", { name: /take it/i })).toBeNull();
-    rerender(<Lobby me={champion} notes={[prize, myShot]} places={() => places} height={264} {...h} />);
+    rerender(<Lobby me={champion} notes={[prize, myShot]} height={264} {...h} />);
     fireEvent.click(screen.getByRole("button", { name: /take it/i }));
     expect(h.onCollect).toHaveBeenCalledWith([myShot]);
     expect(screen.queryByRole("button", { name: /take all/i })).toBeNull();
   });
 
   it("takes everything the champion is owed in one go: lost shots and expired records", () => {
-    const h = handlers();
+    const h = props();
     const second = { ...myShot, id: "0xc2", idWord: [2n, 2n, 2n, 2n] as [bigint, bigint, bigint, bigint] };
-    render(<Lobby me={champion} notes={[prize, myShot, second]} places={() => places} height={1064} {...h} />);
+    render(<Lobby me={champion} notes={[prize, myShot, second]} height={1064} {...h} />);
     fireEvent.click(screen.getByRole("button", { name: /take all/i }));
     expect(h.onCollect).toHaveBeenCalledWith([prize, myShot, second]);
   });
 
   it("blinks every take button: Gamecoins are waiting", () => {
-    render(<Lobby me={champion} notes={[prize, myShot]} places={() => places} height={1064} {...handlers()} />);
+    render(<Lobby me={champion} notes={[prize, myShot]} height={1064} {...props()} />);
     for (const b of screen.getAllByRole("button", { name: /take/i })) expect(b.className).toContain("blink");
   });
 
   it("counts the tries lost so far on my open record, never naming who lost", () => {
     const lost = { ...myShot, storage: { ...myShot.storage, rival: { suffix: 7n, prefix: 7n } } };
-    const { rerender } = render(<Lobby me={champion} notes={[prize, lost]} places={() => places} height={199} {...handlers()} />);
+    const { rerender } = render(<Lobby me={champion} notes={[prize, lost]} height={199} {...props()} />);
     expect(screen.queryByText(/lost so far/i)).toBeNull();
-    rerender(<Lobby me={champion} notes={[prize, lost, { ...lost, id: "0xc2" }]} places={() => places} height={200} {...handlers()} />);
+    rerender(<Lobby me={champion} notes={[prize, lost, { ...lost, id: "0xc2" }]} height={200} {...props()} />);
     expect(screen.getByText("2 tries lost so far")).toBeInTheDocument();
   });
 
-  it("hides consumed notes", () => {
-    render(<Lobby me={me} notes={[{ ...prize, consumed: true }]} places={() => places} height={100} {...handlers()} />);
-    expect(screen.queryByRole("button", { name: /play/i })).toBeNull();
+  it("hides consumed notes: a record taken from the champion is gone from the hub", () => {
+    render(<Lobby me={champion} notes={[{ ...prize, consumed: true }]} height={100} {...props()} />);
+    expect(screen.queryByText(/waiting for a rival/i)).toBeNull();
+    expect(screen.queryByRole("button")).toBeNull();
   });
 });

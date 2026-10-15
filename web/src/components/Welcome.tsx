@@ -17,11 +17,9 @@ export function Welcome({ onStart }: { onStart: () => void }) {
     <div className="welcome-screen">
       <div className="welcome">
         <img src="/brand/hero-city.webp" alt="" width={1440} height={960} onClick={onStart} />
-        <div className="start-options">
-          <button className="start" onClick={onStart}>
-            {t("Click to start")}
-          </button>
-        </div>
+        <button className="start blink" onClick={onStart}>
+          {t("Click to start")}
+        </button>
         <div className="flags">
           {FAMILIES.map((f) => {
             const current = f.variants.find((v) => v.lang === lang);

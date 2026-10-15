@@ -54,8 +54,8 @@ export function Play({
 
   useEffect(() => {
     if (finished || lastPick) return;
-    const t = setInterval(() => setElapsed(Math.min(TIME_CAP, Math.floor((performance.now() - startedAt.current) / 10))), 100);
-    return () => clearInterval(t);
+    const timer = setInterval(() => setElapsed(Math.min(TIME_CAP, Math.floor((performance.now() - startedAt.current) / 10))), 100);
+    return () => clearInterval(timer);
   }, [round, finished, lastPick]);
 
   // time out at the cap: the round is lost
@@ -64,17 +64,17 @@ export function Play({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [elapsed]);
 
-  function pick(p: LatLon, t = Math.min(TIME_CAP, Math.floor((performance.now() - startedAt.current) / 10))) {
+  function pick(p: LatLon, ms = Math.min(TIME_CAP, Math.floor((performance.now() - startedAt.current) / 10))) {
     if (finished || lastPick) return;
     setLastPick(p);
-    setAnswers((a) => [...a, { lat: latToCd(p.lat), lon: lonToCd(p.lon), t }]);
+    setAnswers((a) => [...a, { lat: latToCd(p.lat), lon: lonToCd(p.lon), t: ms }]);
   }
 
   // show where the city was for a moment, then move on by itself: no extra click
   useEffect(() => {
     if (!lastPick) return;
-    const t = setTimeout(next, 1500);
-    return () => clearTimeout(t);
+    const timer = setTimeout(next, 1500);
+    return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lastPick]);
 

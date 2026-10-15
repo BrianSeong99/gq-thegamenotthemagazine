@@ -26,7 +26,7 @@ export function History({ items, connect }: { items: HistoryItem[] | null; conne
   useEffect(() => {
     for (const b of missing ? missing.split(",").map(Number) : []) {
       blockTime(b)
-        .then((ms) => setTimes((t) => ({ ...t, [b]: ms })))
+        .then((ms) => setTimes((prev) => ({ ...prev, [b]: ms })))
         .catch(() => undefined);
     }
   }, [missing]);

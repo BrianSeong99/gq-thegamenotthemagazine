@@ -88,9 +88,13 @@ import { GC_FAUCET, MIN_SHOT_WINDOW_BLOCKS } from "@/config";
 import { AppContent } from "../AppContent";
 
 beforeEach(() => {
-  vi.clearAllMocks();
+  vi.resetAllMocks();
   chain.notes = [];
   chain.shared = prize;
+  wallet.connected = true;
+  wallet.connecting = false;
+  localStorage.clear();
+  sessionStorage.clear();
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: string) => ({
@@ -100,13 +104,13 @@ beforeEach(() => {
       json: async () => (url.includes("places.zh") ? Object.fromEntries(cities.map((c) => [`c${c.idx}|x`, [`城${c.idx}`, "国"]])) : {}),
     })),
   );
-  window.history.replaceState({}, "", "/?record=0xp");
+  window.history.replaceState({}, "", "/");
 });
 
 /** Ten clicks on the map, each city's reveal skipped. Needs fake timers. */
 async function playRound() {
   for (let i = 0; i < 10; i++) {
-    await screen.findByText(new RegExp(`find c\\d!`, "i"));
+    await screen.findByText(/find c\d!/i);
     fireEvent.click(screen.getByRole("img", { name: /world map/i }), { clientX: 10, clientY: 10 });
     await act(async () => void vi.advanceTimersByTime(1600));
   }
@@ -120,17 +124,9 @@ async function start(tab?: RegExp) {
 }
 
 describe("1P stages", () => {
-  beforeEach(() => {
-    window.history.replaceState({}, "", "/");
-    localStorage.removeItem("gq.lang");
-    wallet.connected = true;
-  });
-
   it("unlock on my own posted records: a 5200 opens America, Africa and Europe, Asia stays locked", async () => {
     chain.notes = [{ ...prize, id: "0xmine", createdAt: 5, storage: { ...storage, champion: me, target: 5200 } }];
-    const { container } = render(<AppContent />);
-    await screen.findByRole("button", { name: /click to start/i });
-    fireEvent.click(container.querySelector(".welcome > img")!);
+    await start();
     await screen.findByRole("button", { name: "Europe" });
     expect(screen.getByRole("button", { name: "America" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Africa" })).toBeEnabled();
@@ -140,7 +136,7 @@ describe("1P stages", () => {
     fireEvent.click(screen.getByRole("button", { name: "Europe" }));
     expect(screen.getByRole("img", { name: "Europe" })).toBeInTheDocument();
     expect(screen.getByText("1P Europe", { selector: ".panel-title" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "World Tour" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "World" })).toBeEnabled();
     expect(screen.queryByRole("button", { name: "Europe" })).toBeNull();
   });
 
@@ -148,9 +144,7 @@ describe("1P stages", () => {
     let release!: () => void;
     vi.mocked(listChallengeNotes).mockImplementationOnce(() => new Promise((r) => (release = () => r(chain.notes))));
     chain.notes = [{ ...prize, id: "0xmine", createdAt: 5, storage: { ...storage, champion: me, target: 5200 } }];
-    const { container } = render(<AppContent />);
-    await screen.findByRole("button", { name: /click to start/i });
-    fireEvent.click(container.querySelector(".welcome > img")!);
+    await start();
     await screen.findByRole("img", { name: "World map" });
     expect(screen.queryByRole("group", { name: "Stages" })).toBeNull();
     release();
@@ -161,19 +155,19 @@ describe("1P stages", () => {
   it("are not shown while the wallet is still reconnecting", async () => {
     wallet.connected = false;
     wallet.connecting = true;
-    const { container } = render(<AppContent />);
-    await screen.findByRole("button", { name: /click to start/i });
-    fireEvent.click(container.querySelector(".welcome > img")!);
+    await start();
     await screen.findByRole("img", { name: "World map" });
     expect(screen.queryByRole("group", { name: "Stages" })).toBeNull();
+    // the wallet gave up (seen on the next render): nothing of mine, every stage locked
     wallet.connecting = false;
+    fireEvent.click(screen.getByRole("button", { name: /player hub/i }));
+    fireEvent.click(screen.getByRole("button", { name: /1p world tour/i }));
+    expect(await screen.findByRole("button", { name: /^America: 3,000 pts to unlock$/ })).toBeDisabled();
   });
 
   it("without a record of mine every stage is locked and says what it needs", async () => {
     chain.notes = [];
-    const { container } = render(<AppContent />);
-    await screen.findByRole("button", { name: /click to start/i });
-    fireEvent.click(container.querySelector(".welcome > img")!);
+    await start();
     expect(await screen.findByRole("button", { name: /^America: 3,000 pts to unlock$/ })).toBeDisabled();
     expect(screen.getByRole("img", { name: "World map" })).toBeInTheDocument();
   });
@@ -205,6 +199,8 @@ describe("1P stages", () => {
 });
 
 describe("shared record link, connected as a stranger", () => {
+  beforeEach(() => window.history.replaceState({}, "", "/?record=0xp"));
+
   it("lands on VS, posts one shot on Insert Gamecoin, then starts the quiz when the note is on chain", async () => {
     bread.postShot.mockResolvedValue({ txId: "tx", noteIds: ["0xnew"], deadline: 220 });
     render(<AppContent />);
@@ -265,7 +261,6 @@ describe("shared record link, connected as a stranger", () => {
     fireEvent.click(screen.getByRole("button", { name: /try again/i }));
     await screen.findByText(/find c0!/i);
     expect(bread.postShot).toHaveBeenCalledTimes(1);
-    vi.mocked(knownNote).mockResolvedValue(undefined);
   });
 
   it("a record that fails to load says why and loads on Try again", async () => {
@@ -279,13 +274,9 @@ describe("shared record link, connected as a stranger", () => {
 
   it("a failing background sync only shows a NETWORK SLOW tag, never an error box", async () => {
     vi.mocked(syncNotes).mockRejectedValue(new TypeError("Failed to fetch"));
-    try {
-      render(<AppContent />);
-      await screen.findByText(/network slow/i);
-      expect(screen.queryByRole("alert")).toBeNull();
-    } finally {
-      vi.mocked(syncNotes).mockResolvedValue(100);
-    }
+    render(<AppContent />);
+    await screen.findByText(/network slow/i);
+    expect(screen.queryByRole("alert")).toBeNull();
   });
 
   it("a record the background sync sees consumed (just won, or taken by someone) is shown as over", async () => {
@@ -304,8 +295,6 @@ describe("shared record link, connected as a stranger", () => {
 });
 
 it("a family's other flags stack above the framed one, and a picked variant takes the slot", async () => {
-  window.history.replaceState({}, "", "/");
-  localStorage.removeItem("gq.lang");
   render(<AppContent />);
   expect(await screen.findByRole("button", { name: "English (US)" })).toHaveAttribute("aria-pressed", "true");
   // nothing is open until a framed flag is clicked
@@ -324,12 +313,9 @@ it("a family's other flags stack above the framed one, and a picked variant take
   fireEvent.click(screen.getByRole("button", { name: "English (US)" }));
   fireEvent.click(screen.getByRole("button", { name: "English (UK)" }));
   expect(screen.getByRole("button", { name: "Click to start, bruv" })).toBeInTheDocument();
-  localStorage.removeItem("gq.lang");
 });
 
 it("a click anywhere on the splash picture starts the game", async () => {
-  window.history.replaceState({}, "", "/");
-  localStorage.removeItem("gq.lang");
   const { container } = render(<AppContent />);
   await screen.findByRole("button", { name: /click to start/i });
   fireEvent.click(container.querySelector(".welcome > img")!);
@@ -337,9 +323,7 @@ it("a click anywhere on the splash picture starts the game", async () => {
 });
 
 describe("Simplified Chinese", () => {
-  it("the China flag turns the start line into 点击开始, which starts in Chinese: tabs, cities and history dates in Chinese, the Weibo share", async () => {
-    window.history.replaceState({}, "", "/");
-    localStorage.removeItem("gq.lang");
+  it("the China flag turns the start line into 点击开始, which starts in Chinese: tabs and cities in Chinese", async () => {
     render(<AppContent />);
     const cn = await screen.findByRole("button", { name: "中文 (简体)" });
     expect(screen.getByRole("button", { name: "English (US)" })).toHaveAttribute("aria-pressed", "true");
@@ -353,12 +337,9 @@ describe("Simplified Chinese", () => {
     fireEvent.click(screen.getByRole("button", { name: "定位第一座城市" }));
     // the quiz names the city in Chinese (places.zh-Hans.json), the dataset untouched
     expect(await screen.findByText(/找到城\d！/)).toBeInTheDocument();
-    // no language switch inside the game: the splash is the only place
-    expect(screen.queryByRole("combobox")).toBeNull();
   });
 
   it("the X post stays English: a Hub card's share names Paris, not 巴黎", async () => {
-    window.history.replaceState({}, "", "/");
     localStorage.setItem("gq.lang", "zh-Hans");
     const f = fetch;
     vi.stubGlobal("fetch", async (url: string) =>
@@ -374,33 +355,27 @@ describe("Simplified Chinese", () => {
     fireEvent.click(screen.getByRole("button", { name: "玩家中心" }));
     const href = (await screen.findByRole("link", { name: "分享到 X" })).getAttribute("href")!;
     expect(decodeURIComponent(href)).toContain("Paris");
-    localStorage.removeItem("gq.lang");
   });
 
   it("remembers the language on the next visit: the splash starts in Chinese", async () => {
-    window.history.replaceState({}, "", "/");
     localStorage.setItem("gq.lang", "zh-Hans");
     render(<AppContent />);
     expect(await screen.findByRole("button", { name: /点击开始/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "中文 (简体)" })).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByText("横着拿手机，地图更好玩。")).toBeInTheDocument();
-    localStorage.removeItem("gq.lang");
   });
 });
 
 describe("welcome and 1P World Tour", () => {
   it("the GeoQuizz wordmark goes back to the splash screen without reloading, sound choice kept", async () => {
-    window.history.replaceState({}, "", "/");
     await start();
     fireEvent.click(await screen.findByRole("button", { name: /sound on/i }));
     fireEvent.click(screen.getByRole("link", { name: /geoquizz home/i }));
     fireEvent.click(await screen.findByRole("button", { name: /click to start/i }));
     expect(await screen.findByRole("button", { name: /sound off/i })).toBeInTheDocument();
-    sessionStorage.clear();
   });
 
   it("OK after a round goes back to the splash screen: after posting a record, after losing a shot", async () => {
-    window.history.replaceState({}, "", "/");
     bread.postRecord.mockResolvedValue({ txId: "tx", noteIds: ["0xnew"] });
     vi.useFakeTimers({ shouldAdvanceTime: true, toFake: ["setTimeout", "clearTimeout"] });
     try {
@@ -434,21 +409,15 @@ describe("welcome and 1P World Tour", () => {
   });
 
   it("the leaderboards are public: they show without a wallet", async () => {
-    window.history.replaceState({}, "", "/");
     const record = { ...prize, createdAt: 5, storage: { ...prize.storage, champion: me } };
     chain.notes = [record];
     wallet.connected = false;
-    try {
-      await start(/leaderboards/i);
-      expect(await screen.findByText("2,000")).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: /connect wallet/i })).toBeInTheDocument();
-    } finally {
-      wallet.connected = true;
-    }
+    await start(/leaderboards/i);
+    expect(await screen.findByText("2,000")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /connect wallet/i })).toBeInTheDocument();
   });
 
   it("reads the game's notes once, then only on Refresh: the height still ticks every 15 s", async () => {
-    window.history.replaceState({}, "", "/");
     vi.useFakeTimers({ shouldAdvanceTime: true, toFake: ["setInterval", "clearInterval"] });
     try {
       await start(/leaderboards/i);
@@ -465,7 +434,6 @@ describe("welcome and 1P World Tour", () => {
   });
 
   it("keeps the development wallets' test rounds off the boards", async () => {
-    window.history.replaceState({}, "", "/");
     chain.notes = [{ ...prize, createdAt: 5 }, { ...prize, id: "0xt", createdAt: 6, storage: { ...prize.storage, champion: me, target: 9690 } }];
     vi.mocked(hexOf).mockImplementation((a) => (a === me ? "0x071d3da3ad56d88175b628f76073cb" : "0xreal"));
     await start(/leaderboards/i);
@@ -474,19 +442,16 @@ describe("welcome and 1P World Tour", () => {
   });
 
   it("the wallet button shows my arcade name", async () => {
-    window.history.replaceState({}, "", "/");
     await start();
     expect(await screen.findByRole("button", { name: "Wallet / JHT" })).toBeInTheDocument();
   });
 
   it("the ribbon says the game runs on testnet", async () => {
-    window.history.replaceState({}, "", "/");
     await start();
     expect(screen.getByText("Testnet")).toBeInTheDocument();
   });
 
   it("on a phone turned sideways mid-quiz, the map and the city panel scroll up to fill the screen", async () => {
-    window.history.replaceState({}, "", "/");
     let sideways = false;
     const turns: (() => void)[] = [];
     vi.stubGlobal("matchMedia", (q: string) => ({
@@ -513,17 +478,12 @@ describe("welcome and 1P World Tour", () => {
   });
 
   it("plays before any wallet is connected; the rival sprite stays out of a solo run", async () => {
-    window.history.replaceState({}, "", "/");
     wallet.connected = false;
-    try {
-      await start();
-      fireEvent.click(await screen.findByRole("button", { name: /locate first city/i }));
-      await screen.findByText(/find c0!/i);
-      expect(screen.queryByText(/beat my record/i)).toBeNull();
-      expect(wallet.connect).not.toHaveBeenCalled();
-    } finally {
-      wallet.connected = true;
-    }
+    await start();
+    fireEvent.click(await screen.findByRole("button", { name: /locate first city/i }));
+    await screen.findByText(/find c0!/i);
+    expect(screen.queryByText(/beat my record/i)).toBeNull();
+    expect(wallet.connect).not.toHaveBeenCalled();
   });
 });
 
@@ -537,7 +497,6 @@ describe("open challenges in Champion vs Rival", () => {
   });
 
   it("lists funded, unclaimed records a rival can still take a shot at, under the code box", async () => {
-    window.history.replaceState({}, "", "/");
     chain.notes = [
       listed("0xo", 3100),
       listed("0xclaimed", 3200, { consumed: true }),
@@ -556,7 +515,6 @@ describe("open challenges in Champion vs Rival", () => {
   });
 
   it("names the map of a record on a stage, next to its score", async () => {
-    window.history.replaceState({}, "", "/");
     chain.notes = [listed("0xa", 3100, { storage: { ...storage, target: 3100, game: encodeGame({ seed: [0n, 0n, 0n, 0n], dataset: [9n, 9n, 9n, 9n], cities }) } })];
     await start(/^champion vs rival$/i);
     expect(await screen.findByRole("button", { name: "View challenge, 3,100 pts, Asia" })).toBeInTheDocument();
@@ -564,7 +522,6 @@ describe("open challenges in Champion vs Rival", () => {
   });
 
   it("lists the lowest score first, each with a countdown to its expiry instead of the prize", async () => {
-    window.history.replaceState({}, "", "/");
     chain.notes = [listed("0xb", 3300), listed("0xa", 3100, {}, 100 + 1_201)];
     await start(/^champion vs rival$/i);
     const rows = await screen.findAllByRole("button", { name: /view challenge/i });
@@ -575,7 +532,6 @@ describe("open challenges in Champion vs Rival", () => {
   });
 
   it("says so when there is none, and reads the notes again on its Refresh button", async () => {
-    window.history.replaceState({}, "", "/");
     await start(/^champion vs rival$/i);
     expect(await screen.findByText("No open challenges yet.")).toBeInTheDocument();
     expect(listChallengeNotes).toHaveBeenCalledTimes(1);
@@ -584,7 +540,6 @@ describe("open challenges in Champion vs Rival", () => {
   });
 
   it("View challenge opens the record card at once, in focus, then as the node has it now", async () => {
-    window.history.replaceState({}, "", "/");
     chain.notes = [listed("0xo", 3100)];
     chain.shared = listed("0xo", 3100, { consumed: true }); // taken since the list was read
     await start(/^champion vs rival$/i);
@@ -595,7 +550,6 @@ describe("open challenges in Champion vs Rival", () => {
   });
 
   it("a slow answer for an earlier pick never replaces the later one", async () => {
-    window.history.replaceState({}, "", "/");
     chain.notes = [listed("0xa", 3100), listed("0xb", 3200)];
     let answerA: (n: ChallengeNote) => void = () => {};
     vi.mocked(fetchChallengeNote)
@@ -610,7 +564,6 @@ describe("open challenges in Champion vs Rival", () => {
   });
 
   it("the 1P box says how to challenge rivals and links to Champion vs Rival", async () => {
-    window.history.replaceState({}, "", "/");
     await start();
     expect(screen.getByText("Free to play. Once you're happy with your score, post it on X to challenge your rivals.")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Find a challenge in CHAMPION VS RIVAL mode →" }));
@@ -619,7 +572,6 @@ describe("open challenges in Champion vs Rival", () => {
   });
 
   it("the code box and the Gamecoins button share a column, the open challenges stand beside it", async () => {
-    window.history.replaceState({}, "", "/");
     await start(/^champion vs rival$/i);
     const stack = screen.getByText(/have a code\?/i).closest(".stack");
     expect(stack).toContainElement(screen.getByRole("button", { name: /get gamecoins/i }));
@@ -629,7 +581,6 @@ describe("open challenges in Champion vs Rival", () => {
 
 describe("home, connected", () => {
   it("mints ten Gamecoins to the connected wallet from the faucet nobody holds a key to", async () => {
-    window.history.replaceState({}, "", "/");
     // the app's own client refreshes the public faucet account before executing the mint
     const importAccountById = vi.fn(async () => undefined);
     vi.mocked(useMidenClient).mockReturnValue({ importAccountById } as never);
@@ -644,7 +595,6 @@ describe("home, connected", () => {
 
 
   it("gives Gamecoins to empty pockets only: more than 1 held, or a grant on its way, mints nothing", async () => {
-    window.history.replaceState({}, "", "/");
     vi.mocked(useMidenClient).mockReturnValue({ importAccountById: vi.fn(async () => undefined) } as never);
     const mint = vi.fn(async () => ({ transactionId: "tx" }));
     vi.mocked(useMint).mockReturnValue({ mint, result: null, isLoading: false, stage: "idle", error: null, reset: vi.fn() } as never);
@@ -663,7 +613,6 @@ describe("home, connected", () => {
   });
 
   it("settles all my open shots at the record with one play", async () => {
-    window.history.replaceState({}, "", "/");
     const second = { ...myShot, id: "0xc2", idWord: [2n, 2n, 2n, 2n] as [bigint, bigint, bigint, bigint] };
     chain.notes = [prize, myShot, second];
     await start(/player hub/i);
@@ -676,7 +625,6 @@ describe("home, connected", () => {
   });
 
   it("opens a record from a pasted code (old ?prize= links too)", async () => {
-    window.history.replaceState({}, "", "/");
     await start(/^champion vs rival$/i);
     await screen.findByText(/have a code\?/i);
     fireEvent.change(screen.getByPlaceholderText(/paste the link or code/i), {

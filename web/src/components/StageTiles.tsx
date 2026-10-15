@@ -13,9 +13,9 @@ export function StageTiles({ shown, unlocked, onPick }: { shown: Stage; unlocked
         const open = unlocked(s);
         const need = t("{n} pts to unlock", { n: s.threshold.toLocaleString() });
         return (
-          <button key={s.id} className={`stage${open ? "" : " locked"}`} disabled={!open} onClick={() => onPick(s.id)} aria-label={open ? t(s.name) : `${t(s.name)}: ${need}`}>
+          <button key={s.id} className="stage" disabled={!open} onClick={() => onPick(s.id)} aria-label={open ? t(s.name) : `${t(s.name)}: ${need}`}>
             <img src={s.map} alt="" />
-            <span className="name">{s.id === "world" ? t("World") : t(s.name)}</span>
+            <span className="name">{t(s.name)}</span>
             {!open && (
               <span className="need">
                 <svg viewBox="0 0 8 10" width="8" height="10" aria-hidden="true">

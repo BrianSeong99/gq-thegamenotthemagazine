@@ -50,36 +50,39 @@ export function Lobby({ me, notes, height, places, onSettle, onCollect }: LobbyP
           </button>
         </p>
       )}
-      {myRecords.map((p) => (
-        <section key={p.id} className={`panel card${takeable(p) ? " yellow" : ""}`}>
-          <div className="eyebrow">{takeable(p) ? t("My record / over") : t("My record / open until {time}", { time: until(p) })}</div>
-          <div className="score">
-            {t("{n} pts", { n: p.storage.target.toLocaleString() })}
-            {stageTag(p.storage.game) && <span className="tag"> {t(stageTag(p.storage.game)!)}</span>}
-          </div>
-          {takeable(p) ? (
-            <button className="btn primary blink" onClick={() => onCollect([p])}>
-              {t("Take it back")}
-            </button>
-          ) : (
-            <>
-              <p className="muted">{t("Waiting for a rival…")}</p>
-              <LostSoFar n={triesLost(p, notes, height)} />
-              <ShareButtons recordId={p.id} score={p.storage.target} expiresAt={blockToMs(p.storage.expiryBlock, height)} cities={cityNames(recordCities(p.storage.game), places(p.storage.game))} stage={gameStage(p.storage.game)} />
-            </>
-          )}
-        </section>
-      ))}
+      {myRecords.map((p) => {
+        const tag = stageTag(p.storage.game);
+        return (
+          <section key={p.id} className={`panel card${takeable(p) ? " yellow" : ""}`}>
+            <div className="eyebrow">{takeable(p) ? t("My record / over") : t("My record / open until {time}", { time: until(p) })}</div>
+            <div className="score">
+              {t("{n} pts", { n: p.storage.target.toLocaleString() })}
+              {tag && <span className="tag"> {t(tag)}</span>}
+            </div>
+            {takeable(p) ? (
+              <button className="btn primary blink" onClick={() => onCollect([p])}>
+                {t("Take it back")}
+              </button>
+            ) : (
+              <>
+                <p className="muted">{t("Waiting for a rival…")}</p>
+                <LostSoFar n={triesLost(p, notes, height)} />
+                <ShareButtons recordId={p.id} score={p.storage.target} expiresAt={blockToMs(p.storage.expiryBlock, height)} cities={cityNames(recordCities(p.storage.game), places(p.storage.game))} stage={gameStage(p.storage.game)} />
+              </>
+            )}
+          </section>
+        );
+      })}
 
-      {me &&
-        myShots.map((c) => {
+      {myShots.map((c) => {
           const record = recordById(c.storage.recordId);
+          const tag = stageTag(c.storage.game);
           return (
             <section key={c.id} className="panel card pink">
               <div className="eyebrow">{t("My shot / ends in {time}", { time: blocksToClock(deadline(c) - height) })}</div>
               <div className="score">
                 {t("beat {n}", { n: c.storage.target.toLocaleString() })}
-                {stageTag(c.storage.game) && <span className="tag"> {t(stageTag(c.storage.game)!)}</span>}
+                {tag && <span className="tag"> {t(tag)}</span>}
               </div>
               <p className="muted">{t("{gc} on the table", { gc: fmtGamecoin(c.amount, t) })}</p>
               <button className="btn primary" onClick={() => onSettle(c, record && !record.consumed ? record : undefined)}>
@@ -89,8 +92,7 @@ export function Lobby({ me, notes, height, places, onSettle, onCollect }: LobbyP
           );
         })}
 
-      {me &&
-        shotsAtMyRecords.map((c) => (
+      {shotsAtMyRecords.map((c) => (
           <section key={c.id} className="panel card mint">
             <div className="eyebrow">{takeable(c) ? t("For you / ready") : t("For you / in play")}</div>
             <div className="score">{fmtGamecoin(c.amount, t)}</div>
