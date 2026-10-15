@@ -152,17 +152,19 @@ describe("1P stages", () => {
     expect(screen.getByRole("button", { name: /^Asia: 6,000 pts to unlock$/ })).toBeDisabled();
   });
 
-  it("are not shown while the wallet is still reconnecting", async () => {
+  it("say Loading bonus maps while the wallet is still reconnecting", async () => {
     wallet.connected = false;
     wallet.connecting = true;
     await start();
     await screen.findByRole("img", { name: "World map" });
     expect(screen.queryByRole("group", { name: "Stages" })).toBeNull();
+    expect(screen.getByRole("status")).toHaveTextContent("Loading bonus maps");
     // the wallet gave up (seen on the next render): nothing of mine, every stage locked
     wallet.connecting = false;
     fireEvent.click(screen.getByRole("button", { name: /player hub/i }));
     fireEvent.click(screen.getByRole("button", { name: /1p world tour/i }));
     expect(await screen.findByRole("button", { name: /^America: 3,000 pts to unlock$/ })).toBeDisabled();
+    expect(screen.queryByRole("status")).toBeNull();
   });
 
   it("without a record of mine every stage is locked and says what it needs", async () => {

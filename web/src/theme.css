@@ -147,7 +147,7 @@ main { max-width: 1440px; margin: 0 auto; padding: 28px 4% 56px; }
 .blink { animation: blink 1.1s steps(1) infinite; }
 .btn.blink { animation-name: flash; }
 @keyframes flash { 50% { background: var(--white); } }
-@media (prefers-reduced-motion: reduce) { .blink, .stage img { animation: none; } .btn:hover { transform: none; } }
+@media (prefers-reduced-motion: reduce) { .blink, .stage img, .stages-loading::after { animation: none; } .btn:hover { transform: none; } }
 
 /* two-column pages: stage left, panel right */
 .cols { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 24px; align-items: start; }
@@ -182,6 +182,10 @@ main { max-width: 1440px; margin: 0 auto; padding: 28px 4% 56px; }
 .map-frame { padding: 10px; position: relative; }
 /* the stage tiles, over the bottom of the 1P map (Antarctica on the world) */
 .stages { position: absolute; left: 22px; right: 22px; bottom: 22px; display: flex; gap: 8px; }
+/* where the tiles will sit, as tall as one, until the notes are read and the wallet is back; the dots count up */
+.stages-loading { position: absolute; left: 22px; right: 22px; bottom: 22px; padding: 22px 4px; text-align: center; background: var(--void); border: 3px solid var(--rule); color: var(--yellow); font: 14px/1.3 var(--display); text-transform: uppercase; text-shadow: 2px 2px 0 var(--pink); }
+.stages-loading::after { content: ""; display: inline-block; width: 1.5em; text-align: left; animation: dots 1.2s steps(1) infinite; }
+@keyframes dots { 25% { content: "."; } 50% { content: ".."; } 75% { content: "..."; } }
 .stage { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 4px; background: var(--void); border: 3px solid var(--rule); color: var(--yellow); font: 12px/1.3 var(--display); text-transform: uppercase; }
 .stage:hover { border-color: var(--cyan); }
 .stage img { width: 100%; height: 36px; object-fit: cover; image-rendering: pixelated; border: 1px solid var(--rule); animation: pan 24s linear infinite; }

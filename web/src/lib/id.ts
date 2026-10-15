@@ -20,6 +20,7 @@ export const ID: Record<string, string> = {
   "Miden testnet: Gamecoins are play money.": "Testnet Miden: Gamecoin hanya uang mainan.",
   "Turn your phone sideways: the map is much easier to play.": "Putar ponselmu: petanya jauh lebih mudah dimainkan.",
   "Loading…": "Memuat…",
+  "Loading bonus maps": "Memuat peta bonus",
   Loading: "Memuat",
   "This is taking long. Check your connection, or": "Ini lama sekali. Periksa koneksimu, atau",
   Reload: "Muat ulang",

@@ -667,7 +667,13 @@ function GqApp({ onStarted }: { onStarted?: () => void }) {
           <div className="cols tour">
             <div className="panel map-frame">
               <WorldMap stage={stage} />
-              {stagesKnown && <StageTiles shown={stage} unlocked={unlocked} onPick={setStageId} />}
+              {stagesKnown ? (
+                <StageTiles shown={stage} unlocked={unlocked} onPick={setStageId} />
+              ) : (
+                <div className="stages-loading" role="status">
+                  {t("Loading bonus maps")}
+                </div>
+              )}
             </div>
             <div>
               <aside className="panel">

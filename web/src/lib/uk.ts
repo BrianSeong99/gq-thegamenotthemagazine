@@ -20,6 +20,7 @@ export const UK: Record<string, string> = {
   "Miden testnet: Gamecoins are play money.": "Тестнет Miden: Gamecoin нічого не варті.",
   "Turn your phone sideways: the map is much easier to play.": "Поверни телефон боком: з картою так значно зручніше.",
   "Loading…": "Завантаження…",
+  "Loading bonus maps": "Завантаження бонусних карт",
   Loading: "Завантаження",
   "This is taking long. Check your connection, or": "Щось довго. Перевір з'єднання або",
   Reload: "Перезавантажити",

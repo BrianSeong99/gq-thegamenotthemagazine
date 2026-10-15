@@ -20,6 +20,7 @@ export const TR: Record<string, string> = {
   "Miden testnet: Gamecoins are play money.": "Miden testnet: Gamecoin oyun parasıdır.",
   "Turn your phone sideways: the map is much easier to play.": "Telefonu yan çevir: harita çok daha rahat oynanır.",
   "Loading…": "Yükleniyor…",
+  "Loading bonus maps": "Bonus haritalar yükleniyor",
   Loading: "Yükleniyor",
   "This is taking long. Check your connection, or": "Bu uzun sürüyor. Bağlantını kontrol et ya da",
   Reload: "Yenile",

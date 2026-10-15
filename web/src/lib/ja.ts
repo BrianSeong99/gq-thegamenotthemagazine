@@ -20,6 +20,7 @@ export const JA: Record<string, string> = {
   "Miden testnet: Gamecoins are play money.": "Miden テストネット：Gamecoin はおもちゃのお金です。",
   "Turn your phone sideways: the map is much easier to play.": "スマホを横にすると、地図がずっと遊びやすくなります。",
   "Loading…": "読み込み中…",
+  "Loading bonus maps": "ボーナスマップを読み込み中",
   Loading: "読み込み中",
   "This is taking long. Check your connection, or": "時間がかかっています。接続を確認するか、",
   Reload: "再読み込み",

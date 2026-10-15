@@ -22,6 +22,7 @@ export const ZH: Record<string, string> = {
   "Miden testnet: Gamecoins are play money.": "Miden 测试网：游戏币不值钱。",
   "Turn your phone sideways: the map is much easier to play.": "横着拿手机，地图更好玩。",
   "Loading…": "加载中…",
+  "Loading bonus maps": "正在加载奖励地图",
   Loading: "加载中",
   "This is taking long. Check your connection, or": "加载时间较长。请检查网络，或",
   Reload: "重新加载",

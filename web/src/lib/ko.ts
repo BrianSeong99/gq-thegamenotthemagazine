@@ -20,6 +20,7 @@ export const KO: Record<string, string> = {
   "Miden testnet: Gamecoins are play money.": "Miden 테스트넷: Gamecoin은 장난감 돈입니다.",
   "Turn your phone sideways: the map is much easier to play.": "휴대폰을 가로로 돌리세요. 지도가 훨씬 편해집니다.",
   "Loading…": "불러오는 중…",
+  "Loading bonus maps": "보너스 지도 불러오는 중",
   Loading: "불러오는 중",
   "This is taking long. Check your connection, or": "오래 걸리고 있습니다. 연결을 확인하거나",
   Reload: "새로고침",

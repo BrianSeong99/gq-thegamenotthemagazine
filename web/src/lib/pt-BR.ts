@@ -21,6 +21,7 @@ export const PT_BR: Record<string, string> = {
   "Miden testnet: Gamecoins are play money.": "Testnet da Miden: Gamecoins são dinheiro de brincadeira.",
   "Turn your phone sideways: the map is much easier to play.": "Vire o celular de lado: o mapa fica muito mais fácil.",
   "Loading…": "Carregando…",
+  "Loading bonus maps": "Carregando mapas bônus",
   Loading: "Carregando",
   "This is taking long. Check your connection, or": "Está demorando. Verifique sua conexão, ou",
   Reload: "Recarregar",

@@ -22,6 +22,7 @@ const ES: Record<string, string> = {
   "Miden testnet: Gamecoins are play money.": "Testnet de Miden: los Gamecoins son dinero de juguete.",
   "Turn your phone sideways: the map is much easier to play.": "Gira el teléfono: el mapa se juega mucho mejor.",
   "Loading…": "Cargando…",
+  "Loading bonus maps": "Cargando mapas extra",
   Loading: "Cargando",
   "This is taking long. Check your connection, or": "Esto tarda mucho. Revisa tu conexión, o",
   Reload: "Recargar",
