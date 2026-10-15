@@ -34,14 +34,13 @@ export function Leaderboards({ data, me, name, action }: { data: Boards | null; 
   const UNIT: Record<Name, string> = { coins: t("Gamecoins won"), records: t("Record"), defended: t("Rivals beaten"), smashed: t("Records smashed"), losers: t("Shots lost") };
   const EMPTY: Record<Name, string> = { coins: t("No wins yet."), records: t("No records yet."), defended: t("No rivals beaten yet."), smashed: t("No records yet."), losers: t("No losers yet.") };
   const mine = (r: Ranked) => sameAccount(me, r.who);
-  const row = (r: Ranked) => (
+  // the records board has a fourth column, the map
+  const row = (k: Name) => (r: Ranked) => (
     <tr key={r.key} className={mine(r) ? "mine" : undefined} aria-label={mine(r) ? t("Your row") : undefined}>
       <td>{String(r.rank).padStart(2, "0")}</td>
       <td>{name(r.who)}</td>
-      <td>
-        {r.value.toLocaleString()}
-        {r.tag && <span className="tag"> ({t(r.tag)})</span>}
-      </td>
+      <td className="score">{r.value.toLocaleString()}</td>
+      {k === "records" && <td className="map">{r.tag && t(r.tag)}</td>}
     </tr>
   );
   const board = (k: Name) => {
@@ -68,12 +67,12 @@ export function Leaderboards({ data, me, name, action }: { data: Boards | null; 
           <>
             <div className="rows">
               <table aria-label={t("{title}: rank, nickname, {unit}", { title: TITLE[k], unit: UNIT[k] })}>
-                <tbody>{b.top.map(row)}</tbody>
+                <tbody>{b.top.map(row(k))}</tbody>
               </table>
             </div>
             {b.mine && (
               <table className="own-row" aria-label={t("Your rank")}>
-                <tbody>{row(b.mine)}</tbody>
+                <tbody>{row(k)(b.mine)}</tbody>
               </table>
             )}
           </>

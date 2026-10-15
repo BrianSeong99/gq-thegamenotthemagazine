@@ -108,6 +108,7 @@ export function History({ items, connect }: { items: HistoryItem[] | null; conne
                           <p className="history-context">
                             {h.context}
                             <span className="history-score">{t("{n} pts", { n: h.score.toLocaleString() })}</span>
+                            {h.tag && <span className="tag"> {t(h.tag)}</span>}
                           </p>
                           {h.detail && <p className="history-detail">{h.detail}</p>}
                         </div>

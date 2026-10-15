@@ -26,15 +26,18 @@ async fn main() -> Result<()> {
         let amount: u64 = r.details().assets().iter_fungible().map(|a| a.amount().as_u64()).sum();
         let sender = r.metadata().map(|m| m.sender().to_hex()).unwrap_or_default();
         let faucet = r.details().assets().iter_fungible().next().map(|a| a.faucet_id().to_hex()).unwrap_or_default();
+        // the game data follows the 16 header items: seed word, then the dataset word that names the city list
+        let dataset: Vec<String> = (20..24).map(|i| items.get(i).map(|f| format!("{:#x}", f.as_canonical_u64())).unwrap_or_default()).collect();
         println!(
-            "{kind:<10} {} root {} sender {sender} amount {} of {faucet} target {} expiry {} deadline {} consumed {}",
+            "{kind:<10} {} root {} sender {sender} amount {} of {faucet} target {} expiry {} deadline {} consumed {} dataset {}",
             r.id().map(|i| i.to_hex()).unwrap_or_default(),
             &Word::from(root).to_hex()[..10],
             amount as f64 / 1e6,
             items.get(2).map(|f| f.as_canonical_u64()).unwrap_or(0),
             items.get(4).map(|f| f.as_canonical_u64()).unwrap_or(0),
             items.get(7).map(|f| f.as_canonical_u64()).unwrap_or(0),
-            r.is_consumed()
+            r.is_consumed(),
+            dataset.join(",")
         );
         n += 1;
     }

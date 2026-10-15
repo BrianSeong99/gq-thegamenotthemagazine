@@ -4,6 +4,8 @@ import { GC_FAUCET } from "@/config";
 import type { ChallengeNote } from "@/lib/chain";
 import type { AccountFelts, ChallengeStorage } from "@/lib/notes";
 import { translator } from "@/lib/i18n";
+import { encodeGame, type Word4 } from "@/lib/quiz";
+import { registerDataset, stageById, WORLD } from "@/lib/stages";
 import { boards, history, keyOf, lettersBackward, nicknames, owed, playersInOrder, recordOutcome, shotOutcome, triesLost, whenLabel } from "../hub";
 
 const ME = { suffix: 1n, prefix: 1n };
@@ -137,6 +139,19 @@ describe("history", () => {
       ["You won", "KQX's record: ", 5500, "Prize already taken.", "1 Gamecoin back", "", "mint", ""],
       ["You won", "MUD's record: ", 6200, "", "1 Gamecoin won", "Your Gamecoin back.", "mint", "mint"],
       ["Beaten", "KQX beat ", 4100, "1 try lost", "1 Gamecoin lost", "Prize went to KQX.", "pink", "pink"],
+    ]);
+  });
+
+  it("names the map of a record: the stage, or World", () => {
+    const word: Word4 = [7n, 7n, 7n, 7n];
+    registerDataset(stageById("europe"), [...word]);
+    registerDataset(WORLD, [0n, 0n, 0n, 0n]);
+    const game = (dataset: Word4) => encodeGame({ seed: [0n, 0n, 0n, 0n], dataset, cities: Array.from({ length: 10 }, (_, idx) => ({ idx, lat: 0, lon: 0, cos: 100 })) });
+    const europe = record(ME, 5100, { consumedAt: 10, storage: { ...base, champion: ME, target: 5100, game: game(word) } });
+    const world = record(ME, 4100, { consumedAt: 20, storage: { ...base, champion: ME, target: 4100, game: game([0n, 0n, 0n, 0n]) } });
+    expect(history([europe, world], ME, 2000, name).map((h) => [h.score, h.tag])).toEqual([
+      [4100, "World"],
+      [5100, "Europe"],
     ]);
   });
 

@@ -3,7 +3,7 @@
 
 import type { ChallengeNote } from "@/lib/chain";
 import { blocksToClock, blockToMs, fmtGamecoin, sameAccount, sameWord } from "@/lib/flow";
-import { owed, triesLost, whenLabel } from "@/lib/hub";
+import { owed, stageTag, triesLost, whenLabel } from "@/lib/hub";
 import { cityNames, recordCities, type Place, type Word4 } from "@/lib/quiz";
 import { CLAIM_FUZZ } from "@/config";
 import { noteDeadline as deadline, type AccountFelts } from "@/lib/notes";
@@ -53,7 +53,10 @@ export function Lobby({ me, notes, height, places, onSettle, onCollect }: LobbyP
       {myRecords.map((p) => (
         <section key={p.id} className={`panel card${takeable(p) ? " yellow" : ""}`}>
           <div className="eyebrow">{takeable(p) ? t("My record / over") : t("My record / open until {time}", { time: until(p) })}</div>
-          <div className="score">{t("{n} pts", { n: p.storage.target.toLocaleString() })}</div>
+          <div className="score">
+            {t("{n} pts", { n: p.storage.target.toLocaleString() })}
+            {stageTag(p.storage.game) && <span className="tag"> {t(stageTag(p.storage.game)!)}</span>}
+          </div>
           {takeable(p) ? (
             <button className="btn primary blink" onClick={() => onCollect([p])}>
               {t("Take it back")}
@@ -74,7 +77,10 @@ export function Lobby({ me, notes, height, places, onSettle, onCollect }: LobbyP
           return (
             <section key={c.id} className="panel card pink">
               <div className="eyebrow">{t("My shot / ends in {time}", { time: blocksToClock(deadline(c) - height) })}</div>
-              <div className="score">{t("beat {n}", { n: c.storage.target.toLocaleString() })}</div>
+              <div className="score">
+                {t("beat {n}", { n: c.storage.target.toLocaleString() })}
+                {stageTag(c.storage.game) && <span className="tag"> {t(stageTag(c.storage.game)!)}</span>}
+              </div>
               <p className="muted">{t("{gc} on the table", { gc: fmtGamecoin(c.amount, t) })}</p>
               <button className="btn primary" onClick={() => onSettle(c, record && !record.consumed ? record : undefined)}>
                 {t("Play")}

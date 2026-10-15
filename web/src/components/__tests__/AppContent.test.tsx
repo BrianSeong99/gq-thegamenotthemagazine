@@ -524,12 +524,20 @@ describe("open challenges in Champion vs Rival", () => {
     expect(screen.queryByText(/3,[2-7]00/)).toBeNull();
   });
 
+  it("names the map of a record on a stage, next to its score", async () => {
+    window.history.replaceState({}, "", "/");
+    chain.notes = [listed("0xa", 3100, { storage: { ...storage, target: 3100, game: encodeGame({ seed: [0n, 0n, 0n, 0n], dataset: [9n, 9n, 9n, 9n], cities }) } })];
+    await start(/^champion vs rival$/i);
+    expect(await screen.findByRole("button", { name: "View challenge, 3,100 pts, Asia" })).toBeInTheDocument();
+    expect(screen.getByText("Asia", { selector: ".tag" })).toBeInTheDocument();
+  });
+
   it("lists the lowest score first, each with a countdown to its expiry instead of the prize", async () => {
     window.history.replaceState({}, "", "/");
     chain.notes = [listed("0xb", 3300), listed("0xa", 3100, {}, 100 + 1_201)];
     await start(/^champion vs rival$/i);
     const rows = await screen.findAllByRole("button", { name: /view challenge/i });
-    expect(rows.map((b) => b.getAttribute("aria-label"))).toEqual(["View challenge, 3,100 pts", "View challenge, 3,300 pts"]);
+    expect(rows.map((b) => b.getAttribute("aria-label"))).toEqual(["View challenge, 3,100 pts, World", "View challenge, 3,300 pts, World"]);
     expect(screen.getByText(/Ends in 1:00:0[0-3]/)).toBeInTheDocument();
     expect(screen.getByText(/Ends in 23:1[45]:\d\d/)).toBeInTheDocument();
     expect(screen.queryByText(/prize/i)).toBeNull();
@@ -549,7 +557,7 @@ describe("open challenges in Champion vs Rival", () => {
     chain.notes = [listed("0xo", 3100)];
     chain.shared = listed("0xo", 3100, { consumed: true }); // taken since the list was read
     await start(/^champion vs rival$/i);
-    fireEvent.click(await screen.findByRole("button", { name: "View challenge, 3,100 pts" }));
+    fireEvent.click(await screen.findByRole("button", { name: "View challenge, 3,100 pts, World" }));
     expect(document.activeElement).toBe(screen.getByText("3,100 pts to beat").closest("section"));
     expect(fetchChallengeNote).toHaveBeenCalledWith("0xo");
     expect(await screen.findByText(/this one is over/i)).toBeInTheDocument();
@@ -563,8 +571,8 @@ describe("open challenges in Champion vs Rival", () => {
       .mockImplementationOnce(() => new Promise((r) => (answerA = r)))
       .mockImplementationOnce(async () => listed("0xb", 3200));
     await start(/^champion vs rival$/i);
-    fireEvent.click(await screen.findByRole("button", { name: "View challenge, 3,100 pts" }));
-    fireEvent.click(screen.getByRole("button", { name: "View challenge, 3,200 pts" }));
+    fireEvent.click(await screen.findByRole("button", { name: "View challenge, 3,100 pts, World" }));
+    fireEvent.click(screen.getByRole("button", { name: "View challenge, 3,200 pts, World" }));
     await act(async () => answerA(listed("0xa", 3100)));
     expect(screen.getByText("3,200 pts to beat")).toBeInTheDocument();
     expect(screen.queryByText("3,100 pts to beat")).toBeNull();

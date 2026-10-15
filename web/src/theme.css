@@ -359,7 +359,8 @@ table.report td:nth-child(2) { text-align: right; color: var(--muted); }
 .arcade table { width: 100%; border-collapse: collapse; table-layout: fixed; font: 16px/1.6 var(--display); }
 .arcade td { height: 34px; padding: 4px 12px; border-bottom: 1px solid var(--rule); }
 .arcade td:first-child { width: 51px; font-size: 14px; color: var(--muted); }
-.arcade td:last-child { width: 40%; text-align: right; color: var(--yellow); }
+.arcade td.score { width: 28%; text-align: right; color: var(--yellow); }
+.arcade td.map { width: 30%; text-align: right; font-size: 14px; color: var(--muted); }
 .arcade tr:last-child td { border: 0; }
 /* ten rows show; a longer board (Best records) scrolls inside */
 .arcade .rows { max-height: 380px; overflow-y: auto; }

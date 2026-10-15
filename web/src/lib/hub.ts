@@ -117,7 +117,7 @@ type Tone = "pink" | "mint" | "";
  * A past game: the result leads, `context` is what comes before the score (whose record it was),
  * `money` is what came in or went out, `note` the small line under it. Never a rival's exact score.
  */
-export type HistoryItem = { id: string; kind: "record" | "shot"; at: number; result: string; context: string; score: number; detail: string; money: string; note: string; tone: Tone; moneyTone: Tone };
+export type HistoryItem = { id: string; kind: "record" | "shot"; at: number; result: string; context: string; score: number; /** the map, a t() key (stageTag) */ tag?: string; detail: string; money: string; note: string; tone: Tone; moneyTone: Tone };
 
 /** My finished games, newest first: my records and my shots once consumed (live ones stay on the cards). Lines in the language of `t`. */
 export function history(notes: ChallengeNote[], me: AccountFelts, height: number, name: (a: AccountFelts) => string, t: T = en): HistoryItem[] {
@@ -130,11 +130,11 @@ export function history(notes: ChallengeNote[], me: AccountFelts, height: number
       const who = name(n.storage.champion);
       // the shot script serves its rival first: a shot at my own record stays locked past its deadline
       const note = same(n.storage.champion, me) ? t("Locked: this shot was at your own record.") : t("{who} can take the coin.", { who });
-      items.push({ id: n.id, kind: "shot", at: shotDeadline(n.storage), score: n.storage.target, result: t("You lost"), context: t("{who}'s record: ", { who }), detail: "", money: t("{gc} lost", { gc: gc(n.amount) }), note, tone: "pink", moneyTone: "pink" });
+      items.push({ id: n.id, kind: "shot", at: shotDeadline(n.storage), score: n.storage.target, tag: stageTag(n.storage.game), result: t("You lost"), context: t("{who}'s record: ", { who }), detail: "", money: t("{gc} lost", { gc: gc(n.amount) }), note, tone: "pink", moneyTone: "pink" });
       continue;
     }
     if (n.consumedAt === undefined) continue;
-    const base = { id: n.id, kind: n.kind, at: n.consumedAt, score: n.storage.target, context: "", detail: "", note: "" };
+    const base = { id: n.id, kind: n.kind, at: n.consumedAt, score: n.storage.target, tag: stageTag(n.storage.game), context: "", detail: "", note: "" };
     if (n.kind === "record" && same(n.storage.champion, me)) {
       const lost = triesLost(n, notes, height);
       if (lost === null) continue;
@@ -163,7 +163,7 @@ export function history(notes: ChallengeNote[], me: AccountFelts, height: number
   return items.sort((a, b) => b.at - a.at);
 }
 
-export type Ranked = { key: string; who: AccountFelts; value: number; at: number; rank: number; /** the stage of a record, its English name (t() key), none for the World Tour */ tag?: string };
+export type Ranked = { key: string; who: AccountFelts; value: number; at: number; rank: number; /** a record's map, a t() key (stageTag) */ tag?: string };
 /** The top rows (10, 100 records), and my best row when I am not among them. */
 type Board = { top: Ranked[]; mine: Ranked | null };
 type Event = { who: AccountFelts; value: number; at: number };
@@ -192,10 +192,10 @@ function rank(rows: Omit<Ranked, "rank">[], me: AccountFelts | null, limit = 10)
  * one of the champion's records, open or not. Smashed: records a rival took. Losers: shots a rival
  * lost, the other side of Defended.
  */
-/** A record's stage for the boards: the stage name, none for the World Tour or an unknown list. */
-const stageTag = (game: bigint[]): string | undefined => {
+/** A record's map for a row: the stage name or "World" (t() keys), none for an unknown list. */
+export const stageTag = (game: bigint[]): string | undefined => {
   const s = gameStage(game);
-  return s && s.id !== "world" ? s.name : undefined;
+  return s && (s.id === "world" ? "World" : s.name);
 };
 
 export function boards(notes: ChallengeNote[], height: number, me: AccountFelts | null) {

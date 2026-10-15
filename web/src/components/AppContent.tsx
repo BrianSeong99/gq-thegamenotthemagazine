@@ -11,7 +11,7 @@ import { GAMECOIN_GRANT, gamecoinRefusal, GRANT_PENDING_MS, useGamecoin } from "
 import { useSound, type Track } from "@/lib/useSound";
 import { CITIES_URL, RECORD_LIFETIME_BLOCKS, STAKE, TEST_ACCOUNTS } from "@/config";
 import { accountFelts, bech32Of, fetchChallengeNote, hexOf, knownNote, listChallengeNotes, loadScripts, parseAccountId, syncNotes, wordFromHex, type ChallengeNote } from "@/lib/chain";
-import { boards, history as pastGames, keyOf, lettersBackward, nicknames, owed, playersInOrder } from "@/lib/hub";
+import { boards, history as pastGames, keyOf, lettersBackward, nicknames, owed, playersInOrder, stageTag } from "@/lib/hub";
 import { gcBalance, postShot, postRecord, settle, collect, setSubmitAttemptListener, setSubmitStageListener, waitFor, type Submitted } from "@/lib/bread";
 import { shotDeadline, shotStorage, ZERO_WORD, type AccountFelts, type ChallengeStorage } from "@/lib/notes";
 import { blockToMs, claimVerdict, explain, fmtGamecoin, NOT_FINISHED, sameAccount, SHOT_LOST, shotRefusal, withoutRecord, withTimeout, type Trouble, myOpenShotsOn as openShotsOn, outcomeText, parseCode, reportRows, settlePlan, sharedRecordState, type ReportRow } from "@/lib/flow";
@@ -545,19 +545,23 @@ function GqApp({ onStarted }: { onStarted?: () => void }) {
       ) : openRecords.length === 0 ? (
         <p className="muted">{t("No open challenges yet.")}</p>
       ) : (
-        openRecords.map((n) => (
-          <div key={n.id} className="row">
-            <div>
-              <div className="value">{t("{n} pts", { n: n.storage.target.toLocaleString() })}</div>
-              <div className="small muted">
-                <EndsIn until={blockToMs(n.storage.expiryBlock, height)} />
+        openRecords.map((n) => {
+          const map = stageTag(n.storage.game);
+          return (
+            <div key={n.id} className="row">
+              <div>
+                <div className="value">{t("{n} pts", { n: n.storage.target.toLocaleString() })}</div>
+                {map && <div className="small tag">{t(map)}</div>}
+                <div className="small muted">
+                  <EndsIn until={blockToMs(n.storage.expiryBlock, height)} />
+                </div>
               </div>
+              <button className="btn" onClick={() => viewChallenge(n)} aria-label={`${t("View challenge, {n} pts", { n: n.storage.target.toLocaleString() })}${map ? `, ${t(map)}` : ""}`}>
+                {t("View challenge")}
+              </button>
             </div>
-            <button className="btn" onClick={() => viewChallenge(n)} aria-label={t("View challenge, {n} pts", { n: n.storage.target.toLocaleString() })}>
-              {t("View challenge")}
-            </button>
-          </div>
-        ))
+          );
+        })
       )}
     </section>
   );
