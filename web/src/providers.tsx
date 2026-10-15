@@ -10,9 +10,9 @@ import { APP_NAME, MIDEN_RPC_URL, MIDEN_PROVER } from "@/config";
 // unmounts the game (the splash click re-renders this, as it turns autoConnect on).
 const MIDEN_CONFIG = { rpcUrl: MIDEN_RPC_URL, prover: MIDEN_PROVER, useWorker: true };
 /** `autoConnect`: once the game is on (not on the splash), Bread reconnects by itself. */
-export function AppProviders({ children, autoConnect = false }: { children: ReactNode; autoConnect?: boolean }) {
+export function AppProviders({ children, autoConnect }: { children: ReactNode; autoConnect: boolean }) {
   return (
-    <MidenProvider config={MIDEN_CONFIG} loadingComponent={<div className="loading">Loading Miden WASM...</div>}>
+    <MidenProvider config={MIDEN_CONFIG} loadingComponent={<div>Loading Miden WASM...</div>}>
       <MidenFiSignerProvider
         appName={APP_NAME}
         network={WalletAdapterNetwork.Testnet}

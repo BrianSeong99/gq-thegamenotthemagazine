@@ -109,7 +109,7 @@ export const blocksToClock = (blocks: number) => secondsToClock(Math.max(0, bloc
 /** When `block` lands, in ms, counting from `height` (the chain's current block) at testnet's pace. */
 export const blockToMs = (block: number, height: number) => Date.now() + (block - height) * BLOCK_SECONDS * 1000;
 
-const pad = (v: number) => String(v).padStart(2, "0");
+export const pad = (v: number) => String(v).padStart(2, "0");
 
 /** m:ss, or h:mm:ss from an hour on. */
 export const secondsToClock = (s: number) => {

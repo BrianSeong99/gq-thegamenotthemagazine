@@ -229,7 +229,6 @@ const ES: Record<string, string> = {
   "Your row": "Tu fila",
   "Your rank": "Tu puesto",
   // stages
-  "World Tour": "Vuelta al mundo",
   "World": "Mundo",
   America: "América",
   Africa: "África",
@@ -250,7 +249,7 @@ export const ES_ES = swap(ES, [["billetera", "cartera"], ["Billetera", "Cartera"
 export const ES_MX = swap(ES, [["billetera", "cartera"], ["Billetera", "Cartera"], ["el teléfono", "el celular"]]);
 export const ES_CO = swap(ES, [["el teléfono", "el celular"]]);
 export const ES_AR: Record<string, string> = {
-  ...swap(ES, [["el teléfono", "el celular"]]),
+  ...ES_CO,
   you: "vos",
   "Turn your phone sideways: the map is much easier to play.": "Girá el celular: el mapa se juega mucho mejor.",
   "This is taking long. Check your connection, or": "Esto tarda mucho. Revisá tu conexión, o",

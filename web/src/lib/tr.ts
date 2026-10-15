@@ -209,7 +209,6 @@ export const TR: Record<string, string> = {
   "Your row": "Senin satırın",
   "Your rank": "Senin sıran",
   // stages
-  "World Tour": "Dünya Turu",
   "World": "Dünya",
   America: "Amerika",
   Africa: "Afrika",

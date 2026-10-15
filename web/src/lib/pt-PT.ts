@@ -209,7 +209,6 @@ export const PT_PT: Record<string, string> = {
   "Your row": "A tua linha",
   "Your rank": "A tua posição",
   // stages
-  "World Tour": "Volta ao mundo",
   "World": "Mundo",
   America: "América",
   Africa: "África",

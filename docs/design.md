@@ -51,6 +51,9 @@ dataset. On-chain, only the stored coordinates are used.
 
 Dataset: Natural Earth populated places (public domain), ~240 cities, bundled
 as `cities.json`; `dataset` is the SHA-256 of the file bytes, first 16 bytes as four u32.
+Four stage lists (`cities.<stage>.json`, America, Africa, Europe, Asia) sit beside it, each with
+its own hash; a stage's quiz runs in stretched coordinates (the region scaled around its centre,
+`web/src/lib/stages.ts`), so the contract's kilometre scoring becomes map-distance scoring unchanged.
 Map: equirectangular SVG rendered from Natural Earth 110m country outlines
 (public domain). Click to lat/lon is a linear mapping. No map library.
 
@@ -61,8 +64,8 @@ shot note to play. Gamecoin is a fungible token from a faucet on testnet with
 app's "Empty pockets? Get Gamecoins now!" button does it from the browser
 (`gamecoin` binary deploys and mints from the CLI; PoW or a captcha can come
 later). The contracts only know a generic `min_stake` and "same asset as the
-record", so another game can use another token or amount. Gamecoin replaced Geocoin on
-2026-10-14; the app accepts both (`STAKE_FAUCETS`) and a shot stakes the asset of its record.
+record", so another game can use another token or amount. Gamecoin replaced Geocoin;
+the app accepts both (`STAKE_FAUCETS`) and a shot stakes the asset of its record.
 
 ## 2. The challenge mechanic (generic)
 

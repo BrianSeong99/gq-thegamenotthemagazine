@@ -209,7 +209,6 @@ export const JA: Record<string, string> = {
   "Your row": "あなたの行",
   "Your rank": "あなたの順位",
   // stages
-  "World Tour": "ワールドツアー",
   "World": "世界",
   America: "アメリカ",
   Africa: "アフリカ",

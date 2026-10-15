@@ -209,7 +209,6 @@ export const DE: Record<string, string> = {
   "Your row": "Deine Zeile",
   "Your rank": "Dein Rang",
   // stages
-  "World Tour": "Welttour",
   "World": "Welt",
   America: "Amerika",
   Africa: "Afrika",

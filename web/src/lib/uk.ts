@@ -209,7 +209,6 @@ export const UK: Record<string, string> = {
   "Your row": "Твій рядок",
   "Your rank": "Твоє місце",
   // stages
-  "World Tour": "Навколосвітка",
   "World": "Світ",
   America: "Америка",
   Africa: "Африка",

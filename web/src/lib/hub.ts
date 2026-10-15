@@ -3,7 +3,7 @@
 // made and consumed in) come in, rows come out.
 
 import type { ChallengeNote } from "./chain";
-import { fmtGamecoin, sameAccount as same, toGc } from "./flow";
+import { fmtGamecoin, pad, sameAccount as same, toGc } from "./flow";
 import { gameStage } from "./quiz";
 import { isShotAt, noteDeadline, shotDeadline, type AccountFelts } from "./notes";
 import { CLAIM_FUZZ } from "@/config";
@@ -186,18 +186,15 @@ function rank(rows: Omit<Ranked, "rank">[], me: AccountFelts | null, limit = 10)
   return { top, mine };
 }
 
+/** A record's map for a row: the stage's name, a t() key; none for an unknown list. */
+export const stageTag = (game: bigint[]): string | undefined => gameStage(game)?.name;
+
 /**
  * The four boards. Gamecoins won: lost shots a champion took, plus prizes (a winner's own Gamecoin
  * coming back is not a win). Best records: every record posted, by its score, a hundred of them. Defended: every rival who lost at
  * one of the champion's records, open or not. Smashed: records a rival took. Losers: shots a rival
  * lost, the other side of Defended.
  */
-/** A record's map for a row: the stage name or "World" (t() keys), none for an unknown list. */
-export const stageTag = (game: bigint[]): string | undefined => {
-  const s = gameStage(game);
-  return s && (s.id === "world" ? "World" : s.name);
-};
-
 export function boards(notes: ChallengeNote[], height: number, me: AccountFelts | null) {
   const coins: Event[] = [];
   const defended: Event[] = [];
@@ -226,7 +223,6 @@ export function boards(notes: ChallengeNote[], height: number, me: AccountFelts 
 /** A time, arcade style and local: TODAY 18:42, YESTERDAY 21:10, TOMORROW 09:05, 08 OCT 20:14 (in Chinese 10月08日 20:14). */
 export function whenLabel(ms: number, now = Date.now(), t: T = en): string {
   const d = new Date(ms);
-  const pad = (v: number) => String(v).padStart(2, "0");
   const time = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
   const midnight = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
   const days = Math.round((midnight(new Date(now)) - midnight(d)) / 86_400_000);

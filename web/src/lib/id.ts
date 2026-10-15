@@ -209,7 +209,6 @@ export const ID: Record<string, string> = {
   "Your row": "Barismu",
   "Your rank": "Peringkatmu",
   // stages
-  "World Tour": "Tur Dunia",
   "World": "Dunia",
   America: "Amerika",
   Africa: "Afrika",

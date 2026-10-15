@@ -35,7 +35,7 @@ const stage = (id: StageId, name: string, threshold: number, lon0: number, lon1:
  * cities, where the stage tiles sit. Bounds mirror tasks/maps/pixelmap.py.
  */
 export const STAGES: Stage[] = [
-  stage("world", "World Tour", 0, -180, 180, -90, 90),
+  stage("world", "World", 0, -180, 180, -90, 90),
   stage("america", "America", 3000, -230.5, 30.5, -84, 90),
   stage("africa", "Africa", 4000, -50.75, 82.75, -50, 39),
   stage("europe", "Europe", 5000, -25.25, 45.25, 25, 72),
@@ -53,13 +53,6 @@ export const toStretched = (s: Stage, p: LatLon): LatLon => {
   const c = centre(s);
   return { lat: (p.lat - c.lat) * s.factor, lon: (unwrap(p.lon, c.lon) - c.lon) * s.factor };
 };
-/** Back from stretched coordinates to the real place. */
-export const fromStretched = (s: Stage, p: LatLon): LatLon => {
-  if (s.id === "world") return p;
-  const c = centre(s);
-  return { lat: p.lat / s.factor + c.lat, lon: unwrap(p.lon / s.factor + c.lon, 0) };
-};
-
 // the dataset hash of each stage's city list, learnt when the list is loaded
 const byHash = new Map<string, Stage>();
 export const registerDataset = (s: Stage, word: Word4) => byHash.set(word.join(","), s);

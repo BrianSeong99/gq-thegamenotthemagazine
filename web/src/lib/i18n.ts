@@ -25,7 +25,7 @@ export type Lang =
   | "pt-BR" | "pt-PT"
   | "de-DE" | "de-AT" | "de-CH"
   | "ja" | "ko" | "ru" | "uk" | "tr" | "id";
-export type Params = Record<string, string | number>;
+type Params = Record<string, string | number>;
 export type T = (text: string, params?: Params) => string;
 
 /** The dictionaries. English lines are the keys; UK English only has its jokes. */
@@ -40,10 +40,10 @@ export const DICTS: Partial<Record<Lang, Record<string, string>>> = {
 };
 /** Languages whose display text comes from the 12 px Fusion Pixel face (theme.css html.pixel12). */
 export const PIXEL12 = /^(zh|ja|ko|ru|uk)/;
-export type Variant = { lang: Lang; flag: string; name: string; /** the city names file, by family (config.ts placesUrl) */ places?: string };
+type Variant = { lang: Lang; flag: string; name: string; /** the city names file, by family (public/places.<file>.json) */ places?: string };
 /**
  * One family per flag slot on the splash, in that order; the first variant is the one shown until
- * another is picked. `name` is the family's name in the masthead picker.
+ * another is picked. `name` is the family's name on the splash.
  */
 export const FAMILIES: { name: string; variants: Variant[] }[] = [
   { name: "English", variants: [{ lang: "en-US", flag: "/brand/flag-us.svg", name: "US" }, { lang: "en-GB", flag: "/brand/flag-gb.svg", name: "UK" }] },
@@ -87,13 +87,11 @@ export const translator = (lang: Lang): T => {
 };
 
 const LANG_KEY = "gq.lang";
-// the codes stored before the variants (2026-10-14)
-const OLD: Record<string, Lang> = { en: "en-US", es: "es-ES", fr: "fr-FR", pt: "pt-BR" };
 /** The language picked last time on this device, English until then. */
 export function storedLang(): Lang {
   try {
     const l = localStorage.getItem(LANG_KEY) ?? "";
-    return OLD[l] ?? (LANGS.some((x) => x.lang === l) ? (l as Lang) : "en-US");
+    return LANGS.some((x) => x.lang === l) ? (l as Lang) : "en-US";
   } catch {
     return "en-US";
   }

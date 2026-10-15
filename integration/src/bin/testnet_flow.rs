@@ -15,7 +15,7 @@ use integration::{
     deadline_advice,
     faucet_api::{request_fee_tokens, TESTNET_FAUCET_API},
     funding::ensure_accounts_funded,
-    helpers::{create_basic_wallet_account, setup_client, wait_for_commit},
+    helpers::{create_basic_wallet_account, gamecoin_faucet, setup_client, wait_for_commit},
     quiz::GqGameData,
     rules::{answer_advice, Answer, City, ROUNDS, VECTOR_CITIES},
     scripts::{shot_script, record_script},
@@ -42,9 +42,7 @@ const CITIES: [City; ROUNDS] = VECTOR_CITIES;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let state: serde_json::Value =
-        serde_json::from_str(&std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/../gamecoin.json"))?)?;
-    let gc = AccountId::from_hex(state["gamecoin"].as_str().context("run gamecoin deploy first")?)?;
+    let gc = gamecoin_faucet()?;
 
     let setup = setup_client().await?;
     let mut client = setup.client;

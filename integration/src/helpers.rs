@@ -7,7 +7,7 @@ use std::{
 
 use anyhow::{bail, ensure, Context, Result};
 use miden_client::{
-    account::{component::BasicWallet, Account, AccountBuilder, AccountType},
+    account::{component::BasicWallet, Account, AccountBuilder, AccountId, AccountType},
     auth::{AuthSecretKey, AuthSingleSig},
     builder::ClientBuilder,
     keystore::{FilesystemKeyStore, Keystore},
@@ -34,6 +34,12 @@ pub struct ClientSetup {
 /// # Errors
 /// Returns an error if RPC connection fails, keystore initialization fails,
 /// or client building fails
+/// The Gamecoin faucet `gamecoin deploy` wrote to gamecoin.json.
+pub fn gamecoin_faucet() -> Result<AccountId> {
+    let state: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/../gamecoin.json"))?)?;
+    Ok(AccountId::from_hex(state["gamecoin"].as_str().context("no gamecoin in gamecoin.json, run gamecoin deploy first")?)?)
+}
+
 pub async fn setup_client() -> Result<ClientSetup> {
     // Initialize keystore
     let keystore_path = std::path::PathBuf::from(concat!(env!("CARGO_MANIFEST_DIR"), "/../keystore"));

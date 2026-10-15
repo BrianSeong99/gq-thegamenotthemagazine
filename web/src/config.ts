@@ -4,7 +4,7 @@ export const APP_NAME = "GQ GeoQuizz";
 
 // Gamecoin (GC): a fungible faucet on testnet anyone may mint from (`cargo run --bin gamecoin deploy`).
 export const GC_FAUCET = import.meta.env.VITE_GC_FAUCET ?? "0x6a8e2ccb2090bcd1071cea18da2cce";
-// Geocoin, the coin before 2026-10-14: nothing new is minted, what people hold still plays. A shot
+// Geocoin, the previous coin: nothing new is minted, what people hold still plays. A shot
 // must stake the asset of its record (the script checks), so a Geocoin record wants Geocoin shots.
 export const GEOCOIN_FAUCET = "0x2a85bbc7c655b6d116381742015892";
 export const STAKE_FAUCETS = [GC_FAUCET, GEOCOIN_FAUCET];
@@ -40,9 +40,6 @@ export const V1_ROOTS = {
 export const SHOT_SCRIPT_V1_URL = "/scripts/v1/shot.bin";
 // masm/challenge/challenge_core.masm CLAIM_FUZZ: how late a claim proved before a deadline may land.
 export const CLAIM_FUZZ = 64;
-export const CITIES_URL = "/cities.json";
-// The cities' names and countries in a language, by index of cities.json (shown, never hashed).
-export const placesUrl = (file: string) => `/places.${file}.json`;
 
 export const NETWORK_POLL_INTERVAL_MS = 2_500;
 export const NETWORK_POLL_TIMEOUT_MS = 120_000;

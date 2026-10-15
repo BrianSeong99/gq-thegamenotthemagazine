@@ -16,7 +16,7 @@ use anyhow::{bail, Context, Result};
 use integration::{
     faucet_api::{request_fee_tokens, TESTNET_FAUCET_API},
     funding::ensure_accounts_funded,
-    helpers::{setup_client, wait_for_commit},
+    helpers::{gamecoin_faucet, setup_client, wait_for_commit},
 };
 use miden_client::{
     account::{
@@ -35,8 +35,8 @@ use miden_client::{
 };
 use rand::Rng;
 
-pub const GC_DECIMALS: u8 = 6;
-pub const GC_MAX_SUPPLY: u64 = 1_000_000_000 * 1_000_000; // 1e9 GC
+const GC_DECIMALS: u8 = 6;
+const GC_MAX_SUPPLY: u64 = 1_000_000_000 * 1_000_000; // 1e9 GC
 const STATE_FILE: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../gamecoin.json");
 
 #[tokio::main]
@@ -94,13 +94,8 @@ async fn deploy() -> Result<()> {
     Ok(())
 }
 
-fn faucet_id() -> Result<AccountId> {
-    let state: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(STATE_FILE)?)?;
-    Ok(AccountId::from_hex(state["gamecoin"].as_str().context("no gamecoin in gamecoin.json")?)?)
-}
-
 async fn mint(target: &str, amount_gc: &str) -> Result<()> {
-    let faucet_id = faucet_id()?;
+    let faucet_id = gamecoin_faucet()?;
     let target_id = parse_account(target)?;
     let amount = parse_gc(amount_gc)?;
 
@@ -120,7 +115,7 @@ async fn mint(target: &str, amount_gc: &str) -> Result<()> {
 }
 
 async fn fees() -> Result<()> {
-    let faucet_id = faucet_id()?;
+    let faucet_id = gamecoin_faucet()?;
     let setup = setup_client().await?;
     let mut client = setup.client;
     client.sync_state().await?;

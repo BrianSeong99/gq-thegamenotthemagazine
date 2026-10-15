@@ -8,7 +8,7 @@ import { TAB_LABEL } from "../tabs";
 import { explain, NOT_FINISHED, parseCode, SHOT_LOST, shotRefusal } from "../flow";
 import type { ChallengeNote } from "../chain";
 
-const files = (dir: string): string[] => readdirSync(dir).flatMap((f) => (statSync(join(dir, f)).isDirectory() ? (f === "__tests__" ? [] : files(join(dir, f))) : /\.tsx?$/.test(f) && !/^(zh|es|fr|pt-BR|pt-PT|de|ja|ko|ru|uk|tr|id)\.ts$/.test(f) ? [join(dir, f)] : []));
+const files = (dir: string): string[] => readdirSync(dir).flatMap((f) => (statSync(join(dir, f)).isDirectory() ? (f === "__tests__" ? [] : files(join(dir, f))) : /\.tsx?$/.test(f) ? [join(dir, f)] : []));
 const literals = files(join(__dirname, "../..")).flatMap((f) => [...readFileSync(f, "utf8").matchAll(/\bt\(\s*"((?:[^"\\]|\\.)*)"/g)].map((m) => m[1]));
 const placeholders = (s: string) => [...s.matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort();
 
@@ -43,7 +43,9 @@ describe.each((Object.keys(DICTS) as (keyof typeof DICTS)[]).filter((l) => !l.st
     ];
     expect(fromLibs.filter((k) => !(k in D))).toEqual([]);
   });
+});
 
+describe("a translator", () => {
   it("translates whole sentences, fills placeholders after, and falls back to English", () => {
     const zh = translator("zh-Hans");
     expect(zh("{who} can take the coin.", { who: "JHT" })).toBe("JHT 可以领走游戏币。");

@@ -1,5 +1,5 @@
 // Simplified Chinese, keyed by the English line as written in the code (see i18n.ts). Terms follow
-// the design pack: 纪录 record, 挑战 shot, 游戏币 Gamecoin (地理币 Geocoin before 2026-10-14), 冠军 champion, 对手 rival, 奖金 prize.
+// the design pack: 纪录 record, 挑战 shot, 游戏币 Gamecoin (地理币 Geocoin, the old coin), 冠军 champion, 对手 rival, 奖金 prize.
 // A key with a `|context` suffix is the same English word in another place.
 
 export const ZH: Record<string, string> = {
@@ -229,7 +229,6 @@ export const ZH: Record<string, string> = {
   "Your row": "你的一行",
   "Your rank": "你的排名",
   // stages
-  "World Tour": "环游世界",
   "World": "世界",
   America: "美洲",
   Africa: "非洲",
