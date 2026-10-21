@@ -1,5 +1,5 @@
 // A wallet inside the app, for testing without Bread: open the page with `?local=1` (`?local=2` for a second one). The app's own
-// Miden client creates a private single-signature account, funds its fees from the testnet faucet
+// Miden client creates a private single-signature account, funds its fees (testnet faucet; on mainnet the node pays a registered account, `&code=` an invite code)
 // and signs every request itself. Same contracts, same flows, no popups.
 //
 // Mutations go through the SDK's own hooks (`useCreateWallet`, `useConsume`, `useTransaction`):
@@ -15,8 +15,7 @@ import { noteKind } from "./flow";
 import { requestFaucetTokens } from "./funding";
 
 const LOCAL = typeof location !== "undefined" ? new URLSearchParams(location.search).get("local") : null;
-// not on mainnet: a new account there needs an invite code
-export const LOCAL_WALLET = LOCAL !== null && !MAINNET;
+export const LOCAL_WALLET = LOCAL !== null;
 // `?local=1` is the first wallet, `?local=2` a second one: a champion and a rival in two tabs
 const KEY = LOCAL === "1" || LOCAL === "" ? "gq:local-wallet" : `gq:local-wallet:${LOCAL}`;
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -84,7 +83,8 @@ export function useLocalWallet(client: Client | null, runExclusive: <T>(fn: () =
       }
       log("wallet", hex);
 
-      // 2. fees: the chain's fee asset from the public faucet, once
+      // 2. fees: the chain's fee asset, once: on mainnet the node pays a registered account (`?code=` an
+      // invite code, one use), on testnet the public faucet does
       setStatus("Syncing…");
       const funded = await runExclusive(async () => {
         await client.syncState();
@@ -92,7 +92,19 @@ export function useLocalWallet(client: Client | null, runExclusive: <T>(fn: () =
         return (await (await client.getAccount(AccountId.fromHex(hex!)))!.vault().getBalance(fee)) > 0n;
       });
       log("funded", funded);
-      if (!funded) {
+      if (!funded && MAINNET) {
+        const code = new URLSearchParams(location.search).get("code");
+        if (code) {
+          setStatus("Registering…");
+          await runExclusive(() => client.registerAccount(AccountId.fromHex(hex!), code));
+          log("registered");
+        }
+        // the node's funding note (a public P2ID) reaches the store a sync or two after registration
+        setStatus("Waiting for the funding note…");
+        if ((await claimIncoming(hex, 90_000)) === 0) {
+          throw new Error(code ? "The funding note never arrived." : "A new mainnet account needs an invite code: add ?code=… to the address.");
+        }
+      } else if (!funded) {
         setStatus("Getting test money…");
         const noteId = await requestFaucetTokens(MIDEN_FAUCET_URL, hex);
         log("faucet note", noteId);
