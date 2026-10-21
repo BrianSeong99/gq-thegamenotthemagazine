@@ -3,7 +3,7 @@
 import type { ChallengeNote } from "./chain";
 import { noteDeadline, shotDeadline, ZERO_WORD, type AccountFelts, type ChallengeStorage, type Word4 } from "./notes";
 import type { Place } from "./quiz";
-import { BLOCK_SECONDS, CLAIM_FUZZ, GC_DECIMALS, MIN_SHOT_WINDOW_BLOCKS, RECORD_LIFETIME_BLOCKS, STAKE, STAKE_FAUCETS, V1_ROOTS } from "@/config";
+import { BLOCK_SECONDS, CLAIM_FUZZ, GC_DECIMALS, GC_FAUCET, MIN_SHOT_WINDOW_BLOCKS, RECORD_LIFETIME_BLOCKS, STAKE } from "@/config";
 import { QUIZ_MAX, roundScore, type Answer, type City } from "./rules";
 import { en, translator, type T } from "./i18n";
 import type { Stage } from "./stages";
@@ -50,25 +50,23 @@ export function shotRefusal(record: ChallengeNote, height: number, me?: AccountF
 
 export const sameWord = (a: Word4, b: Word4) => a.every((f, i) => f === b[i]);
 
-export type NoteKind = { kind: "record"; shotRoot: string; v1?: true } | { kind: "shot"; v1?: true };
+export type NoteKind = { kind: "record"; shotRoot: string } | { kind: "shot" };
 
 /** What a note script root means to this app: a record (and the shot script its shots run), a shot, or null for a foreign note. */
 export function noteKind(root: string, current: { recordRoot: string; shotRoot: string }): NoteKind | null {
   if (root === current.recordRoot) return { kind: "record", shotRoot: current.shotRoot };
   if (root === current.shotRoot) return { kind: "shot" };
-  if (root === V1_ROOTS.record) return { kind: "record", shotRoot: V1_ROOTS.shot, v1: true };
-  if (root === V1_ROOTS.shot) return { kind: "shot", v1: true };
   return null;
 }
 
 /**
  * Whether a note the node serves under our tag with one of our script roots is one of ours: posted
  * by the account it names (the sender is set by the kernel, the storage by whoever made the note),
- * carrying exactly one asset, a Gamecoin (or the Geocoin before it), and shaped the way this app writes it. A record names
+ * carrying exactly one asset, a Gamecoin, and shaped the way this app writes it. A record names
  * `shotRoot`, the shot script of its own version, so no stranger's script gets to settle shots at it.
  */
 export function acceptNote(n: { kind: "record" | "shot"; storage: ChallengeStorage; sender: AccountFelts; assets: { faucet: string; amount: bigint }[] }, shotRoot?: Word4): boolean {
-  if (n.assets.length !== 1 || !STAKE_FAUCETS.includes(n.assets[0].faucet)) return false;
+  if (n.assets.length !== 1 || n.assets[0].faucet !== GC_FAUCET) return false;
   const s = n.storage;
   if (n.kind === "record") return sameAccount(n.sender, s.champion) && !s.rival && s.shotDeadline === 0 && sameWord(s.recordId, ZERO_WORD) && !!shotRoot && sameWord(s.shotRoot, shotRoot);
   return sameAccount(n.sender, s.rival) && !sameWord(s.recordId, ZERO_WORD);
@@ -123,9 +121,9 @@ export const secondsToClock = (s: number) => {
  * the rival can consume a shot, and only with a winning answer; from deadline + CLAIM_FUZZ on only
  * the champion. So a shot consumed up to there was claimed by its rival, one consumed later was taken.
  */
-export function claimVerdict(shots: { consumedAt?: number; deadline: number; v1?: true }[]): "open" | "claimed" | "lost" {
-  // the champion collects from deadline + CLAIM_FUZZ (v1: from the deadline); a shot consumed earlier was ours
-  if (shots.some((s) => s.consumedAt !== undefined && s.consumedAt >= s.deadline + (s.v1 ? 0 : CLAIM_FUZZ + 1))) return "lost";
+export function claimVerdict(shots: { consumedAt?: number; deadline: number }[]): "open" | "claimed" | "lost" {
+  // the champion collects from deadline + CLAIM_FUZZ; a shot consumed earlier was ours
+  if (shots.some((s) => s.consumedAt !== undefined && s.consumedAt >= s.deadline + CLAIM_FUZZ + 1)) return "lost";
   if (shots.length > 0 && shots.every((s) => s.consumedAt !== undefined)) return "claimed";
   return "open";
 }
@@ -158,7 +156,6 @@ export function explain(e: unknown): Trouble {
   if (/WalletNotReady|not installed/i.test(raw)) return trouble("no-wallet", "We can't find the Bread wallet. Install it, then try again.");
   if (/WalletNotConnected|not connected|WalletDisconnected/i.test(raw)) return trouble("no-wallet", "Connect your wallet first.");
   if (/^(\w+: )?You need .*Gamecoin/.test(raw)) return trouble("funds", "Not enough Gamecoins in your wallet. Get Gamecoins first.");
-  if (/^(\w+: )?You need .*Geocoin/.test(raw)) return trouble("refused", "This record was set in Geocoin, the old coin. Only a Geocoin can take a shot at it.");
   if (/SummaryAnchorMismatch|chain anchor|ChainBehindBoundBlock|block header for block \d+ not found/i.test(raw))
     return trouble("out-of-step", "Your wallet was out of step with the network. Try again.");
   if (/^Too late: /.test(raw)) return trouble("too-late", raw, false);

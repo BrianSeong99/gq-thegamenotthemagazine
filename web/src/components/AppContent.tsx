@@ -446,7 +446,7 @@ function GqApp({ onStarted }: { onStarted?: () => void }) {
         async () => {
           // ask the chain first: a claim that already landed (or a shot already taken) needs no wallet
           const now = await Promise.all(shots.map((s) => withTimeout(fetchChallengeNote(s.id), 30_000, "Checking your shot")));
-          const verdict = claimVerdict(now.map((s) => ({ consumedAt: s.consumedAt, deadline: shotDeadline(s.storage), v1: s.v1 })));
+          const verdict = claimVerdict(now.map((s) => ({ consumedAt: s.consumedAt, deadline: shotDeadline(s.storage) })));
           if (verdict === "claimed") return { txId: "", noteIds: shots.map((s) => s.id) };
           if (verdict === "lost") throw new Error(SHOT_LOST);
           return settle(client, wallet, shots, plan.claimPrize ? record : undefined, gqAnswer(r.answers));

@@ -135,7 +135,6 @@ const ES: Record<string, string> = {
   "We can't find the Bread wallet. Install it, then try again.": "No encontramos la billetera Bread. Instálala y reintenta.",
   "Connect your wallet first.": "Conecta tu billetera primero.",
   "Not enough Gamecoins in your wallet. Get Gamecoins first.": "No hay suficientes Gamecoins en tu billetera. Consigue Gamecoins primero.",
-  "This record was set in Geocoin, the old coin. Only a Geocoin can take a shot at it.": "Este récord se puso en Geocoin, la moneda antigua. Solo un Geocoin puede intentarlo.",
   "Your wallet was out of step with the network. Try again.": "Tu billetera iba desfasada con la red. Reintenta.",
   "This was already done.": "Esto ya estaba hecho.",
   "Too late: this one is over.": "Demasiado tarde: este ya terminó.",

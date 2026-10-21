@@ -137,7 +137,6 @@ export const FR_FR: Record<string, string> = {
   "We can't find the Bread wallet. Install it, then try again.": "Wallet Bread introuvable. Installez-le, puis réessayez.",
   "Connect your wallet first.": "Connectez d'abord votre wallet.",
   "Not enough Gamecoins in your wallet. Get Gamecoins first.": "Pas assez de Gamecoins dans votre wallet. Prenez-en d'abord.",
-  "This record was set in Geocoin, the old coin. Only a Geocoin can take a shot at it.": "Ce record a été posé en Geocoin, l'ancienne monnaie. Seul un Geocoin peut le tenter.",
   "Your wallet was out of step with the network. Try again.": "Votre wallet était en décalage avec le réseau. Réessayez.",
   "This was already done.": "C'était déjà fait.",
   "Too late: this one is over.": "Trop tard : celui-ci est terminé.",

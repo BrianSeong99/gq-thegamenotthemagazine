@@ -121,7 +121,6 @@ export const TR: Record<string, string> = {
   "We can't find the Bread wallet. Install it, then try again.": "Bread cüzdanı bulunamadı. Yükleyip tekrar dene.",
   "Connect your wallet first.": "Önce cüzdanını bağla.",
   "Not enough Gamecoins in your wallet. Get Gamecoins first.": "Cüzdanında yeterli Gamecoin yok. Önce Gamecoin al.",
-  "This record was set in Geocoin, the old coin. Only a Geocoin can take a shot at it.": "Bu rekor eski para Geocoin ile konuldu. Sadece Geocoin ile denenebilir.",
   "Your wallet was out of step with the network. Try again.": "Cüzdanın ağla uyumsuzdu. Tekrar dene.",
   "This was already done.": "Bu zaten yapılmış.",
   "Too late: this one is over.": "Çok geç: bu bitti.",

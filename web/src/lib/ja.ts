@@ -121,7 +121,6 @@ export const JA: Record<string, string> = {
   "We can't find the Bread wallet. Install it, then try again.": "Bread ウォレットが見つかりません。インストールしてからもう一度。",
   "Connect your wallet first.": "先にウォレットを接続してください。",
   "Not enough Gamecoins in your wallet. Get Gamecoins first.": "ウォレットの Gamecoin が足りません。先に Gamecoin をもらってください。",
-  "This record was set in Geocoin, the old coin. Only a Geocoin can take a shot at it.": "この記録は旧コインの Geocoin で作られています。Geocoin でしか挑戦できません。",
   "Your wallet was out of step with the network. Try again.": "ウォレットがネットワークとずれていました。もう一度。",
   "This was already done.": "すでに完了しています。",
   "Too late: this one is over.": "遅すぎました：すでに終了しています。",

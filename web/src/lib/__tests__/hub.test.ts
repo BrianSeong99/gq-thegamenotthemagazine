@@ -74,32 +74,6 @@ describe("how games ended", () => {
     expect(recordOutcome(record(MUD, 100), 1000)).toBe("closed");
   });
 
-  it("v1 notes (collect opened at the deadline) keep the old reading: before the deadline or with the open record won, else lost", () => {
-    const v1 = { v1: true as const };
-    const r = record(MUD, 100, v1);
-    expect(shotOutcome(shot(r, ME, 200, { consumedAt: 199, ...v1 }), 500)).toBe("won");
-    expect(shotOutcome(shot(r, ME, 200, { consumedAt: 200, ...v1 }), 500)).toBe("lost");
-    // testnet 0x4ea99130: used at its deadline together with its record
-    const dl0 = record(MUD, 5000, { consumedAt: 500, expiry: 1000, ...v1 });
-    expect(shotOutcome(shot(dl0, KQX, 500, { consumedAt: 500, ...v1 }), 2000, dl0)).toBe("won");
-    // testnet 0x820ac053: used alone 32 blocks past its deadline, its record taken back much later: the champion collected it
-    const later = record(MUD, 5000, { consumedAt: 166348, expiry: 100000, ...v1 });
-    expect(shotOutcome(shot(later, KQX, 95104, { consumedAt: 95136, ...v1 }), 170000, later)).toBe("lost");
-    // v1 records: smashed only before expiry
-    expect(recordOutcome(record(MUD, 100, { consumedAt: 1000, ...v1 }), 2000)).toBe("closed");
-    expect(recordOutcome(record(MUD, 100, { consumedAt: 999, ...v1 }), 2000)).toBe("smashed");
-  });
-
-  it("v1: a claim that lands after the shot deadline still won: it took the open record in the same block", () => {
-    const r = record(MUD, 9690, { consumedAt: 82650, expiry: 111298, v1: true });
-    const s = shot(r, KQX, 82645, { consumedAt: 82650, v1: true });
-    expect(shotOutcome(s, 90000, r)).toBe("won");
-    expect(history([r, s], MUD, 90000, name).map((h) => [h.result, h.context, h.detail])).toEqual([["Beaten", "KQX beat ", "0 tries lost"]]);
-    // the champion taking an expired record with a lost shot in one go is not a claim
-    const old = record(MUD, 100, { consumedAt: 2000, expiry: 1000, v1: true });
-    expect(shotOutcome(shot(old, KQX, 500, { consumedAt: 2000, v1: true }), 3000, old)).toBe("lost");
-  });
-
   it("counts tries lost only once every shot is known", () => {
     const r = record(ME, 100);
     const notes = [r, shot(r, KQX, 200), shot(r, MUD, 900)];

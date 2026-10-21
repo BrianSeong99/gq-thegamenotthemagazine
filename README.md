@@ -98,19 +98,9 @@ the app creates and fee-funds itself.
 Gamecoins: the faucet (`0x6a8e2ccb2090bcd1071cea18da2cce` on testnet) has no authentication, so
 anyone may mint. In the app, "Empty pockets? Get Gamecoins now!" mints ten from the browser; from
 the CLI, `cargo run --release --bin gamecoin mint <account> <GC>` (`gamecoin deploy` creates a new
-faucet, `gamecoin fees` tops up the fee balance it pays mints with). Geocoin, the old coin
-(`0x2a85bbc7c655b6d116381742015892`), still plays: a record posted with it takes Geocoin shots,
-since a shot must stake the asset of its record.
+faucet, `gamecoin fees` tops up the fee balance it pays mints with).
 `cargo run --release --bin testnet_flow` runs champion / a rival who never settles / winning rival
 with in-process wallets.
-
-## Script versions
-
-The first scripts (v1) let the champion collect at the deadline itself; since 2026-10-12 the
-scripts (v2) make the champion wait `CLAIM_FUZZ` blocks, so the block a note was consumed in tells
-a win from a take-back. Notes made with v1 are still live on testnet: the app recognises both
-roots (`V1_ROOTS` in `web/src/config.ts`) and keeps the v1 shot script in `web/public/scripts/v1/`
-by hand, since a shot at a v1 record runs it. New notes use v2.
 
 ## Another game on the same notes
 

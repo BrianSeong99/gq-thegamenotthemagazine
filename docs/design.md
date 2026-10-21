@@ -64,8 +64,7 @@ shot note to play. Gamecoin is a fungible token from a faucet on testnet with
 app's "Empty pockets? Get Gamecoins now!" button does it from the browser
 (`gamecoin` binary deploys and mints from the CLI; PoW or a captcha can come
 later). The contracts only know a generic `min_stake` and "same asset as the
-record", so another game can use another token or amount. Gamecoin replaced Geocoin;
-the app accepts both (`STAKE_FAUCETS`) and a shot stakes the asset of its record.
+record", so another game can use another token or amount.
 
 ## 2. The challenge mechanic (generic)
 

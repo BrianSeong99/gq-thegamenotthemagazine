@@ -24,7 +24,7 @@ import {
   Word,
 } from "@miden-sdk/miden-sdk";
 import type { useMidenClient } from "@miden-sdk/react";
-import { MIDEN_RPC_URL, RECORD_SCRIPT_URL, SHOT_SCRIPT_URL, SHOT_SCRIPT_V1_URL } from "@/config";
+import { MIDEN_RPC_URL, RECORD_SCRIPT_URL, SHOT_SCRIPT_URL } from "@/config";
 import { decodeStorage, NOTE_TAG, type AccountFelts, type ChallengeStorage } from "./notes";
 import { acceptNote, noteKind } from "./flow";
 import type { Word4 } from "./quiz";
@@ -37,16 +37,14 @@ export type Scripts = {
   shot: NoteScript;
   recordRoot: string;
   shotRoot: string;
-  /** every shot script by root, v1 included: a record names the one its shots run (storage.shotRoot) */
-  shots: Map<string, NoteScript>;
 };
 
 let scriptsPromise: Promise<Scripts> | undefined;
-/** The note scripts, assembled by `cargo run --bin build_scripts`, plus the v1 shot script for shots at v1 records. */
+/** The note scripts, assembled by `cargo run --bin build_scripts`. */
 export function loadScripts(): Promise<Scripts> {
   scriptsPromise ??= (async () => {
-    const [p, c, c1] = await Promise.all(
-      [RECORD_SCRIPT_URL, SHOT_SCRIPT_URL, SHOT_SCRIPT_V1_URL].map(async (url) => {
+    const [p, c] = await Promise.all(
+      [RECORD_SCRIPT_URL, SHOT_SCRIPT_URL].map(async (url) => {
         const buf = await fetch(url).then((r) => {
           if (!r.ok) throw new Error(`${url}: HTTP ${r.status}`);
           return r.arrayBuffer();
@@ -54,8 +52,7 @@ export function loadScripts(): Promise<Scripts> {
         return NoteScript.deserialize(new Uint8Array(buf));
       }),
     );
-    const shots = new Map([c, c1].map((n) => [n.root().toHex(), n]));
-    return { record: p, shot: c, recordRoot: p.root().toHex(), shotRoot: c.root().toHex(), shots };
+    return { record: p, shot: c, recordRoot: p.root().toHex(), shotRoot: c.root().toHex() };
   })();
   return scriptsPromise;
 }
@@ -83,7 +80,7 @@ export type ChallengeNote = {
   idWord: Word4;
   kind: "record" | "shot";
   storage: ChallengeStorage;
-  /** the asset it holds (config.ts STAKE_FAUCETS): shots at a record stake the same one */
+  /** the asset it holds (config.ts GC_FAUCET): shots at a record stake the same one */
   faucet: string;
   amount: bigint;
   consumed: boolean;
@@ -92,16 +89,14 @@ export type ChallengeNote = {
   /** the block it was included in */
   createdAt?: number;
   nullifier?: string;
-  /** made with the first scripts (config.ts V1_ROOTS): collect opened at the deadline, outcomes read by heuristic */
-  v1?: true;
 };
 
 /** A record or shot of ours as the node serves it; null for a foreign root or layout, or a note not shaped as this app writes them (flow.ts acceptNote). */
-function decodeNote(input: InputNote, scripts: Scripts): Pick<ChallengeNote, "kind" | "storage" | "faucet" | "amount" | "v1"> | null {
+function decodeNote(input: InputNote, scripts: Scripts): Pick<ChallengeNote, "kind" | "storage" | "faucet" | "amount"> | null {
   const note = input.note();
   const known = noteKind(note.recipient().script().root().toHex(), scripts);
   if (!known) return null;
-  const { kind, v1 } = known;
+  const { kind } = known;
   let storage: ChallengeStorage;
   try {
     storage = decodeStorage(note.recipient().storage().items().map((x) => x.asInt()));
@@ -111,7 +106,7 @@ function decodeNote(input: InputNote, scripts: Scripts): Pick<ChallengeNote, "ki
   const assets = note.assets().fungibleAssets().map((a) => ({ faucet: a.faucetId().toString(), amount: a.amount() }));
   const shotRoot = known.kind === "record" ? wordFromHex(known.shotRoot) : undefined;
   if (!acceptNote({ kind, storage, sender: accountFelts(note.metadata().sender()), assets }, shotRoot)) return null;
-  return { kind, storage, ...assets[0], ...(v1 && { v1 }) };
+  return { kind, storage, ...assets[0] };
 }
 
 /** Registers the app's note tag (idempotent) and syncs. */

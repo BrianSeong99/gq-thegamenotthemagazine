@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { ChallengeNote } from "../chain";
 import type { ChallengeStorage, Word4 } from "../notes";
 import { stageById, WORLD } from "../stages";
-import { GC_FAUCET, GEOCOIN_FAUCET, MIN_SHOT_WINDOW_BLOCKS, V1_ROOTS } from "@/config";
+import { GC_FAUCET, MIN_SHOT_WINDOW_BLOCKS } from "@/config";
 import {
   acceptNote,
   blocksToClock,
@@ -111,11 +111,10 @@ describe("taking a shot", () => {
 
 describe("script roots", () => {
   const current = { recordRoot: "0xr2", shotRoot: "0xs2" };
-  it("knows both versions of the scripts: a record names the shot script of its own version", () => {
+  it("knows the two scripts: a record names the shot script its shots run; the testnet v1 roots are foreign", () => {
     expect(noteKind("0xr2", current)).toEqual({ kind: "record", shotRoot: "0xs2" });
     expect(noteKind("0xs2", current)).toEqual({ kind: "shot" });
-    expect(noteKind(V1_ROOTS.record, current)).toEqual({ kind: "record", shotRoot: V1_ROOTS.shot, v1: true });
-    expect(noteKind(V1_ROOTS.shot, current)).toEqual({ kind: "shot", v1: true });
+    expect(noteKind("0xf5c76231f25a67b72beb4044d34387ef9f54e163303c896a2ca7847ace21227f", current)).toBeNull();
     expect(noteKind("0xother", current)).toBeNull();
   });
 });
@@ -133,8 +132,8 @@ describe("accepting a note from the chain", () => {
     expect(acceptNote({ ...shot, sender: champion }, shotRoot)).toBe(false);
   });
 
-  it("wants exactly one asset, a Gamecoin or the Geocoin before it", () => {
-    expect(acceptNote({ ...record, assets: [{ faucet: GEOCOIN_FAUCET, amount: 1_000_000n }] }, shotRoot)).toBe(true);
+  it("wants exactly one asset, a Gamecoin: the testnet Geocoin is foreign", () => {
+    expect(acceptNote({ ...record, assets: [{ faucet: "0x2a85bbc7c655b6d116381742015892", amount: 1_000_000n }] }, shotRoot)).toBe(false);
     expect(acceptNote({ ...record, assets: [] }, shotRoot)).toBe(false);
     expect(acceptNote({ ...record, assets: [{ faucet: "0xbad", amount: 1_000_000n }] }, shotRoot)).toBe(false);
     expect(acceptNote({ ...record, assets: [gc, { faucet: "0xbad", amount: 1n }] }, shotRoot)).toBe(false);
@@ -280,7 +279,6 @@ describe("errors in plain words", () => {
     [Object.assign(new Error(""), { name: "WalletNotConnectedError" }), "no-wallet"],
     [new Error("Bread is not connected"), "no-wallet"],
     [new Error("You need 1 Gamecoin and your wallet holds 0 Gamecoins. Get Gamecoins first."), "funds"],
-    [new Error("You need 1 Geocoin, the old coin, and your wallet holds 0."), "refused"],
     [new Error("SummaryAnchorMismatchError: the transaction summary binds block commitment 0x1 but the captured chain anchor is 0x2"), "out-of-step"],
     [new Error("failed to capture chain anchor: storage error: block header for block 85053 not found"), "out-of-step"],
     [new Error(NOT_FINISHED), "not-finished"],
@@ -333,8 +331,6 @@ describe("before sending a claim", () => {
     expect(claimVerdict([{ consumedAt: 164, deadline: 100 }])).toBe("claimed");
     expect(claimVerdict([{ consumedAt: 165, deadline: 100 }])).toBe("lost");
     expect(claimVerdict([{ consumedAt: 90, deadline: 100 }, { deadline: 100 }])).toBe("open");
-    // a v1 shot's champion could collect from the deadline itself
-    expect(claimVerdict([{ consumedAt: 100, deadline: 100, v1: true }])).toBe("lost");
   });
   it("shows block counts as a clock", () => {
     expect(blocksToClock(81)).toBe("4:03");

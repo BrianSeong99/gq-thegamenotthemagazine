@@ -1,5 +1,5 @@
 // Simplified Chinese, keyed by the English line as written in the code (see i18n.ts). Terms follow
-// the design pack: 纪录 record, 挑战 shot, 游戏币 Gamecoin (地理币 Geocoin, the old coin), 冠军 champion, 对手 rival, 奖金 prize.
+// the design pack: 纪录 record, 挑战 shot, 游戏币 Gamecoin, 冠军 champion, 对手 rival, 奖金 prize.
 // A key with a `|context` suffix is the same English word in another place.
 
 export const ZH: Record<string, string> = {
@@ -135,7 +135,6 @@ export const ZH: Record<string, string> = {
   "We can't find the Bread wallet. Install it, then try again.": "找不到 Bread 钱包。请安装后重试。",
   "Connect your wallet first.": "请先连接钱包。",
   "Not enough Gamecoins in your wallet. Get Gamecoins first.": "钱包里的游戏币不够。请先领取游戏币。",
-  "This record was set in Geocoin, the old coin. Only a Geocoin can take a shot at it.": "这条纪录用的是旧币地理币。只有地理币才能挑战它。",
   "Your wallet was out of step with the network. Try again.": "你的钱包与网络不同步。请重试。",
   "This was already done.": "这已经完成了。",
   "Too late: this one is over.": "太迟了：已经结束。",

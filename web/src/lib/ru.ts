@@ -121,7 +121,6 @@ export const RU: Record<string, string> = {
   "We can't find the Bread wallet. Install it, then try again.": "Кошелёк Bread не найден. Установи его и попробуй снова.",
   "Connect your wallet first.": "Сначала подключи кошелёк.",
   "Not enough Gamecoins in your wallet. Get Gamecoins first.": "В кошельке мало Gamecoin. Сначала получи Gamecoin.",
-  "This record was set in Geocoin, the old coin. Only a Geocoin can take a shot at it.": "Этот рекорд поставлен в Geocoin, старой монете. Попытка возможна только за Geocoin.",
   "Your wallet was out of step with the network. Try again.": "Кошелёк разошёлся с сетью. Попробуй ещё раз.",
   "This was already done.": "Это уже сделано.",
   "Too late: this one is over.": "Поздно: уже закончилось.",

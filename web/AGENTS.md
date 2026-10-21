@@ -11,8 +11,8 @@ MockChain tests in `../integration/`. Read `../README.md` and `../docs/design.md
   layout), `chain.ts` (reading notes from the node), `bread.ts` (the four transactions),
   `hub.ts` (history, leaderboards), `rules.ts` and `quiz.ts` (GeoQuizz scoring and city picks).
 - `src/components/`: screens; `AppContent.tsx` wires them. `src/theme.css` is the one stylesheet.
-- `src/**/__tests__/`: vitest. `src/config.ts`: constants (`CLAIM_FUZZ`, `V1_ROOTS`, faucet id).
-- `public/scripts/`: note scripts from `cargo run --release --bin build_scripts`; `v1/` is kept by hand.
+- `src/**/__tests__/`: vitest. `src/config.ts`: constants (`CLAIM_FUZZ`, faucet id).
+- `public/scripts/`: note scripts from `cargo run --release --bin build_scripts`.
 
 ## Commands
 
@@ -31,4 +31,3 @@ cargo run --release --bin build_scripts        # after any change under masm/
 - No em dashes in any prose or copy. Copy: less is more.
 - Bread binds the node's tip (`submit` in `bread.ts`); the app must behave the same on mobile and desktop.
 - Error strings in `masm/` are part of a script's root: never change them. Comments are free.
-- Scripts v1 (`V1_ROOTS`) stay recognised while their notes live on testnet.

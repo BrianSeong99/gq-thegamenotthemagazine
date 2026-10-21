@@ -121,7 +121,6 @@ export const ID: Record<string, string> = {
   "We can't find the Bread wallet. Install it, then try again.": "Dompet Bread tidak ditemukan. Pasang dulu, lalu coba lagi.",
   "Connect your wallet first.": "Hubungkan dompetmu dulu.",
   "Not enough Gamecoins in your wallet. Get Gamecoins first.": "Gamecoin di dompetmu tidak cukup. Ambil Gamecoin dulu.",
-  "This record was set in Geocoin, the old coin. Only a Geocoin can take a shot at it.": "Rekor ini dibuat dengan Geocoin, koin lama. Hanya Geocoin yang bisa mencobanya.",
   "Your wallet was out of step with the network. Try again.": "Dompetmu tidak sinkron dengan jaringan. Coba lagi.",
   "This was already done.": "Ini sudah selesai.",
   "Too late: this one is over.": "Terlambat: yang ini sudah selesai.",

@@ -24,5 +24,5 @@ Where things are:
 | `src/lib/gamecoin.ts`, `src/lib/localWallet.ts` | the Gamecoin faucet mint; the `?local=` test wallet |
 | `src/lib/rules.ts`, `src/lib/quiz.ts` | GeoQuizz itself: scoring, answers, city selection, game data |
 | `src/components/` | screens; `AppContent.tsx` wires them |
-| `public/scripts/` | the assembled note scripts (`cargo run --release --bin build_scripts`); `v1/` is kept by hand and the app needs it (shots at v1 records run it) |
+| `public/scripts/` | the assembled note scripts (`cargo run --release --bin build_scripts`) |
 | `public/brand/` | art, font, music |

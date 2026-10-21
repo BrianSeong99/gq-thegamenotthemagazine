@@ -2,10 +2,10 @@
 
 Words: a **champion** posts a **record** (record note: score to beat + 1 Gamecoin); a **rival** takes a
 **shot** (shot note, 1 Gamecoin) at it. **Gamecoin (GC)** is the token (Geocoin, the coin before
-2026-10-14, still plays: a shot stakes the asset of its record). Rules v2 since 2026-10-09:
-ten cities, 15 s each, 1000 max per city. Rules v1/v2 number the game rules; scripts v1/v2
-(`V1_ROOTS` in `web/src/config.ts`) number the note scripts, a separate count: scripts v2
-(2026-10-12) make the champion wait `CLAIM_FUZZ` (64) blocks past a deadline before collecting.
+2026-10-14, is no longer accepted). Rules v2 since 2026-10-09: ten cities, 15 s each, 1000 max
+per city. Rules v1/v2 number the game rules; scripts v1/v2 number the note scripts, a separate
+count: scripts v2 (2026-10-12) make the champion wait `CLAIM_FUZZ` (64) blocks past a deadline
+before collecting. Scripts v1 and their testnet notes are no longer read (dropped 2026-10-21).
 
 ## Rules v2 round on testnet (2026-10-09, scripts v1, in-app test wallets)
 

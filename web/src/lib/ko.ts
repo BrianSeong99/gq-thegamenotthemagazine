@@ -121,7 +121,6 @@ export const KO: Record<string, string> = {
   "We can't find the Bread wallet. Install it, then try again.": "Bread 지갑을 찾을 수 없습니다. 설치한 뒤 다시 시도하세요.",
   "Connect your wallet first.": "먼저 지갑을 연결하세요.",
   "Not enough Gamecoins in your wallet. Get Gamecoins first.": "지갑의 Gamecoin이 부족합니다. 먼저 Gamecoin을 받으세요.",
-  "This record was set in Geocoin, the old coin. Only a Geocoin can take a shot at it.": "이 기록은 옛 코인인 Geocoin으로 세워졌습니다. Geocoin으로만 도전할 수 있습니다.",
   "Your wallet was out of step with the network. Try again.": "지갑이 네트워크와 어긋났습니다. 다시 시도하세요.",
   "This was already done.": "이미 완료되었습니다.",
   "Too late: this one is over.": "너무 늦었습니다. 이미 끝났습니다.",

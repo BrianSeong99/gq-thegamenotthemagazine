@@ -121,7 +121,6 @@ export const UK: Record<string, string> = {
   "We can't find the Bread wallet. Install it, then try again.": "Гаманець Bread не знайдено. Установи його і спробуй знову.",
   "Connect your wallet first.": "Спочатку підключи гаманець.",
   "Not enough Gamecoins in your wallet. Get Gamecoins first.": "У гаманці замало Gamecoin. Спочатку отримай Gamecoin.",
-  "This record was set in Geocoin, the old coin. Only a Geocoin can take a shot at it.": "Цей рекорд поставлено в Geocoin, старій монеті. Спроба можлива лише за Geocoin.",
   "Your wallet was out of step with the network. Try again.": "Гаманець розійшовся з мережею. Спробуй ще раз.",
   "This was already done.": "Це вже зроблено.",
   "Too late: this one is over.": "Пізно: уже завершилося.",
