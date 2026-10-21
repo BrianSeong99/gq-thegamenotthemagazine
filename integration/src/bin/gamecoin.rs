@@ -1,26 +1,24 @@
-//! Gamecoin (GC) on testnet: a public fungible faucet with no authentication, so anyone may mint.
-//! The app's "EMPTY POCKETS? GET GAMECOINS NOW!" button executes the mint from the browser; this
-//! tool deploys the faucet and mints from the command line.
+//! Gamecoin (GC): a public fungible faucet whose key lives in the keystore next to the repo root.
+//! Players buy Gamecoin in the app (sale notes, web/src/lib/shop.ts); this tool deploys the faucet
+//! and mints from the command line.
 //!
-//!   cargo run --release --bin gamecoin deploy                       # once; writes gamecoin.json
-//!   cargo run --release --bin gamecoin mint <account> <amount-in-GC>
-//!   cargo run --release --bin gamecoin fees                         # top up the faucet's fee balance
+//!   cargo run --release --bin gamecoin deploy <account> <GC>     # once; mints the first GC to <account>, writes the gamecoin file
+//!   cargo run --release --bin gamecoin mint <account> <GC>
+//!   cargo run --release --bin gamecoin fees                      # top up the faucet's fee balance (testnet faucet API)
 //!
-//! `<account>` is bech32 (mtst1...) or hex. State lives next to the repo root: `store.sqlite3`
-//! and `gamecoin.json` (faucet id). The faucet pays the fees of every mint in the chain's fee
-//! asset, fetched from the testnet faucet; `fees` refills it.
-//!
-//! ponytail: no PoW, no captcha, no rate limit. Testnet toy money; gate it when it matters.
+//! `<account>` is bech32 or hex. `GQ_NETWORK=mainnet` uses the mainnet store, keystore and
+//! gamecoin file; there `deploy` registers the faucet with the invite code in `GQ_INVITE_CODE`,
+//! which also funds its fees (the node pays a registered account). The faucet pays the fees of
+//! every mint in the chain's fee asset.
 
 use anyhow::{bail, Context, Result};
 use integration::{
     faucet_api::{request_fee_tokens, TESTNET_FAUCET_API},
     funding::ensure_accounts_funded,
-    helpers::{gamecoin_faucet, setup_client, wait_for_commit},
+    helpers::{gamecoin_faucet, gamecoin_file, mainnet, network_id, setup_client, wait_for_commit},
 };
 use miden_client::{
     account::{
-        component::NoAuth,
         standards::{
             access::{Authority, Pausable},
             faucets::{FungibleFaucet, TokenName},
@@ -30,27 +28,31 @@ use miden_client::{
         Account, AccountBuilder, AccountId, AccountType, Address,
     },
     asset::{AssetAmount, FungibleAsset, TokenSymbol},
+    auth::{AuthSecretKey, AuthSingleSig},
+    keystore::Keystore,
     note::NoteType,
     transaction::TransactionRequestBuilder,
 };
 use rand::Rng;
 
 const GC_DECIMALS: u8 = 6;
-const GC_MAX_SUPPLY: u64 = 1_000_000_000 * 1_000_000; // 1e9 GC
-const STATE_FILE: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../gamecoin.json");
+const GC_MAX_SUPPLY: u64 = 100_000_000_000 * 1_000_000; // 100 billion GC
 
 #[tokio::main]
 async fn main() -> Result<()> {
     let args: Vec<String> = std::env::args().skip(1).collect();
     match args.first().map(String::as_str) {
-        Some("deploy") => deploy().await,
+        Some("deploy") if args.len() == 3 => deploy(&args[1], &args[2]).await,
         Some("mint") if args.len() == 3 => mint(&args[1], &args[2]).await,
         Some("fees") => fees().await,
-        _ => bail!("usage: gamecoin deploy | gamecoin mint <account> <amount-in-GC> | gamecoin fees"),
+        _ => bail!("usage: gamecoin deploy <account> <GC> | gamecoin mint <account> <GC> | gamecoin fees"),
     }
 }
 
-async fn deploy() -> Result<()> {
+async fn deploy(first_owner: &str, first_gc: &str) -> Result<()> {
+    let owner = parse_account(first_owner)?;
+    let first = parse_gc(first_gc)?;
+    let code = if mainnet() { Some(std::env::var("GQ_INVITE_CODE").context("GQ_INVITE_CODE: mainnet registers the faucet with an invite code")?) } else { None };
     let setup = setup_client().await?;
     let mut client = setup.client;
     client.sync_state().await?;
@@ -69,10 +71,10 @@ async fn deploy() -> Result<()> {
 
     let mut seed = [0u8; 32];
     client.rng().fill_bytes(&mut seed);
+    let key = AuthSecretKey::new_falcon512_poseidon2_with_rng(client.rng());
     let account: Account = AccountBuilder::new(seed)
         .account_type(AccountType::Public)
-        // no key: every transaction on this account is authorised, which is the point
-        .with_component(NoAuth)
+        .with_component(AuthSingleSig::from_public_key(key.public_key()))
         .with_component(faucet)
         // the faucet pays its own fees, received as plain P2ID notes
         .with_component(BasicWallet)
@@ -83,14 +85,25 @@ async fn deploy() -> Result<()> {
         .build()
         .context("build faucet account")?;
     client.add_account(&account, false).await?;
+    setup.keystore.add_key(&key, account.id()).await.context("keystore")?;
 
     let id = account.id();
-    println!("Gamecoin faucet: {} ({})", id.to_bech32(miden_client::account::NetworkId::Testnet), id.to_hex());
-    std::fs::write(STATE_FILE, format!("{{\n  \"gamecoin\": \"{}\"\n}}\n", id.to_hex()))?;
-    println!("wrote {STATE_FILE}; set VITE_GC_FAUCET or web/src/config.ts GC_FAUCET to it");
+    println!("Gamecoin faucet: {} ({})", id.to_bech32(network_id()), id.to_hex());
+    let file = gamecoin_file();
+    std::fs::write(&file, format!("{{\n  \"gamecoin\": \"{}\"\n}}\n", id.to_hex()))?;
+    println!("wrote {}; set VITE_GC_FAUCET or web/src/config.ts GC_FAUCET to it", file.display());
 
-    fund_fees(&mut client, id).await?;
-    println!("Faucet is funded for fees. Mint with: gamecoin mint <account> <amount>");
+    if let Some(code) = code {
+        // one code per account; the node answers once its funding note is committed
+        println!("Registering the faucet on mainnet ...");
+        client.register_account(id, &code).await.context("register_account")?;
+        ensure_accounts_funded(&mut client, &[id]).await?;
+    } else {
+        fund_fees(&mut client, id).await?;
+    }
+    println!("Faucet is funded for fees.");
+    mint_to(&mut client, id, owner, first).await?;
+    println!("Minted {first_gc} GC to {}. Mint more with: gamecoin mint <account> <GC>", owner.to_hex());
     Ok(())
 }
 
@@ -102,20 +115,28 @@ async fn mint(target: &str, amount_gc: &str) -> Result<()> {
     let setup = setup_client().await?;
     let mut client = setup.client;
     client.sync_state().await?;
-    fund_fees(&mut client, faucet_id).await?;
+    if !mainnet() {
+        fund_fees(&mut client, faucet_id).await?;
+    }
+    mint_to(&mut client, faucet_id, target_id, amount).await?;
+    println!("Minted {amount_gc} GC to {}", target_id.to_hex());
+    Ok(())
+}
 
+async fn mint_to(client: &mut miden_client::Client<miden_client::keystore::FilesystemKeyStore>, faucet_id: AccountId, target_id: AccountId, amount: u64) -> Result<()> {
     let asset = FungibleAsset::new(faucet_id, amount)?;
     let request = TransactionRequestBuilder::new()
         .build_mint_fungible_asset(asset, target_id, NoteType::Public, client.rng())?;
     let tx_id = client.submit_new_transaction(faucet_id, request).await?;
     println!("mint tx {}", tx_id.to_hex());
-    wait_for_commit(&mut client, tx_id).await?;
-    println!("Minted {amount_gc} GC to {}", target_id.to_hex());
-    Ok(())
+    wait_for_commit(client, tx_id).await
 }
 
 async fn fees() -> Result<()> {
     let faucet_id = gamecoin_faucet()?;
+    if mainnet() {
+        bail!("mainnet has no faucet API: send USDCx to {} from a wallet", faucet_id.to_bech32(network_id()));
+    }
     let setup = setup_client().await?;
     let mut client = setup.client;
     client.sync_state().await?;

@@ -1,4 +1,5 @@
-//! Testnet client setup, wallet creation and commit polling for the command-line tools.
+//! Client setup, wallet creation and commit polling for the command-line tools. `GQ_NETWORK=mainnet`
+//! points them at mainnet (the Cedar hosts), with their own store, keystore and gamecoin file.
 
 use std::{
     sync::Arc,
@@ -7,13 +8,14 @@ use std::{
 
 use anyhow::{bail, ensure, Context, Result};
 use miden_client::{
-    account::{component::BasicWallet, Account, AccountBuilder, AccountId, AccountType},
+    account::{component::BasicWallet, Account, AccountBuilder, AccountId, AccountType, NetworkId},
     auth::{AuthSecretKey, AuthSingleSig},
     builder::ClientBuilder,
     keystore::{FilesystemKeyStore, Keystore},
+    rpc::Endpoint,
     store::TransactionFilter,
     transaction::{TransactionId, TransactionStatus},
-    Client,
+    Client, RemoteTransactionProver,
 };
 use miden_client_sqlite_store::ClientBuilderSqliteExt;
 use rand::Rng;
@@ -34,22 +36,47 @@ pub struct ClientSetup {
 /// # Errors
 /// Returns an error if RPC connection fails, keystore initialization fails,
 /// or client building fails
-/// The Gamecoin faucet `gamecoin deploy` wrote to gamecoin.json.
+/// `GQ_NETWORK`: `testnet` (default) or `mainnet`.
+pub fn mainnet() -> bool {
+    std::env::var("GQ_NETWORK").as_deref() == Ok("mainnet")
+}
+
+/// The network's address prefix (mtst / mm).
+pub fn network_id() -> NetworkId {
+    if mainnet() { NetworkId::Mainnet } else { NetworkId::Testnet }
+}
+
+/// A file next to the repo root, with `.mainnet` before its extension on mainnet.
+fn root_file(name: &str, ext: &str) -> std::path::PathBuf {
+    let tag = if mainnet() { ".mainnet" } else { "" };
+    std::path::PathBuf::from(concat!(env!("CARGO_MANIFEST_DIR"), "/..")).join(format!("{name}{tag}{ext}"))
+}
+
+/// Where `gamecoin deploy` writes the faucet id.
+pub fn gamecoin_file() -> std::path::PathBuf {
+    root_file("gamecoin", ".json")
+}
+
+/// The Gamecoin faucet `gamecoin deploy` wrote to the gamecoin file.
 pub fn gamecoin_faucet() -> Result<AccountId> {
-    let state: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/../gamecoin.json"))?)?;
-    Ok(AccountId::from_hex(state["gamecoin"].as_str().context("no gamecoin in gamecoin.json, run gamecoin deploy first")?)?)
+    let path = gamecoin_file();
+    let state: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(&path).with_context(|| path.display().to_string())?)?;
+    Ok(AccountId::from_hex(state["gamecoin"].as_str().context("no gamecoin in the gamecoin file, run gamecoin deploy first")?)?)
 }
 
 pub async fn setup_client() -> Result<ClientSetup> {
-    // Initialize keystore
-    let keystore_path = std::path::PathBuf::from(concat!(env!("CARGO_MANIFEST_DIR"), "/../keystore"));
+    let keystore = Arc::new(FilesystemKeyStore::new(root_file("keystore", "")).context("Failed to initialize keystore")?);
+    let store_path = root_file("store", ".sqlite3");
 
-    let keystore =
-        Arc::new(FilesystemKeyStore::new(keystore_path).context("Failed to initialize keystore")?);
-
-    let store_path = std::path::PathBuf::from(concat!(env!("CARGO_MANIFEST_DIR"), "/../store.sqlite3"));
-
-    let client = ClientBuilder::for_testnet()
+    let builder = if mainnet() {
+        // miden-client 0.17 names mainnet hosts that do not resolve; the live ones are the Cedar hosts
+        ClientBuilder::new()
+            .grpc_client(&Endpoint::new("https".into(), "rpc.cedar.miden.io".into(), None), None)
+            .prover(Arc::new(RemoteTransactionProver::new("https://tx-prover.cedar.miden.io")))
+    } else {
+        ClientBuilder::for_testnet()
+    };
+    let client = builder
         .sqlite_store(store_path)
         .authenticator(keystore.clone())
         .build()

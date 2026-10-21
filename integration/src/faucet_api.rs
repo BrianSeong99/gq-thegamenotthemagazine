@@ -10,7 +10,7 @@ pub const TESTNET_FAUCET_API: &str = "https://faucet-api.testnet.miden.io";
 /// Requests the faucet's base amount for `account`; returns the note id the faucet reports.
 pub fn request_fee_tokens(base_url: &str, account: AccountId) -> Result<String> {
     let base = base_url.trim_end_matches('/');
-    let account_id = account.to_bech32(miden_client::account::NetworkId::Testnet);
+    let account_id = account.to_bech32(crate::helpers::network_id());
     let get = |path: &str| -> Result<serde_json::Value> {
         ureq::get(&format!("{base}/{path}"))
             .call()

@@ -2,7 +2,9 @@ upstream/
 target/
 node_modules/
 store.sqlite3*
+store.mainnet.sqlite3*
 keystore/
+keystore.mainnet/
 gq-design-assets-retro3/
 tmp/
 .DS_Store
