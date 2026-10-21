@@ -473,7 +473,7 @@ function GqApp({ onStarted }: { onStarted?: () => void }) {
     setMode({ kind: "busy", text: t("Buying Gamecoin"), back: { kind: "lobby" }, stage: "network", since: Date.now(), track: trackOf(mode) });
     let sale: Sale | undefined;
     try {
-      sale = pickSale(await openSales((await client.feeFaucetId()).toString()), gc);
+      sale = pickSale(await openSales((await client.feeFaucetId()).toString()), gc, me ? hexOf(me) : undefined);
     } catch (e) {
       if (runToken.current !== token) return;
       oops(e, () => withWallet({ kind: "buy", gc }));

@@ -44,4 +44,9 @@ describe("a sale note the game buys from", () => {
     expect(pickSale([floored, big], 8n * GC)?.id).toBe("floored");
     expect(pickSale([], 1n * GC)).toBeUndefined();
   });
+
+  it("never picks the buyer's own sale (its creator consuming it takes the whole remainder back)", () => {
+    expect(pickSale([sale()], 1n * GC, "0xc")).toBeUndefined();
+    expect(pickSale([sale(), sale({ id: "other", creator: "0xd" })], 1n * GC, "0xc")?.id).toBe("other");
+  });
 });

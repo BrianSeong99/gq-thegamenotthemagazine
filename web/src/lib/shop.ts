@@ -30,9 +30,12 @@ export function acceptSale(s: Sale, payFaucet: string): boolean {
 /** What `gc` Gamecoin cost at this sale's price, rounded up to the base unit. */
 export const payFor = (gc: bigint, s: Sale): bigint => (gc * s.asked + s.offered - 1n) / s.offered;
 
-/** The sale to buy `gc` from: enough left and a floor the buy clears; the cheapest, then the largest. */
-export function pickSale(sales: Sale[], gc: bigint): Sale | undefined {
-  const fits = sales.filter((s) => s.offered >= gc && payFor(gc, s) >= (s.minFill < s.asked ? s.minFill : s.asked));
+/**
+ * The sale `buyer` buys `gc` from: enough left and a floor the buy clears; the cheapest, then the largest.
+ * Never the buyer's own: a creator consuming its sale note takes the remainder back instead of paying.
+ */
+export function pickSale(sales: Sale[], gc: bigint, buyer?: string): Sale | undefined {
+  const fits = sales.filter((s) => s.creator !== buyer && s.offered >= gc && payFor(gc, s) >= (s.minFill < s.asked ? s.minFill : s.asked));
   // price a/o < b/o': a * o' < b * o
   fits.sort((a, b) => Number(a.asked * b.offered - b.asked * a.offered) || Number(b.offered - a.offered));
   return fits[0];
