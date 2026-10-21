@@ -59,11 +59,10 @@ Map: equirectangular SVG rendered from Natural Earth 110m country outlines
 
 Stake: one amount, **1 Gamecoin (GC)**, for everyone. The champion puts it in
 the record note (that is the prize); each rival puts the same amount in their
-shot note to play. Gamecoin is a fungible token from a faucet on testnet with
-**no authentication** (`miden::standards::auth::no_auth`): anyone may mint, the
-app's "Empty pockets? Get Gamecoins now!" button does it from the browser
-(`gamecoin` binary deploys and mints from the CLI; PoW or a captcha can come
-later). The contracts only know a generic `min_stake` and "same asset as the
+shot note to play. Gamecoin is a fungible token; players buy it in the app
+through sale notes (standard PSWAP notes: 0.001 USDCx per Gamecoin, 100 per
+buy, the cheapest sale note at or under the price sells first, whoever posted
+it). The contracts only know a generic `min_stake` and "same asset as the
 record", so another game can use another token or amount.
 
 ## 2. The challenge mechanic (generic)

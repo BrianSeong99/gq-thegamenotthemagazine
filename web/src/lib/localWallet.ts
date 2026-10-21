@@ -5,7 +5,7 @@
 // Mutations go through the SDK's own hooks (`useCreateWallet`, `useConsume`, `useTransaction`):
 // they own the client lock and the configured prover. Never call them inside `runExclusive`.
 
-import { AccountId, NoteFile, TransactionRequest } from "@miden-sdk/miden-sdk";
+import { AccountId, NoteFile, NoteScript, TransactionRequest } from "@miden-sdk/miden-sdk";
 import { useConsume, useCreateWallet, useTransaction, type AuthScheme } from "@miden-sdk/react";
 import type { Asset, Transaction } from "@miden-sdk/miden-wallet-adapter-base";
 import { useCallback, useState } from "react";
@@ -40,6 +40,7 @@ export function useLocalWallet(client: Client | null, runExclusive: <T>(fn: () =
     async (hex: string, waitMs: number): Promise<number> => {
       if (!client) throw new Error("client not ready");
       const scripts = await loadScripts();
+      const pswapRoot = NoteScript.pswap().root().toHex();
       const deadline = Date.now() + waitMs;
       let pending: string[] = [];
       for (;;) {
@@ -49,7 +50,8 @@ export function useLocalWallet(client: Client | null, runExclusive: <T>(fn: () =
             .flatMap((n) => n.inputNoteRecord() ?? [])
             .filter((r) => {
               const root = r.details()?.recipient().script().root().toHex();
-              return !root || !noteKind(root, scripts); // game notes are not payments
+              // game notes are not payments; a sale note (PSWAP) of this wallet is consumable by it, which would cancel the sale
+              return !root || (!noteKind(root, scripts) && root !== pswapRoot);
             })
             .flatMap((r) => r.id()?.toString() ?? []);
         });

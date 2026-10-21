@@ -5,6 +5,12 @@ export const APP_NAME = "GQ GeoQuizz";
 // Gamecoin (GC): a fungible faucet on testnet anyone may mint from (`cargo run --bin gamecoin deploy`).
 export const GC_FAUCET = import.meta.env.VITE_GC_FAUCET ?? "0x6a8e2ccb2090bcd1071cea18da2cce";
 export const GC_DECIMALS = 6;
+// The shop: Gamecoin sold through sale notes (PSWAP) for the chain's fee asset (USDCx on mainnet, 6
+// decimals): 0.001 per Gamecoin, at most 100 per buy. The price is a ceiling: a cheaper sale note sells first.
+export const GC_PRICE = 1_000n; // base units of the fee asset per whole Gamecoin
+export const MAX_BUY_GC = 100;
+// The account that puts Gamecoin on sale from the game's admin panel (?admin=1); any account's sale note sells.
+export const ADMIN = import.meta.env.VITE_ADMIN ?? "0xc8050a7222eae00145f99cbec61298";
 
 // The stake of the GeoQuizz UI: the champion puts it in the record note, each rival puts the
 // same amount in their shot note. The contracts only know `min_stake`.

@@ -34,7 +34,7 @@ export function ErrorBox({
         )}
         {trouble.kind === "funds" && onGamecoins && (
           <button className="btn primary" onClick={onGamecoins}>
-            {t("Get Gamecoins")}
+            {t("Buy Gamecoin")}
           </button>
         )}
         <button className="btn" onClick={onClose}>

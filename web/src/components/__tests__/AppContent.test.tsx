@@ -8,7 +8,7 @@ import type { ChallengeStorage } from "@/lib/notes";
 vi.mock("@miden-sdk/react", () => import("@/__tests__/mocks/miden-sdk-react"));
 
 // vi.mock factories are hoisted above every import, so what they reference must be hoisted too
-const { wallet, me, cities, chain, bread } = vi.hoisted(() => ({
+const { wallet, me, cities, chain, bread, shop } = vi.hoisted(() => ({
   wallet: {
     connected: true,
     connecting: false,
@@ -23,7 +23,8 @@ const { wallet, me, cities, chain, bread } = vi.hoisted(() => ({
   // ten cities, as the rules demand
   cities: Array.from({ length: 10 }, (_, idx) => ({ idx, lat: 9000 + idx * 100, lon: 18000 + idx * 100, cos: 100 })),
   chain: { notes: [] as unknown[], shared: null as unknown },
-  bread: { postShot: vi.fn(), postRecord: vi.fn(), settle: vi.fn(), collect: vi.fn(), gcBalance: vi.fn(async () => 0n) },
+  bread: { postShot: vi.fn(), postRecord: vi.fn(), settle: vi.fn(), collect: vi.fn(), gcBalance: vi.fn(async () => 0n), buyGamecoin: vi.fn() },
+  shop: { openSales: vi.fn(async () => []) },
 }));
 vi.mock("@miden-sdk/miden-wallet-adapter-react", () => ({ useMidenFiWallet: () => wallet }));
 
@@ -65,6 +66,8 @@ vi.mock("@/lib/chain", () => ({
   hexOf: vi.fn(() => "0xreal"),
 }));
 
+vi.mock("@/lib/shop", async (orig) => ({ ...(await orig<typeof import("@/lib/shop")>()), openSales: shop.openSales }));
+
 vi.mock("@/lib/bread", () => ({
   ...bread,
   setSubmitAttemptListener: () => undefined,
@@ -80,7 +83,7 @@ vi.mock("@/lib/quiz", async (orig) => ({
   quizCities: async () => cities,
 }));
 
-import { useMidenClient, useMint } from "@miden-sdk/react";
+import { useMidenClient } from "@miden-sdk/react";
 import { waitFor as waitForMock } from "@/lib/bread";
 import { fetchChallengeNote, hexOf, knownNote, listChallengeNotes, syncNotes } from "@/lib/chain";
 import { encodeGame } from "@/lib/quiz";
@@ -577,45 +580,49 @@ describe("open challenges in Champion vs Rival", () => {
     expect(screen.getByText(/have a code\?/i)).toBeInTheDocument();
   });
 
-  it("the code box and the Gamecoins button share a column, the open challenges stand beside it", async () => {
+  it("the code box and the shop share a column, the open challenges stand beside it", async () => {
     await start(/^champion vs rival$/i);
     const stack = screen.getByText(/have a code\?/i).closest(".stack");
-    expect(stack).toContainElement(screen.getByRole("button", { name: /get gamecoins/i }));
+    expect(stack).toContainElement(screen.getByRole("button", { name: /^buy$/i }));
     expect(stack).not.toContainElement(await screen.findByText("Open challenges"));
   });
 });
 
 describe("home, connected", () => {
-  it("mints ten Gamecoins to the connected wallet from the faucet nobody holds a key to", async () => {
-    // the app's own client refreshes the public faucet account before executing the mint
-    const importAccountById = vi.fn(async () => undefined);
-    vi.mocked(useMidenClient).mockReturnValue({ importAccountById } as never);
-    const mint = vi.fn(async () => ({ transactionId: "tx" }));
-    vi.mocked(useMint).mockReturnValue({ mint, result: null, isLoading: false, stage: "idle", error: null, reset: vi.fn() } as never);
+  const sale = (id: string, offered: bigint, asked: bigint) => ({ id, creator: "0xc", gcFaucet: GC_FAUCET, payFaucet: "0xpay", offered, asked, minFill: 0n });
+
+  it("buys Gamecoin from the cheapest sale note at or under the price, and says so once the chain shows it", async () => {
+    vi.mocked(useMidenClient).mockReturnValue({ feeFaucetId: async () => ({ toString: () => "0xpay" }) } as never);
+    // 10 GC for 0.01 (the price) and 10 GC for 0.005: the cheaper one sells
+    shop.openSales.mockResolvedValue([sale("0xfull", 10_000_000n, 10_000n), sale("0xcheap", 10_000_000n, 5_000n)]);
+    bread.buyGamecoin.mockResolvedValue({ txId: "0xt", noteIds: ["0xcheap"] });
+    vi.mocked(knownNote).mockResolvedValue({ consumed: true });
     await start(/^champion vs rival$/i);
-    fireEvent.click(await screen.findByRole("button", { name: /get gamecoins/i }));
-    await screen.findByText(/10 Gamecoins for you! Open your wallet to take them/i);
-    expect(importAccountById).toHaveBeenCalledTimes(1);
-    expect(mint).toHaveBeenCalledWith(expect.objectContaining({ targetAccountId: "mtst1me", amount: 10_000_000n, noteType: "public" }));
+    fireEvent.change(screen.getByRole("spinbutton", { name: /how many/i }), { target: { value: "2" } });
+    fireEvent.click(screen.getByRole("button", { name: /^buy$/i }));
+    await screen.findByText("2 Gamecoins in your wallet.");
+    expect(bread.buyGamecoin).toHaveBeenCalledWith(expect.anything(), wallet, expect.objectContaining({ id: "0xcheap" }), 2_000_000n);
   });
 
-
-  it("gives Gamecoins to empty pockets only: more than 1 held, or a grant on its way, mints nothing", async () => {
-    vi.mocked(useMidenClient).mockReturnValue({ importAccountById: vi.fn(async () => undefined) } as never);
-    const mint = vi.fn(async () => ({ transactionId: "tx" }));
-    vi.mocked(useMint).mockReturnValue({ mint, result: null, isLoading: false, stage: "idle", error: null, reset: vi.fn() } as never);
-    bread.gcBalance.mockResolvedValueOnce(5_000_000n);
+  it("buys 1 to 100 at a time, whatever is typed", async () => {
+    vi.mocked(useMidenClient).mockReturnValue({ feeFaucetId: async () => ({ toString: () => "0xpay" }) } as never);
+    shop.openSales.mockResolvedValue([sale("0xbig", 1_000_000_000n, 1_000_000n)]);
+    bread.buyGamecoin.mockResolvedValue({ txId: "0xt", noteIds: ["0xbig"] });
+    vi.mocked(knownNote).mockResolvedValue({ consumed: true });
     await start(/^champion vs rival$/i);
-    fireEvent.click(await screen.findByRole("button", { name: /get gamecoins/i }));
-    await screen.findByText("You still have 5 Gamecoins. Get more when you have 1 or less.");
-    expect(mint).not.toHaveBeenCalled();
-    // spent down to nothing: the grant goes through, and pressing again right after is refused
-    fireEvent.click(screen.getByRole("button", { name: /get gamecoins/i }));
-    await screen.findByText(/10 Gamecoins for you!/i);
-    fireEvent.click(screen.getByRole("button", { name: /^ok$/i }));
-    fireEvent.click(await screen.findByRole("button", { name: /get gamecoins/i }));
-    await screen.findByText("Your Gamecoins are on their way. Open your wallet to take them.");
-    expect(mint).toHaveBeenCalledTimes(1);
+    fireEvent.change(screen.getByRole("spinbutton", { name: /how many/i }), { target: { value: "500" } });
+    fireEvent.click(screen.getByRole("button", { name: /^buy$/i }));
+    await screen.findByText("100 Gamecoins in your wallet.");
+    expect(bread.buyGamecoin).toHaveBeenLastCalledWith(expect.anything(), wallet, expect.anything(), 100_000_000n);
+  });
+
+  it("says so when nothing is on sale (a sale asking more than the price is never listed: shop.test)", async () => {
+    vi.mocked(useMidenClient).mockReturnValue({ feeFaucetId: async () => ({ toString: () => "0xpay" }) } as never);
+    shop.openSales.mockResolvedValue([]);
+    await start(/^champion vs rival$/i);
+    fireEvent.click(screen.getByRole("button", { name: /^buy$/i }));
+    await screen.findByText("No Gamecoin on sale right now. Try again later.");
+    expect(bread.buyGamecoin).not.toHaveBeenCalled();
   });
 
   it("settles all my open shots at the record with one play", async () => {

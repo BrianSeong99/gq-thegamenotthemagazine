@@ -279,6 +279,7 @@ describe("errors in plain words", () => {
     [Object.assign(new Error(""), { name: "WalletNotConnectedError" }), "no-wallet"],
     [new Error("Bread is not connected"), "no-wallet"],
     [new Error("You need 1 Gamecoin and your wallet holds 0 Gamecoins. Get Gamecoins first."), "funds"],
+    [new Error("You need 0.002 USDCx and your wallet holds 0."), "refused"],
     [new Error("SummaryAnchorMismatchError: the transaction summary binds block commitment 0x1 but the captured chain anchor is 0x2"), "out-of-step"],
     [new Error("failed to capture chain anchor: storage error: block header for block 85053 not found"), "out-of-step"],
     [new Error(NOT_FINISHED), "not-finished"],

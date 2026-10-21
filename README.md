@@ -95,10 +95,12 @@ No Bread at hand? `http://localhost:5173/?local=1` runs a test wallet inside the
 for a second one): same contracts, same requests, signed by a private single-signature account
 the app creates and fee-funds itself.
 
-Gamecoins: the faucet (`0x6a8e2ccb2090bcd1071cea18da2cce` on testnet) has no authentication, so
-anyone may mint. In the app, "Empty pockets? Get Gamecoins now!" mints ten from the browser; from
-the CLI, `cargo run --release --bin gamecoin mint <account> <GC>` (`gamecoin deploy` creates a new
-faucet, `gamecoin fees` tops up the fee balance it pays mints with).
+Gamecoins are bought in the app: "Buy Gamecoin" fills a sale note (a standard PSWAP note, 0.001
+USDCx per Gamecoin, 100 at a time) and the coins land in the wallet with the fill. Anyone holding
+Gamecoin may post a sale note; the game buys from the cheapest one at or under the price. The admin
+account posts them from `?admin=1`. The faucet (`0x6a8e2ccb2090bcd1071cea18da2cce` on testnet)
+mints from the CLI: `cargo run --release --bin gamecoin mint <account> <GC>` (`gamecoin deploy`
+creates a new faucet, `gamecoin fees` tops up the fee balance it pays mints with).
 `cargo run --release --bin testnet_flow` runs champion / a rival who never settles / winning rival
 with in-process wallets.
 

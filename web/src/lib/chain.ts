@@ -190,12 +190,17 @@ export const hexOf = (a: AccountFelts) => AccountId.fromPrefixSuffix(new Felt(a.
 export const bech32Of = (a: AccountFelts) =>
   AccountId.fromPrefixSuffix(new Felt(a.prefix), new Felt(a.suffix)).toBech32(MIDEN_RPC_URL === "devnet" ? NetworkId.devnet() : NetworkId.testnet(), AccountInterface.BasicWallet);
 
-/** What the node says about a note: undefined while it is not on chain, else whether it is used. */
+/** What the node says about a note (any note: a sale note too): undefined while it is not on chain, else whether it is used. */
 export async function knownNote(id: string): Promise<{ consumed: boolean } | undefined> {
-  return fetchChallengeNote(id).then(
-    (n) => ({ consumed: n.consumed }),
-    () => undefined,
-  );
+  const { inputs } = await fetchNotesWithProof([id]).catch(() => ({ inputs: [] as InputNote[] }));
+  if (!inputs[0]) return undefined;
+  const rpc = new RpcClient(endpoint());
+  try {
+    const at = await rpc.getNullifierCommitHeight(inputs[0].note().nullifier(), inputs[0].location()?.blockNum() ?? 0);
+    return { consumed: at !== undefined };
+  } finally {
+    rpc.free();
+  }
 }
 
 /** Builds a record or shot note exactly as the contracts expect it; `serial` fixes its id. */

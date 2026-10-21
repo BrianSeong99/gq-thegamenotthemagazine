@@ -7,12 +7,12 @@ import { flushSync } from "react-dom";
 import { useMidenClient, useMiden } from "@miden-sdk/react";
 import { useMidenFiWallet } from "@miden-sdk/miden-wallet-adapter-react";
 import { LOCAL_WALLET, useLocalWallet } from "@/lib/localWallet";
-import { GAMECOIN_GRANT, gamecoinRefusal, GRANT_PENDING_MS, useGamecoin } from "@/lib/gamecoin";
+import { openSales, pickSale, type Sale } from "@/lib/shop";
 import { useSound, type Track } from "@/lib/useSound";
-import { RECORD_LIFETIME_BLOCKS, STAKE, TEST_ACCOUNTS } from "@/config";
+import { RECORD_LIFETIME_BLOCKS, STAKE, TEST_ACCOUNTS, ADMIN, GC_DECIMALS, GC_PRICE, MAX_BUY_GC } from "@/config";
 import { accountFelts, bech32Of, fetchChallengeNote, hexOf, knownNote, listChallengeNotes, loadScripts, parseAccountId, syncNotes, wordFromHex, type ChallengeNote } from "@/lib/chain";
 import { boards, history as pastGames, keyOf, lettersBackward, nicknames, owed, playersInOrder, stageTag } from "@/lib/hub";
-import { gcBalance, postShot, postRecord, settle, collect, setSubmitAttemptListener, setSubmitStageListener, waitFor, type Submitted } from "@/lib/bread";
+import { postShot, postRecord, settle, collect, setSubmitAttemptListener, setSubmitStageListener, waitFor, type Submitted, openSale, buyGamecoin } from "@/lib/bread";
 import { shotDeadline, shotStorage, ZERO_WORD, type AccountFelts, type ChallengeStorage } from "@/lib/notes";
 import { blockToMs, claimVerdict, explain, fmtGamecoin, NOT_FINISHED, sameAccount, SHOT_LOST, shotRefusal, withoutRecord, withTimeout, type Trouble, myOpenShotsOn as openShotsOn, outcomeText, parseCode, reportRows, settlePlan, sharedRecordState, type ReportRow } from "@/lib/flow";
 import { cityNames, datasetWord, decodeGame, encodeGame, gameStage, quizCities, randomSeed, type Place, type Word4 } from "@/lib/quiz";
@@ -62,7 +62,10 @@ const trackOf = (m: Mode): Track =>
           : "home";
 
 /** Something that needs a connected wallet; it runs once the wallet is there. */
-type Intent = { kind: "post"; m: Extract<Mode, { kind: "post-record" }> } | { kind: "shot"; record: ChallengeNote } | { kind: "gamecoins" };
+/** `?admin=1`: the sale desk, for the admin account alone. */
+const ADMIN_PANEL = new URLSearchParams(window.location.search).has("admin");
+
+type Intent = { kind: "post"; m: Extract<Mode, { kind: "post-record" }> } | { kind: "shot"; record: ChallengeNote } | { kind: "buy"; gc: bigint } | { kind: "sell"; gc: bigint };
 
 export function AppContent({ onStarted }: { onStarted?: () => void }) {
   // the language: the device remembers it; the splash and the ribbon change it
@@ -123,7 +126,6 @@ function GqApp({ onStarted }: { onStarted?: () => void }) {
   const bread = useMidenFiWallet();
   const local = useLocalWallet(client, runExclusive);
   const wallet = LOCAL_WALLET ? local : bread;
-  const mintGamecoins = useGamecoin(client, runExclusive);
 
   const params = new URLSearchParams(location.search);
   const sharedRecordId = params.get("record") ?? params.get("prize"); // ?prize= is the old link form
@@ -175,7 +177,8 @@ function GqApp({ onStarted }: { onStarted?: () => void }) {
   // a Back press (or a newer run) makes an older run's late answer land nowhere
   const runToken = useRef(0);
   /** The last Gamecoin grant, so a second press does not mint again before Bread takes the first. */
-  const lastGrant = useRef<{ to: string; at: number } | null>(null);
+  const [buyGc, setBuyGc] = useState("10");
+  const [sellGc, setSellGc] = useState("1000");
 
   const me = wallet.connected && wallet.address ? accountFelts(parseAccountId(wallet.address)) : null;
   const meKey = me && keyOf(me);
@@ -287,7 +290,8 @@ function GqApp({ onStarted }: { onStarted?: () => void }) {
   function perform(intent: Intent) {
     if (intent.kind === "post") return postMyRecord(intent.m);
     if (intent.kind === "shot") return takeShot(intent.record);
-    return getGamecoins();
+    if (intent.kind === "sell") return sell(intent.gc);
+    return buy(intent.gc);
   }
 
   /**
@@ -462,30 +466,31 @@ function GqApp({ onStarted }: { onStarted?: () => void }) {
     claim();
   };
 
-  /** Mints the grant to the connected wallet; the local wallet then claims it, Bread claims by itself. */
-  async function getGamecoins() {
+  /** Buys `gc` Gamecoin from the cheapest sale note at or under the price; the coins land in the wallet with the fill. */
+  async function buy(gc: bigint) {
     const token = ++runToken.current;
     setTrouble(null);
-    setMode({ kind: "busy", text: t("Getting Gamecoins"), back: { kind: "lobby" }, stage: "network", since: Date.now(), track: trackOf(mode) });
+    setMode({ kind: "busy", text: t("Buying Gamecoin"), back: { kind: "lobby" }, stage: "network", since: Date.now(), track: trackOf(mode) });
+    let sale: Sale | undefined;
     try {
-      const grant = lastGrant.current;
-      const refusal = gamecoinRefusal(await gcBalance(wallet), grant?.to === wallet.address && Date.now() - grant.at < GRANT_PENDING_MS, t);
-      if (refusal) {
-        if (runToken.current !== token) return;
-        setMode({ kind: "lobby" });
-        return say(refusal);
-      }
-      const txId = await withTimeout(mintGamecoins(wallet.address!), 180_000, "Getting Gamecoins");
-      lastGrant.current = { to: wallet.address!, at: Date.now() };
-      if (LOCAL_WALLET) await local.claim();
-      if (runToken.current !== token) return;
-      setMode({ kind: "done", text: t("{gc} for you! Open your wallet to take them.", { gc: fmtGamecoin(GAMECOIN_GRANT, t) }), txId });
+      sale = pickSale(await openSales((await client.feeFaucetId()).toString()), gc);
     } catch (e) {
       if (runToken.current !== token) return;
-      oops(e, () => withWallet({ kind: "gamecoins" }));
-      setMode({ kind: "lobby" });
+      oops(e, () => withWallet({ kind: "buy", gc }));
+      return setMode({ kind: "lobby" });
     }
+    if (runToken.current !== token) return;
+    if (!sale) {
+      setMode({ kind: "lobby" });
+      return say(t("No Gamecoin on sale right now. Try again later."));
+    }
+    const picked = sale;
+    void run(t("Buying Gamecoin"), false, () => buyGamecoin(client, wallet, picked, gc), { kind: "lobby" }, () => ({ kind: "done", text: t("{gc} in your wallet.", { gc: fmtGamecoin(gc, t) }) }));
   }
+
+  /** Admin: puts `gc` Gamecoin on sale at the price. */
+  const sell = (gc: bigint) =>
+    run("Putting Gamecoin on sale", true, async () => openSale(client, wallet, gc, GC_PRICE, (await client.feeFaucetId()).toString()), { kind: "lobby" }, () => ({ kind: "done", text: `${fmtGamecoin(gc, t)} on sale.` }));
 
   /** A pasted link or id opens the record exactly like the link would. */
   const openCode = () => {
@@ -500,10 +505,27 @@ function GqApp({ onStarted }: { onStarted?: () => void }) {
       {refreshing ? t("Refreshing…") : t("Refresh")}
     </button>
   );
-  const gamecoinButton = (
-    <button className="btn" onClick={() => withWallet({ kind: "gamecoins" })}>
-      {t("Empty pockets? Get Gamecoins now!")}
-    </button>
+  const gc = BigInt(Math.min(MAX_BUY_GC, Math.max(1, Math.floor(Number(buyGc) || 1)))) * 10n ** BigInt(GC_DECIMALS);
+  const shopBox = (
+    <section className="panel shop">
+      <div className="panel-title">{t("Buy Gamecoin")}</div>
+      <p className="muted">{t("0.001 USDCx each, 100 at a time.")}</p>
+      <input type="number" min={1} max={MAX_BUY_GC} value={buyGc} onChange={(e) => setBuyGc(e.target.value)} aria-label={t("How many")} />
+      <button className="btn" onClick={() => withWallet({ kind: "buy", gc })}>
+        {t("Buy")}
+      </button>
+    </section>
+  );
+  // the admin's sale desk: plain English, one reader
+  const adminBox = ADMIN_PANEL && me && hexOf(me) === parseAccountId(ADMIN).toString() && (
+    <section className="panel shop">
+      <div className="panel-title">Put Gamecoin on sale</div>
+      <p className="muted">{t("0.001 USDCx each, 100 at a time.").split(",")[0]}, from this wallet.</p>
+      <input type="number" min={1} value={sellGc} onChange={(e) => setSellGc(e.target.value)} aria-label="How many to sell" />
+      <button className="btn" onClick={() => withWallet({ kind: "sell", gc: BigInt(Math.max(1, Math.floor(Number(sellGc) || 1))) * 10n ** BigInt(GC_DECIMALS) })}>
+        Put on sale
+      </button>
+    </section>
   );
   const codeBox = (
     <section className="panel">
@@ -653,7 +675,7 @@ function GqApp({ onStarted }: { onStarted?: () => void }) {
           }
           onGamecoins={() => {
             setTrouble(null);
-            withWallet({ kind: "gamecoins" });
+            withWallet({ kind: "buy", gc });
           }}
           onClose={() => setTrouble(null)}
         />
@@ -698,7 +720,8 @@ function GqApp({ onStarted }: { onStarted?: () => void }) {
           <div className="overlay">
             <div className="stack">
               {recordCard() ?? codeBox}
-              {gamecoinButton}
+              {shopBox}
+              {adminBox}
             </div>
             <div className="beside">{openList}</div>
           </div>
@@ -724,7 +747,7 @@ function GqApp({ onStarted }: { onStarted?: () => void }) {
                 }}
                 onCollect={(picked) => void run(picked.length > 1 ? t("Taking them") : t("Taking it"), false, () => collect(client, wallet, picked), { kind: "lobby" })}
               />
-              <p>{gamecoinButton}</p>
+              {shopBox}
             </>
           ) : null}
           <History

@@ -8,6 +8,7 @@ import {
   AccountId,
   AdviceMap,
   NoteArray,
+  NoteType,
   Poseidon2,
   RpcClient,
   TransactionRequestBuilder,
@@ -17,10 +18,11 @@ import {
 import { Transaction } from "@miden-sdk/miden-wallet-adapter-base";
 import type { useMidenFiWallet } from "@miden-sdk/miden-wallet-adapter-react";
 import { buildChallengeNote, endpoint, fetchNotesWithProof, feltArray, loadScripts, parseAccountId, syncNotes, wordFromFelts, type Client, type ChallengeNote } from "./chain";
-import { SHOT_WINDOW_BLOCKS, GC_FAUCET, NETWORK_POLL_INTERVAL_MS, NETWORK_POLL_TIMEOUT_MS } from "@/config";
+import { SHOT_WINDOW_BLOCKS, GC_DECIMALS, GC_FAUCET, NETWORK_POLL_INTERVAL_MS, NETWORK_POLL_TIMEOUT_MS } from "@/config";
 import { encodeStorage, SHOT_DEADLINE_INDEX, shotStorage, ZERO_WORD, type AccountFelts, type ChallengeStorage, type GameAnswer } from "./notes";
 import { randomSeed, type Word4 } from "./quiz";
-import { fmtGamecoin, submitWithRetry, withTimeout } from "./flow";
+import { fmtGamecoin, submitWithRetry, toGc as toPay, withTimeout } from "./flow";
+import { payFor, type Sale } from "./shop";
 
 /** What the app needs from a signer: Bread's adapter hook, or the local test wallet. */
 export type Wallet = Pick<ReturnType<typeof useMidenFiWallet>, "address" | "requestTransaction" | "requestAssets"> & { local?: boolean };
@@ -226,3 +228,42 @@ export async function collect(client: Client, wallet: Wallet, notes: ChallengeNo
   return { txId: await submit(client, wallet, build, ids, files), noteIds: ids };
 }
 
+
+/**
+ * Admin: put `gc` Gamecoin (base units) on sale in one public PSWAP note, asking `pricePerGc` base
+ * units of `faucet` per whole Gamecoin. Buyers fill it bit by bit (buyGamecoin); each fill pays the
+ * admin a P2ID note of `faucet`; the rest stays on sale until it is gone or the admin cancels.
+ */
+export async function openSale(client: Client, wallet: Wallet, gc: bigint, pricePerGc: bigint, faucet: string): Promise<Submitted> {
+  const creator = parseAccountId(wallet.address!);
+  const asked = (gc * pricePerGc) / 10n ** BigInt(GC_DECIMALS);
+  // the SDK draws the serial here: one request, so every attempt makes the same note
+  const request = await client.newPswapCreateTransactionRequest(creator, AccountId.fromHex(GC_FAUCET), gc, AccountId.fromHex(faucet), asked, NoteType.Public, NoteType.Public);
+  const noteId = request.expectedOutputOwnNotes()[0].id().toString();
+  const txId = await submit(client, wallet, (b) => {
+    const notes = new NoteArray();
+    notes.push(request.expectedOutputOwnNotes()[0]);
+    return b.withOwnOutputNotes(notes).build();
+  });
+  return { txId, noteIds: [noteId] };
+}
+
+/** Player: buy `gc` Gamecoin (base units) from `sale`, paying its price in the pay asset (shop.ts payFor). */
+export async function buyGamecoin(client: Client, wallet: Wallet, sale: Sale, gc: bigint): Promise<Submitted> {
+  const pay = payFor(gc, sale);
+  const held = balanceOf(await walletAssets(wallet), sale.payFaucet);
+  if (held < pay) throw new Error(`You need ${toPay(pay)} USDCx and your wallet holds ${toPay(held)}.`);
+  const { files } = await fetchNotesWithProof([sale.id]);
+  const txId = await submit(
+    client,
+    wallet,
+    async (b) => {
+      const { inputs } = await fetchNotesWithProof([sale.id]);
+      // note args: [account fill, note fill, 0, 0] (miden-standards PswapNote::create_args)
+      return b.withExplicitInputNote(inputs[0], wordFromFelts([pay, 0n, 0n, 0n])).build();
+    },
+    [sale.id],
+    files,
+  );
+  return { txId, noteIds: [sale.id] };
+}
