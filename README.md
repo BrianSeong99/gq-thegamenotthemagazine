@@ -2,7 +2,7 @@
 
 **Play:** https://gq-thegamenotthemagazine.vercel.app
 
-A small, complete reference for a **challenge mechanic** on Miden testnet v0.17: a champion posts a
+A small, complete reference for a **challenge mechanic** on Miden v0.17 (mainnet, testnet for development): a champion posts a
 **record note** with a score to beat; rivals take a **shot** (a shot note holding one Gamecoin), play
 the same quiz, and the chain recomputes the score from their answers. Beat the record and you take
 the prize (first come, first served) and your Gamecoin back; fall short and your Gamecoin goes to the
@@ -79,7 +79,9 @@ check proves it.
 
 Vercel project root directory: `web` (Vercel picks it by itself). `web/vercel.json` builds with Yarn,
 serves `dist` and sets the two cross-origin isolation headers the Miden web client needs (the dev
-server sets the same ones). No environment variables are required for testnet.
+server sets the same ones). `VITE_MIDEN_NETWORK=mainnet` is the one variable production sets: it picks
+the mainnet node and prover, the mainnet Gamecoin faucet and admin, and the Mainnet badge. Without
+it the app runs on testnet.
 
 ## Build and test
 
@@ -98,9 +100,12 @@ the app creates and fee-funds itself.
 Gamecoins are bought in the app: "Buy Gamecoin" fills a sale note (a standard PSWAP note, 0.001
 USDCx per Gamecoin, 100 at a time) and the coins land in the wallet with the fill. Anyone holding
 Gamecoin may post a sale note; the game buys from the cheapest one at or under the price. The admin
-account posts them from `?admin=1`. The faucet (`0x6a8e2ccb2090bcd1071cea18da2cce` on testnet)
-mints from the CLI: `cargo run --release --bin gamecoin mint <account> <GC>` (`gamecoin deploy`
-creates a new faucet, `gamecoin fees` tops up the fee balance it pays mints with).
+account posts them from `?admin=1`. The faucet (`0x16bfec55b2b2329147ee739d1c731f` on mainnet,
+`0x6a8e2ccb2090bcd1071cea18da2cce` on testnet; one `gamecoin.json` per network at the repo root)
+mints from the CLI: `GQ_NETWORK=mainnet cargo run --release --bin gamecoin mint <account> <GC>`
+(`gamecoin deploy` creates a new faucet, on mainnet with the invite code in `GQ_INVITE_CODE`;
+`gamecoin fees` tops up a testnet faucet's fee balance, a mainnet one is sent USDCx). The test
+wallets (`?local=`) are testnet only: a new mainnet account needs an invite code.
 `cargo run --release --bin testnet_flow` runs champion / a rival who never settles / winning rival
 with in-process wallets.
 

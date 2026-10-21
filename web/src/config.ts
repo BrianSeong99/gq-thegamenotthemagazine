@@ -5,8 +5,7 @@ export const MAINNET = import.meta.env.VITE_MIDEN_NETWORK === "mainnet";
 export const APP_NAME = "GQ GeoQuizz";
 
 // Gamecoin (GC): the game's fungible faucet (`cargo run --bin gamecoin deploy`, one per network).
-export const GC_FAUCET: string = import.meta.env.VITE_GC_FAUCET ?? (MAINNET ? "" : "0x6a8e2ccb2090bcd1071cea18da2cce");
-if (!GC_FAUCET) throw new Error("VITE_GC_FAUCET: the mainnet Gamecoin faucet is not deployed yet");
+export const GC_FAUCET = import.meta.env.VITE_GC_FAUCET ?? (MAINNET ? "0x16bfec55b2b2329147ee739d1c731f" : "0x6a8e2ccb2090bcd1071cea18da2cce");
 export const GC_DECIMALS = 6;
 // The shop: Gamecoin sold through sale notes (PSWAP) for the chain's fee asset (USDCx on mainnet, 6
 // decimals): 0.001 per Gamecoin, at most 100 per buy. The price is a ceiling: a cheaper sale note sells first.

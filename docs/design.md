@@ -2,7 +2,9 @@
 
 Status: approved direction, 2026-10-08; rules v2 and vocabulary v2 decided
 2026-10-09; scripts v2 (the champion waits `CLAIM_FUZZ` blocks past a deadline)
-2026-10-12. Targets **Miden testnet v0.17** only. Note scripts are **MASM for
+2026-10-12. Targets **Miden v0.17**: developed on testnet, live on mainnet since 2026-10-22
+(`VITE_MIDEN_NETWORK=mainnet`; Gamecoin faucet `0x16bfec55b2b2329147ee739d1c731f`, 100 billion GC
+max supply, sold through sale notes at 0.001 USDCx). Note scripts are **MASM for
 now**; a Rust port is planned once the compiler release after 0.11.0 ships
 (see "Why MASM").
 
@@ -202,7 +204,7 @@ mints Gamecoins.
 5. Reference block can be back-dated by up to `CLAIM_FUZZ` blocks.
 6. Public notes expose scores, ids and amounts.
 7. A rival can post a shot and never play; the champion collects after the deadline.
-8. Anyone can mint Gamecoin: it is testnet play money by design.
+8. Only the faucet's key mints Gamecoin (`gamecoin mint`); players buy it in the shop.
 
 ## 3. Why MASM (verified 2026-10-08)
 
@@ -227,13 +229,13 @@ a standard BasicWallet account, which is what Bread creates. Spike at
   tests stay.
 
 B2 is a cost, not a blocker: local-node validation is a four-binary topology.
-Decision: validate on testnet only.
+Decision: validate on testnet, then run the same build on mainnet.
 
 ## 4. Versions (verified 2026-10-08)
 
 | Component | agentic-template main | this project |
 |---|---|---|
-| Testnet node | | 0.17.1 (live) |
+| Testnet node / mainnet node | | 0.17.1 / 0.18.0 (live) |
 | midenup channel | 0.16.0 | 0.17.0 (installed) |
 | miden-client / standards / testing | 0.16.0-rc | 0.17.2 / 0.17.1 / 0.17.1 |
 | `@miden-sdk/miden-sdk` / react / adapters | 0.16.2 | 0.17.1 / 0.17.0 / 0.17.0 |

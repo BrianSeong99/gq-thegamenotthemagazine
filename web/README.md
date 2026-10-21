@@ -1,6 +1,6 @@
 # GeoQuizz web app
 
-The React app for GeoQuizz on Miden testnet: play, post a record, take shots, claim. The project
+The React app for GeoQuizz on Miden (mainnet; testnet for development, see the root README): play, post a record, take shots, claim. The project
 overview, the challenge mechanic and how to build your own game on it are in the
 [root README](../README.md) and [docs/build-your-own-game.md](../docs/build-your-own-game.md).
 
