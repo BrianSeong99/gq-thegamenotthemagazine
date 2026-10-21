@@ -24,7 +24,7 @@ import {
   Word,
 } from "@miden-sdk/miden-sdk";
 import type { useMidenClient } from "@miden-sdk/react";
-import { MIDEN_RPC_URL, RECORD_SCRIPT_URL, SHOT_SCRIPT_URL } from "@/config";
+import { MAINNET, MIDEN_RPC_URL, RECORD_SCRIPT_URL, SHOT_SCRIPT_URL } from "@/config";
 import { decodeStorage, NOTE_TAG, type AccountFelts, type ChallengeStorage } from "./notes";
 import { acceptNote, noteKind } from "./flow";
 import type { Word4 } from "./quiz";
@@ -188,7 +188,7 @@ export const hexOf = (a: AccountFelts) => AccountId.fromPrefixSuffix(new Felt(a.
 
 /** An account's address as wallets show it (Bread adds a `_…` routing part after it). */
 export const bech32Of = (a: AccountFelts) =>
-  AccountId.fromPrefixSuffix(new Felt(a.prefix), new Felt(a.suffix)).toBech32(MIDEN_RPC_URL === "devnet" ? NetworkId.devnet() : NetworkId.testnet(), AccountInterface.BasicWallet);
+  AccountId.fromPrefixSuffix(new Felt(a.prefix), new Felt(a.suffix)).toBech32(MAINNET ? NetworkId.mainnet() : MIDEN_RPC_URL === "devnet" ? NetworkId.devnet() : NetworkId.testnet(), AccountInterface.BasicWallet);
 
 /** What the node says about a note (any note: a sale note too): undefined while it is not on chain, else whether it is used. */
 export async function knownNote(id: string): Promise<{ consumed: boolean } | undefined> {

@@ -16,6 +16,7 @@ export const TR: Record<string, string> = {
   Wallet: "Cüzdan",
   "Test wallet": "Test cüzdanı",
   Testnet: "Testnet",
+  Mainnet: "Mainnet",
   "Click to start": "Başlamak için tıkla",
   "Miden testnet: Gamecoins are play money.": "Miden testnet: Gamecoin oyun parasıdır.",
   "Turn your phone sideways: the map is much easier to play.": "Telefonu yan çevir: harita çok daha rahat oynanır.",

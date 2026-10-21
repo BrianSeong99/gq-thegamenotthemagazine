@@ -16,6 +16,7 @@ export const RU: Record<string, string> = {
   Wallet: "Кошелёк",
   "Test wallet": "Тестовый кошелёк",
   Testnet: "Тестнет",
+  Mainnet: "Мейннет",
   "Click to start": "Нажми, чтобы начать",
   "Miden testnet: Gamecoins are play money.": "Тестнет Miden: Gamecoin ничего не стоят.",
   "Turn your phone sideways: the map is much easier to play.": "Поверни телефон боком: с картой так куда удобнее.",

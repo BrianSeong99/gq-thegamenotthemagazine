@@ -16,6 +16,7 @@ export const KO: Record<string, string> = {
   Wallet: "지갑",
   "Test wallet": "테스트 지갑",
   Testnet: "테스트넷",
+  Mainnet: "메인넷",
   "Click to start": "클릭해서 시작",
   "Miden testnet: Gamecoins are play money.": "Miden 테스트넷: Gamecoin은 장난감 돈입니다.",
   "Turn your phone sideways: the map is much easier to play.": "휴대폰을 가로로 돌리세요. 지도가 훨씬 편해집니다.",

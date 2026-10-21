@@ -20,6 +20,7 @@ export const FR_FR: Record<string, string> = {
   Wallet: "Wallet",
   "Test wallet": "Wallet de test",
   Testnet: "Testnet",
+  Mainnet: "Mainnet",
   "Click to start": "Cliquez pour commencer",
   "Miden testnet: Gamecoins are play money.": "Testnet Miden : les Gamecoins sont de l'argent fictif.",
   "Turn your phone sideways: the map is much easier to play.": "Tournez votre téléphone : la carte est bien plus jouable.",

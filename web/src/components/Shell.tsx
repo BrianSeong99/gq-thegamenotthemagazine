@@ -1,6 +1,7 @@
 // The arcade chrome around every screen: one ribbon with the wordmark, the tabs, sound and wallet.
 
 import type { ReactNode } from "react";
+import { MAINNET } from "@/config";
 import { useT } from "@/lib/i18n";
 import { TAB_LABEL, type Tab } from "@/lib/tabs";
 
@@ -68,8 +69,8 @@ export function Shell({
           <button className="btn wallet" onClick={onWallet}>
             {walletLabel ?? t("Connect wallet")}
           </button>
-          <span className="testnet" title={t("Miden testnet: Gamecoins are play money.")}>
-            {t("Testnet")}
+          <span className="testnet" title={MAINNET ? undefined : t("Miden testnet: Gamecoins are play money.")}>
+            {MAINNET ? t("Mainnet") : t("Testnet")}
           </span>
         </div>
       </header>

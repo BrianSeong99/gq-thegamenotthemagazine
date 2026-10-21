@@ -16,6 +16,7 @@ export const JA: Record<string, string> = {
   Wallet: "ウォレット",
   "Test wallet": "テストウォレット",
   Testnet: "テストネット",
+  Mainnet: "メインネット",
   "Click to start": "クリックしてスタート",
   "Miden testnet: Gamecoins are play money.": "Miden テストネット：Gamecoin はおもちゃのお金です。",
   "Turn your phone sideways: the map is much easier to play.": "スマホを横にすると、地図がずっと遊びやすくなります。",

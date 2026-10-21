@@ -9,13 +9,14 @@ import { AccountId, NoteFile, NoteScript, TransactionRequest } from "@miden-sdk/
 import { useConsume, useCreateWallet, useTransaction, type AuthScheme } from "@miden-sdk/react";
 import type { Asset, Transaction } from "@miden-sdk/miden-wallet-adapter-base";
 import { useCallback, useState } from "react";
-import { MIDEN_FAUCET_URL } from "@/config";
+import { MAINNET, MIDEN_FAUCET_URL } from "@/config";
 import { loadScripts, type Client } from "./chain";
 import { noteKind } from "./flow";
 import { requestFaucetTokens } from "./funding";
 
 const LOCAL = typeof location !== "undefined" ? new URLSearchParams(location.search).get("local") : null;
-export const LOCAL_WALLET = LOCAL !== null;
+// not on mainnet: a new account there needs an invite code
+export const LOCAL_WALLET = LOCAL !== null && !MAINNET;
 // `?local=1` is the first wallet, `?local=2` a second one: a champion and a rival in two tabs
 const KEY = LOCAL === "1" || LOCAL === "" ? "gq:local-wallet" : `gq:local-wallet:${LOCAL}`;
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));

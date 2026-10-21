@@ -16,6 +16,7 @@ export const ID: Record<string, string> = {
   Wallet: "Dompet",
   "Test wallet": "Dompet uji",
   Testnet: "Testnet",
+  Mainnet: "Mainnet",
   "Click to start": "Klik untuk mulai",
   "Miden testnet: Gamecoins are play money.": "Testnet Miden: Gamecoin hanya uang mainan.",
   "Turn your phone sideways: the map is much easier to play.": "Putar ponselmu: petanya jauh lebih mudah dimainkan.",
