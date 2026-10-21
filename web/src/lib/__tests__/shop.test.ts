@@ -1,6 +1,7 @@
 // The Gamecoin shop: sale notes (PSWAP) anyone may post; the game buys from the cheapest one at or under the price.
 import { describe, expect, it } from "vitest";
 import { GC_FAUCET, GC_PRICE } from "@/config";
+import { parseAccountId } from "../chain";
 import { acceptSale, payFor, pickSale, pswapTag, type Sale } from "../shop";
 
 const PAY = "0x4cbdcaffe75f0a317482224dae6436";
@@ -9,6 +10,10 @@ const GC = 1_000_000n;
 const sale = (over: Partial<Sale> = {}): Sale => ({ id: "0xs", creator: "0xc", gcFaucet: GC_FAUCET, payFaucet: PAY, offered: 10n * GC, asked: 10n * GC_PRICE, minFill: 0n, ...over });
 
 describe("a sale note the game buys from", () => {
+  it("knows the mainnet admin by the account its Bread address names (the wallet that got the first 100,000 GC)", () => {
+    expect(parseAccountId("mm1azntuhzd3lwqxs2mmeny202ljy3fxnpm_qr7qqq9wr6w").toString()).toBe("0xa6be5c4d8fdc03415bde66453d5f91");
+  });
+
   it("is found under the pair's PSWAP tag (the tag of the sale notes posted on testnet)", () => {
     expect(pswapTag(PAY)).toBe(1663724108);
   });
