@@ -1,6 +1,6 @@
-// GQ (GeoQuizz) on Miden v0.17: testnet by default, mainnet with VITE_MIDEN_NETWORK=mainnet.
+// GQ (GeoQuizz) on Miden v0.17 mainnet; VITE_MIDEN_NETWORK=testnet for development.
 
-export const MAINNET = import.meta.env.VITE_MIDEN_NETWORK === "mainnet";
+export const MAINNET = import.meta.env.VITE_MIDEN_NETWORK !== "testnet";
 
 export const APP_NAME = "GQ GeoQuizz";
 

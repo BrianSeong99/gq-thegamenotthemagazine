@@ -2,7 +2,7 @@
 
 **Play:** https://gq-thegamenotthemagazine.vercel.app
 
-A small, complete reference for a **challenge mechanic** on Miden v0.17 (mainnet, testnet for development): a champion posts a
+A small, complete reference for a **challenge mechanic** on Miden v0.17 (mainnet; testnet for development): a champion posts a
 **record note** with a score to beat; rivals take a **shot** (a shot note holding one Gamecoin), play
 the same quiz, and the chain recomputes the score from their answers. Beat the record and you take
 the prize (first come, first served) and your Gamecoin back; fall short and your Gamecoin goes to the
@@ -79,9 +79,9 @@ check proves it.
 
 Vercel project root directory: `web` (Vercel picks it by itself). `web/vercel.json` builds with Yarn,
 serves `dist` and sets the two cross-origin isolation headers the Miden web client needs (the dev
-server sets the same ones). `VITE_MIDEN_NETWORK=mainnet` is the one variable production sets: it picks
-the mainnet node and prover, the mainnet Gamecoin faucet and admin, and the Mainnet badge. Without
-it the app runs on testnet.
+server sets the same ones). No environment variables are needed: the app runs on mainnet.
+`VITE_MIDEN_NETWORK=testnet` (in `web/.env.local` for development) picks the testnet node and
+prover, the testnet Gamecoin faucet and admin, the test wallets and the Testnet badge.
 
 ## Build and test
 

@@ -102,7 +102,7 @@ export function settlePlan(shots: ChallengeNote[], record: ChallengeNote | undef
 export const NOT_FINISHED = "It did not go through yet. Nothing is spent until it does, so try again.";
 
 /** A block count as m:ss, at testnet's ~3 s per block. */
-export const blocksToClock = (blocks: number) => secondsToClock(Math.max(0, blocks) * BLOCK_SECONDS);
+export const blocksToClock = (blocks: number) => secondsToClock(Math.round(Math.max(0, blocks) * BLOCK_SECONDS));
 
 /** When `block` lands, in ms, counting from `height` (the chain's current block) at testnet's pace. */
 export const blockToMs = (block: number, height: number) => Date.now() + (block - height) * BLOCK_SECONDS * 1000;

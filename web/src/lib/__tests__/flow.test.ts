@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { ChallengeNote } from "../chain";
 import type { ChallengeStorage, Word4 } from "../notes";
 import { stageById, WORLD } from "../stages";
-import { GC_FAUCET, MIN_SHOT_WINDOW_BLOCKS } from "@/config";
+import { GC_FAUCET, MIN_SHOT_WINDOW_BLOCKS, RECORD_LIFETIME_BLOCKS } from "@/config";
 import {
   acceptNote,
   blocksToClock,
@@ -104,8 +104,8 @@ describe("taking a shot", () => {
     expect(rigged({ target: 10_000 })).toMatch(/rigged/);
     expect(rigged({ minStake: 999_999n })).toMatch(/rigged/);
     expect(rigged({ minStake: 1_000_001n })).toMatch(/rigged/);
-    expect(rigged({ expiryBlock: 100 + 28_800 })).toBeNull();
-    expect(rigged({ expiryBlock: 100 + 28_801 })).toMatch(/rigged/);
+    expect(rigged({ expiryBlock: 100 + RECORD_LIFETIME_BLOCKS })).toBeNull();
+    expect(rigged({ expiryBlock: 100 + RECORD_LIFETIME_BLOCKS + 1 })).toMatch(/rigged/);
   });
 });
 
@@ -334,9 +334,9 @@ describe("before sending a claim", () => {
     expect(claimVerdict([{ consumedAt: 90, deadline: 100 }, { deadline: 100 }])).toBe("open");
   });
   it("shows block counts as a clock", () => {
-    expect(blocksToClock(81)).toBe("4:03");
+    expect(blocksToClock(81)).toBe("4:23"); // 263.25 s: whole seconds
     expect(blocksToClock(-5)).toBe("0:00");
-    expect(blocksToClock(27_900)).toBe("23:15:00");
+    expect(blocksToClock(26_400)).toBe("23:50:00");
     expect(blocksToClock(1_201)).toBe("1:00:03");
   });
 });

@@ -30,7 +30,7 @@ vi.mock("@miden-sdk/miden-wallet-adapter-react", () => ({ useMidenFiWallet: () =
 
 const champion = { suffix: 1n, prefix: 2n };
 const storage: ChallengeStorage = {
-  expiryBlock: 28_000,
+  expiryBlock: RECORD_LIFETIME_BLOCKS - 800,
   target: 2000,
   minStake: 1_000_000n,
   champion,
@@ -87,7 +87,7 @@ import { useMidenClient } from "@miden-sdk/react";
 import { waitFor as waitForMock } from "@/lib/bread";
 import { fetchChallengeNote, hexOf, knownNote, listChallengeNotes, syncNotes } from "@/lib/chain";
 import { encodeGame } from "@/lib/quiz";
-import { GC_FAUCET, MIN_SHOT_WINDOW_BLOCKS } from "@/config";
+import { GC_FAUCET, MIN_SHOT_WINDOW_BLOCKS, RECORD_LIFETIME_BLOCKS } from "@/config";
 import { AppContent } from "../AppContent";
 
 beforeEach(() => {
@@ -455,7 +455,7 @@ describe("welcome and 1P World Tour", () => {
     expect(await screen.findByRole("button", { name: "Wallet / JHT" })).toBeInTheDocument();
   });
 
-  it("the ribbon says the game runs on testnet", async () => {
+  it("the ribbon says the game runs on mainnet", async () => {
     await start();
     expect(screen.getByText("Testnet")).toBeInTheDocument();
   });
@@ -497,7 +497,7 @@ describe("welcome and 1P World Tour", () => {
 });
 
 describe("open challenges in Champion vs Rival", () => {
-  const listed = (id: string, target: number, more: Partial<ChallengeNote> = {}, expiryBlock = 28_000): ChallengeNote => ({
+  const listed = (id: string, target: number, more: Partial<ChallengeNote> = {}, expiryBlock = RECORD_LIFETIME_BLOCKS - 800): ChallengeNote => ({
     ...prize,
     id,
     createdAt: 5,

@@ -3,7 +3,7 @@
 Status: approved direction, 2026-10-08; rules v2 and vocabulary v2 decided
 2026-10-09; scripts v2 (the champion waits `CLAIM_FUZZ` blocks past a deadline)
 2026-10-12. Targets **Miden v0.17**: developed on testnet, live on mainnet since 2026-10-22
-(`VITE_MIDEN_NETWORK=mainnet`; Gamecoin faucet `0x16bfec55b2b2329147ee739d1c731f`, 100 billion GC
+(`VITE_MIDEN_NETWORK=testnet` for development; Gamecoin faucet `0x16bfec55b2b2329147ee739d1c731f`, 100 billion GC
 max supply, sold through sale notes at 0.001 USDCx). Note scripts are **MASM for
 now**; a Rust port is planned once the compiler release after 0.11.0 ships
 (see "Why MASM").

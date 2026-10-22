@@ -4,7 +4,7 @@
 //!
 //!   cargo run --release --bin gamecoin deploy <account> <GC>     # once; mints the first GC to <account>, writes the gamecoin file
 //!   cargo run --release --bin gamecoin mint <account> <GC>
-//!   cargo run --release --bin gamecoin fees                      # top up the faucet's fee balance (testnet faucet API)
+//!   cargo run --release --bin gamecoin fees                      # top up the faucet's fee balance (testnet faucet API; mainnet: report it)
 //!
 //! `<account>` is bech32 or hex. `GQ_NETWORK=mainnet` uses the mainnet store, keystore and
 //! gamecoin file; there `deploy` registers the faucet with the invite code in `GQ_INVITE_CODE`,
@@ -134,12 +134,18 @@ async fn mint_to(client: &mut miden_client::Client<miden_client::keystore::Files
 
 async fn fees() -> Result<()> {
     let faucet_id = gamecoin_faucet()?;
-    if mainnet() {
-        bail!("mainnet has no faucet API: send USDCx to {} from a wallet", faucet_id.to_bech32(network_id()));
-    }
     let setup = setup_client().await?;
     let mut client = setup.client;
     client.sync_state().await?;
+    if mainnet() {
+        // no faucet API: report the balance, a wallet tops it up
+        let header = client.get_latest_block_header().await?;
+        let fee_asset = client.get_protocol_config(header.protocol_config_commitment()).await?.fee_asset_id();
+        let balance = client.get_account(faucet_id).await?.context("account")?.vault().get_balance(fee_asset)?;
+        println!("fee asset {}", fee_asset.faucet_id().to_hex());
+        println!("{} holds {} base units; send it USDCx to top up", faucet_id.to_bech32(network_id()), balance.as_u64());
+        return Ok(());
+    }
     println!("Requesting fee tokens for {} ...", faucet_id.to_hex());
     let note = request_fee_tokens(TESTNET_FAUCET_API, faucet_id)?;
     println!("faucet note {note}");
