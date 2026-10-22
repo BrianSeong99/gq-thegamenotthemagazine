@@ -20,7 +20,8 @@ mod tests {
 
     #[test]
     fn write_auth_vectors_json() {
-        let faucet = AccountId::from_hex("0x02a14387adb68f516e57cc5aa65891").unwrap();
+        // the mainnet fee faucet (USDCx)
+        let faucet = AccountId::from_hex("0xe69e6ca6e39df1b10c1e5399399feb").unwrap();
         let salt = Word::new([felt(11), felt(22), felt(33), felt(44)]);
         let (elements, commitment) = auth_args(56400, salt, faucet);
         let json = serde_json::json!([{

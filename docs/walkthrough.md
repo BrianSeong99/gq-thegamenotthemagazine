@@ -1,17 +1,15 @@
 # GQ walkthrough
 
 Words: a **champion** posts a **record** (record note: score to beat + 1 Gamecoin); a **rival** takes a
-**shot** (shot note, 1 Gamecoin) at it. **Gamecoin (GC)** is the token (Geocoin, the coin before
-2026-10-14, is no longer accepted). Rules v2 since 2026-10-09: ten cities, 15 s each, 1000 max
+**shot** (shot note, 1 Gamecoin) at it. **Gamecoin (GC)** is the token. Rules v2 since 2026-10-09: ten cities, 15 s each, 1000 max
 per city. Rules v1/v2 number the game rules; scripts v1/v2 number the note scripts, a separate
 count: scripts v2 (2026-10-12) make the champion wait `CLAIM_FUZZ` (64) blocks past a deadline
 before collecting. Scripts v1 and their testnet notes are no longer read (dropped 2026-10-21).
 
 ## Rules v2 round on testnet (2026-10-09, scripts v1, in-app test wallets)
 
-Champion `0x071d3da3…` (`?local=1`), rival `0x35b6665a…` (`?local=2`), Geocoin faucet
-`0x2a85bbc7c655b6d116381742015892` (no auth: both wallets minted their own 10 GC from the app's
-"Empty pockets? Get Geocoins now!" button, claimed by the local wallet itself).
+Champion `0x071d3da3…` (`?local=1`), rival `0x35b6665a…` (`?local=2`), each holding 10 GC of the
+testnet faucet of the day.
 
 | step | note | state |
 |---|---|---|
@@ -26,8 +24,8 @@ and `take_back_waits_claim_fuzz_past_expiry`.
 
 ## Testnet run of the challenge mechanic (2026-10-08, protocol 0.17.1, rules v1)
 
-`cargo run --release --bin testnet_flow` with three fresh private wallets, the first GQ faucet
-`0x02a14387adb68f516e57cc5aa65891` (the GQ token of rules v1; replaced by Geocoin, then Gamecoin). The scripts
+`cargo run --release --bin testnet_flow` with three fresh private wallets and the stake token of the
+day. The scripts
 of that day let a losing answer settle; today's refuse it, so the binary now leaves the loser's
 shot for the champion to collect:
 

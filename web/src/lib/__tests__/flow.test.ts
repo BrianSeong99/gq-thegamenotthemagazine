@@ -132,8 +132,8 @@ describe("accepting a note from the chain", () => {
     expect(acceptNote({ ...shot, sender: champion }, shotRoot)).toBe(false);
   });
 
-  it("wants exactly one asset, a Gamecoin: the testnet Geocoin is foreign", () => {
-    expect(acceptNote({ ...record, assets: [{ faucet: "0x2a85bbc7c655b6d116381742015892", amount: 1_000_000n }] }, shotRoot)).toBe(false);
+  it("wants exactly one asset, a Gamecoin: another faucet's coin is foreign", () => {
+    expect(acceptNote({ ...record, assets: [{ faucet: "0x0123456789abcdef0123456789abcd", amount: 1_000_000n }] }, shotRoot)).toBe(false);
     expect(acceptNote({ ...record, assets: [] }, shotRoot)).toBe(false);
     expect(acceptNote({ ...record, assets: [{ faucet: "0xbad", amount: 1_000_000n }] }, shotRoot)).toBe(false);
     expect(acceptNote({ ...record, assets: [gc, { faucet: "0xbad", amount: 1n }] }, shotRoot)).toBe(false);
