@@ -274,6 +274,7 @@ describe("Gamecoin in words", () => {
 describe("errors in plain words", () => {
   const cases: [unknown, string][] = [
     [new Error("NOT_GRANTED"), "said-no"],
+    [Object.assign(new Error("NETWORK_NOT_GRANTED"), { name: "WalletConnectionError" }), "refused"],
     [Object.assign(new Error("User rejected the request"), { name: "WalletTransactionError" }), "said-no"],
     [Object.assign(new Error(""), { name: "WalletNotReadyError" }), "no-wallet"],
     [Object.assign(new Error(""), { name: "WalletNotConnectedError" }), "no-wallet"],

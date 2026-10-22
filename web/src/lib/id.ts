@@ -121,6 +121,7 @@ export const ID: Record<string, string> = {
   OK: "OK",
   "It did not go through yet. Nothing is spent until it does, so try again.": "Belum berhasil. Tidak ada yang terpakai sampai berhasil, jadi coba lagi.",
   "You said no in your wallet. Nothing was sent.": "Kamu menolak di dompetmu. Tidak ada yang dikirim.",
+  "Your wallet is on another network.": "Dompetmu ada di jaringan lain.",
   "We can't find the Bread wallet. Install it, then try again.": "Dompet Bread tidak ditemukan. Pasang dulu, lalu coba lagi.",
   "Connect your wallet first.": "Hubungkan dompetmu dulu.",
   "Not enough Gamecoins in your wallet. Get Gamecoins first.": "Gamecoin di dompetmu tidak cukup. Ambil Gamecoin dulu.",

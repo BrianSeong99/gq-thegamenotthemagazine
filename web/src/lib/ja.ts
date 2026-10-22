@@ -121,6 +121,7 @@ export const JA: Record<string, string> = {
   OK: "OK",
   "It did not go through yet. Nothing is spent until it does, so try again.": "まだ通っていません。通るまで何も消費されないので、もう一度。",
   "You said no in your wallet. Nothing was sent.": "ウォレットで拒否しました。何も送信されていません。",
+  "Your wallet is on another network.": "ウォレットが別のネットワークにあります。",
   "We can't find the Bread wallet. Install it, then try again.": "Bread ウォレットが見つかりません。インストールしてからもう一度。",
   "Connect your wallet first.": "先にウォレットを接続してください。",
   "Not enough Gamecoins in your wallet. Get Gamecoins first.": "ウォレットの Gamecoin が足りません。先に Gamecoin をもらってください。",

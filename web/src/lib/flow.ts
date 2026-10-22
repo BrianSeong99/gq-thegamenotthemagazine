@@ -152,6 +152,7 @@ export function explain(e: unknown): Trouble {
   const raw = message(e);
   const trouble = (kind: TroubleKind, title: string, withDetail = true): Trouble => (withDetail && raw && raw !== title ? { kind, title, detail: raw } : { kind, title });
   if (raw.includes(NOT_FINISHED)) return trouble("not-finished", NOT_FINISHED, false);
+  if (/NETWORK_NOT_GRANTED/.test(raw)) return trouble("refused", "Your wallet is on another network.");
   if (/NOT_GRANTED|reject|declin|denied|cancel/i.test(raw)) return trouble("said-no", "You said no in your wallet. Nothing was sent.");
   if (/WalletNotReady|not installed/i.test(raw)) return trouble("no-wallet", "We can't find the Bread wallet. Install it, then try again.");
   if (/WalletNotConnected|not connected|WalletDisconnected/i.test(raw)) return trouble("no-wallet", "Connect your wallet first.");

@@ -135,6 +135,7 @@ export const ZH: Record<string, string> = {
   OK: "好",
   "It did not go through yet. Nothing is spent until it does, so try again.": "还没有完成。完成前不会花费任何东西，请重试。",
   "You said no in your wallet. Nothing was sent.": "你在钱包中拒绝了。什么也没发送。",
+  "Your wallet is on another network.": "你的钱包在另一个网络上。",
   "We can't find the Bread wallet. Install it, then try again.": "找不到 Bread 钱包。请安装后重试。",
   "Connect your wallet first.": "请先连接钱包。",
   "Not enough Gamecoins in your wallet. Get Gamecoins first.": "钱包里的游戏币不够。请先领取游戏币。",

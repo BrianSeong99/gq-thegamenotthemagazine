@@ -135,6 +135,7 @@ const ES: Record<string, string> = {
   OK: "OK",
   "It did not go through yet. Nothing is spent until it does, so try again.": "Aún no ha salido. No se gasta nada hasta que salga, así que reintenta.",
   "You said no in your wallet. Nothing was sent.": "Dijiste que no en tu billetera. No se envió nada.",
+  "Your wallet is on another network.": "Tu wallet está en otra red.",
   "We can't find the Bread wallet. Install it, then try again.": "No encontramos la billetera Bread. Instálala y reintenta.",
   "Connect your wallet first.": "Conecta tu billetera primero.",
   "Not enough Gamecoins in your wallet. Get Gamecoins first.": "No hay suficientes Gamecoins en tu billetera. Consigue Gamecoins primero.",

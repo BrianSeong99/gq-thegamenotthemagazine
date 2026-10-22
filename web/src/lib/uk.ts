@@ -121,6 +121,7 @@ export const UK: Record<string, string> = {
   OK: "OK",
   "It did not go through yet. Nothing is spent until it does, so try again.": "Ще не пройшло. Поки не пройде, нічого не витрачається, тож спробуй ще раз.",
   "You said no in your wallet. Nothing was sent.": "Ти відмовив у гаманці. Нічого не надіслано.",
+  "Your wallet is on another network.": "Ваш гаманець в іншій мережі.",
   "We can't find the Bread wallet. Install it, then try again.": "Гаманець Bread не знайдено. Установи його і спробуй знову.",
   "Connect your wallet first.": "Спочатку підключи гаманець.",
   "Not enough Gamecoins in your wallet. Get Gamecoins first.": "У гаманці замало Gamecoin. Спочатку отримай Gamecoin.",

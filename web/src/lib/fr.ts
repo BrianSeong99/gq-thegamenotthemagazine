@@ -137,6 +137,7 @@ export const FR_FR: Record<string, string> = {
   OK: "OK",
   "It did not go through yet. Nothing is spent until it does, so try again.": "Ce n'est pas encore passé. Rien n'est dépensé avant, alors réessayez.",
   "You said no in your wallet. Nothing was sent.": "Vous avez refusé dans votre wallet. Rien n'a été envoyé.",
+  "Your wallet is on another network.": "Ton wallet est sur un autre réseau.",
   "We can't find the Bread wallet. Install it, then try again.": "Wallet Bread introuvable. Installez-le, puis réessayez.",
   "Connect your wallet first.": "Connectez d'abord votre wallet.",
   "Not enough Gamecoins in your wallet. Get Gamecoins first.": "Pas assez de Gamecoins dans votre wallet. Prenez-en d'abord.",
