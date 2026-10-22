@@ -4,7 +4,7 @@ import authVectors from "../../../../rules/auth_vectors.json";
 import { GC_FAUCET } from "@/config";
 import type { Client } from "../chain";
 import type { Word4 } from "../quiz";
-import { authArgElements, collect, multisigAuthArgs, type Wallet } from "../bread";
+import { collect, multisigAuthArgs, type Wallet } from "../bread";
 
 // the node's tip, as the app reads it before building a request
 const node = vi.hoisted(() => ({ tip: 0 }));
@@ -19,18 +19,10 @@ vi.mock("../chain", async (actual) => ({ ...(await actual<typeof import("../chai
 vi.mock("@miden-sdk/miden-wallet-adapter-base", () => ({ Transaction: { createCustomTransaction: (_from: string, _to: string, request: TransactionRequest) => request } }));
 
 describe("multisig auth args", () => {
-  it("lay out the 12 felts exactly as miden-standards does", () => {
+  it("lay out the 12 felts exactly as miden-standards does and commit to them with the same Poseidon2 hash", () => {
     for (const v of authVectors) {
-      const salt = v.salt.map(BigInt) as Word4;
-      // the reference vector carries the faucet's felts at positions 8 and 9
-      const faucet = { suffix: BigInt(v.elements[8]), prefix: BigInt(v.elements[9]) };
-      expect(authArgElements(v.bound_block, salt, faucet).map(String)).toEqual(v.elements);
-    }
-  });
-
-  it("commit to them with the same Poseidon2 hash as the Rust reference", () => {
-    for (const v of authVectors) {
-      const { commitment } = multisigAuthArgs(v.bound_block, v.salt.map(BigInt) as Word4, AccountId.fromHex(v.fee_faucet));
+      const { elements, commitment } = multisigAuthArgs(v.bound_block, v.salt.map(BigInt) as Word4, AccountId.fromHex(v.fee_faucet));
+      expect(elements.map(String)).toEqual(v.elements);
       expect(commitment.toHex()).toBe(v.commitment);
     }
   });

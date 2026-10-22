@@ -73,7 +73,7 @@ cd web && yarn install && yarn dev          # http://localhost:5173
    "My shot" cards ("Play" again on a loss while the deadline holds), "For you" cards (lost shots
    at your records, "Take it" 64 blocks after their deadline).
 5. Share: after posting, the champion gets "Share on X" and a link of the form
-   `<app>/?record=<note id>` (`?prize=` links from before still open). Opening it loads the record
+   `<app>/?record=<note id>`. Opening it loads the record
    straight from the node (no lobby needed) and offers "Insert Gamecoin": one click posts the shot
    note and starts the quiz as soon as the note is on chain; on a win the app settles the shot
    (and claims the prize if it is still there).

@@ -117,54 +117,64 @@ export async function syncNotes(client: Client): Promise<number> {
   return summary.blockNum();
 }
 
-// every GQ note the node has shown this page, decoded once: a note never changes, only whether it is used
-const known = new Map<string, ChallengeNote>();
-// the node answers the whole chain in one request
-let scannedTo = -1;
-let scanning: Promise<ChallengeNote[]> | null = null;
+/** A decoded note as `tagScanner` keeps it: when it was posted and whether (and since when) it is used. */
+export type Scanned<T> = T & { createdAt?: number; consumed: boolean; consumedAt?: number; nullifier: string };
 
 /**
- * Every record and shot note, newest first, read from the node: the game's notes are public, under
- * its note tag. Not from the local store: its first sync runs before the app adds the tag, so it
- * only ever holds the notes posted after this browser first opened the game.
+ * Reads the public notes under `tag` straight from the node, not from the local store: its first sync
+ * runs before the app adds a tag, so it only ever holds the notes posted after this browser first
+ * opened the game. Each call looks at the blocks since the last one; a note never changes, only
+ * whether it is used, and `decode` (null = not ours) runs once per note.
  * ponytail: one nullifier request per unused note per call; fine for tens, batch them for hundreds.
  */
-export function listChallengeNotes(tip: number): Promise<ChallengeNote[]> {
-  return (scanning ??= scanNotes(tip).finally(() => (scanning = null)));
+export function tagScanner<T extends { id: string }>(tag: number) {
+  const seen = new Map<string, Scanned<T>>();
+  // the node answers the whole chain in one request
+  let scannedTo = -1;
+  return async (tip: number, decode: (input: InputNote, id: string) => T | null): Promise<Scanned<T>[]> => {
+    const rpc = new RpcClient(endpoint());
+    try {
+      const ids: NoteId[] = [];
+      while (scannedTo < tip) {
+        const info = await rpc.syncNotes(scannedTo + 1, tip, [new NoteTag(tag)]);
+        for (const block of info.blocks()) for (const n of block.notes()) ids.push(n.noteId());
+        if (info.blockTo() <= scannedTo) break;
+        scannedTo = info.blockTo();
+      }
+      for (let i = 0; i < ids.length; i += 50) {
+        for (const f of await rpc.getNotesById(ids.slice(i, i + 50))) {
+          const input = f.asInputNote();
+          const decoded = input && decode(input, f.noteId.toString());
+          if (!input || !decoded) continue;
+          seen.set(decoded.id, { ...decoded, createdAt: input.location()?.blockNum(), consumed: false, nullifier: input.note().nullifier().toHex() });
+        }
+      }
+      // which are used now, and since when
+      for (const n of seen.values()) {
+        if (n.consumed) continue;
+        const at = await rpc.getNullifierCommitHeight(Word.fromHex(n.nullifier), n.createdAt ?? 0).catch(() => undefined);
+        if (at !== undefined) seen.set(n.id, { ...n, consumed: true, consumedAt: at });
+      }
+    } finally {
+      rpc.free();
+    }
+    return [...seen.values()];
+  };
 }
 
-async function scanNotes(tip: number): Promise<ChallengeNote[]> {
-  const scripts = await loadScripts();
-  const rpc = new RpcClient(endpoint());
-  try {
-    // notes posted since the last look
-    const ids: NoteId[] = [];
-    while (scannedTo < tip) {
-      const info = await rpc.syncNotes(scannedTo + 1, tip, [new NoteTag(NOTE_TAG)]);
-      for (const block of info.blocks()) for (const n of block.notes()) ids.push(n.noteId());
-      if (info.blockTo() <= scannedTo) break;
-      scannedTo = info.blockTo();
-    }
-    for (let i = 0; i < ids.length; i += 50) {
-      for (const f of await rpc.getNotesById(ids.slice(i, i + 50))) {
-        const input = f.asInputNote();
-        const decoded = input && decodeNote(input, scripts);
-        if (!input || !decoded) continue;
-        const id = f.noteId.toString();
-        const createdAt = input.location()?.blockNum();
-        known.set(id, { id, idWord: wordFromHex(id), ...decoded, consumed: false, createdAt, nullifier: input.note().nullifier().toHex() });
-      }
-    }
-    // which are used now, and since when
-    for (const n of known.values()) {
-      if (n.consumed) continue;
-      const at = await rpc.getNullifierCommitHeight(Word.fromHex(n.nullifier!), n.createdAt ?? 0).catch(() => undefined);
-      if (at !== undefined) known.set(n.id, { ...n, consumed: true, consumedAt: at });
-    }
-  } finally {
-    rpc.free();
-  }
-  return [...known.values()].sort((a, b) => (b.createdAt ?? Infinity) - (a.createdAt ?? Infinity));
+const scanGame = tagScanner<Pick<ChallengeNote, "id" | "idWord" | "kind" | "storage" | "faucet" | "amount">>(NOTE_TAG);
+let scanning: Promise<ChallengeNote[]> | null = null;
+
+/** Every record and shot note, newest first, read from the node (the game's notes are public, under its tag). */
+export function listChallengeNotes(tip: number): Promise<ChallengeNote[]> {
+  return (scanning ??= (async () => {
+    const scripts = await loadScripts();
+    const notes = await scanGame(tip, (input, id) => {
+      const decoded = decodeNote(input, scripts);
+      return decoded && { id, idWord: wordFromHex(id), ...decoded };
+    });
+    return notes.sort((a, b) => (b.createdAt ?? Infinity) - (a.createdAt ?? Infinity));
+  })().finally(() => (scanning = null)));
 }
 
 const blockTimeCache = new Map<number, number>();
@@ -188,19 +198,24 @@ export const hexOf = (a: AccountFelts) => AccountId.fromPrefixSuffix(new Felt(a.
 
 /** An account's address as wallets show it (Bread adds a `_…` routing part after it). */
 export const bech32Of = (a: AccountFelts) =>
-  AccountId.fromPrefixSuffix(new Felt(a.prefix), new Felt(a.suffix)).toBech32(MAINNET ? NetworkId.mainnet() : MIDEN_RPC_URL === "devnet" ? NetworkId.devnet() : NetworkId.testnet(), AccountInterface.BasicWallet);
+  AccountId.fromPrefixSuffix(new Felt(a.prefix), new Felt(a.suffix)).toBech32(MAINNET ? NetworkId.mainnet() : NetworkId.testnet(), AccountInterface.BasicWallet);
 
-/** What the node says about a note (any note: a sale note too): undefined while it is not on chain, else whether it is used. */
-export async function knownNote(id: string): Promise<{ consumed: boolean } | undefined> {
-  const { inputs } = await fetchNotesWithProof([id]).catch(() => ({ inputs: [] as InputNote[] }));
-  if (!inputs[0]) return undefined;
+/** A public note as the node holds it, with the block its nullifier was committed in (the note fetch alone returns used notes too). */
+async function nodeNote(id: string): Promise<{ input: InputNote; consumedAt?: number }> {
+  const { inputs } = await fetchNotesWithProof([id]);
   const rpc = new RpcClient(endpoint());
   try {
     const at = await rpc.getNullifierCommitHeight(inputs[0].note().nullifier(), inputs[0].location()?.blockNum() ?? 0);
-    return { consumed: at !== undefined };
+    return { input: inputs[0], consumedAt: at ?? undefined };
   } finally {
     rpc.free();
   }
+}
+
+/** What the node says about a note (any note: a sale note too): undefined while it is not on chain, else whether it is used. */
+export async function knownNote(id: string): Promise<{ consumed: boolean } | undefined> {
+  const n = await nodeNote(id).catch(() => undefined);
+  return n && { consumed: n.consumedAt !== undefined };
 }
 
 /** Builds a record or shot note exactly as the contracts expect it; `serial` fixes its id. */
@@ -211,14 +226,16 @@ export function buildChallengeNote(sender: AccountId, script: NoteScript, storag
   return new Note(assets, metadata, recipient);
 }
 
-export function endpoint(): Endpoint {
-  return MIDEN_RPC_URL === "testnet"
-    ? Endpoint.testnet()
-    : MIDEN_RPC_URL === "devnet"
-      ? Endpoint.devnet()
-      : MIDEN_RPC_URL === "localhost"
-        ? Endpoint.localhost()
-        : new Endpoint(MIDEN_RPC_URL);
+export const endpoint = (): Endpoint => (MAINNET ? new Endpoint(MIDEN_RPC_URL) : Endpoint.testnet());
+
+/** The node's latest block. */
+export async function tip(): Promise<number> {
+  const rpc = new RpcClient(endpoint());
+  try {
+    return (await rpc.getBlockHeaderByNumber(undefined)).blockNum();
+  } finally {
+    rpc.free();
+  }
 }
 
 /**
@@ -245,24 +262,10 @@ export async function fetchNotesWithProof(ids: string[]): Promise<{ inputs: Inpu
   }
 }
 
-/**
- * Loads one record or shot straight from the node by id (no tag sync needed), e.g. from a shared link,
- * and asks the node whether its nullifier is already committed (the note fetch alone returns
- * consumed notes too).
- */
+/** Loads one record or shot straight from the node by id (no tag sync needed), e.g. from a shared link. */
 export async function fetchChallengeNote(id: string): Promise<ChallengeNote> {
-  const scripts = await loadScripts();
-  const { inputs } = await fetchNotesWithProof([id]);
-  const note = inputs[0].note();
-  const decoded = decodeNote(inputs[0], scripts);
+  const [scripts, { input, consumedAt }] = await Promise.all([loadScripts(), nodeNote(id)]);
+  const decoded = decodeNote(input, scripts);
   if (!decoded) throw new Error("This note is not a record or shot of this game.");
-  const rpc = new RpcClient(endpoint());
-  let consumedAt: number | undefined;
-  try {
-    const creationBlock = inputs[0].location()?.blockNum() ?? 0;
-    consumedAt = (await rpc.getNullifierCommitHeight(note.nullifier(), creationBlock)) ?? undefined;
-  } finally {
-    rpc.free();
-  }
   return { id, idWord: wordFromHex(id), ...decoded, consumed: consumedAt !== undefined, consumedAt };
 }

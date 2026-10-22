@@ -3,9 +3,9 @@
 // leaves the rest on sale. The game takes any sale note at or under GC_PRICE, cheapest first.
 // ponytail: the 100 GC cap is the screen's; the note itself has a floor per fill, never a ceiling.
 
-import { AccountId, Felt, Note, NoteId, NoteScript, NoteTag, RpcClient, Word } from "@miden-sdk/miden-sdk";
+import { AccountId, Felt, Note, NoteScript } from "@miden-sdk/miden-sdk";
 import { GC_DECIMALS, GC_FAUCET, GC_PRICE } from "@/config";
-import { endpoint } from "./chain";
+import { tagScanner, tip } from "./chain";
 
 export type Sale = {
   id: string;
@@ -70,37 +70,14 @@ export function decodeSale(id: string, note: Note): Sale | null {
   };
 }
 
-// every sale note seen, by id; a note never changes, only whether it is used
-const seen = new Map<string, Sale & { createdAt: number; nullifier: string; consumed: boolean }>();
-let scannedTo = -1;
+let scanSales: ReturnType<typeof tagScanner<Sale>> | undefined;
 
 /** The open sale notes the game buys from, read from the node (public notes under the pair's tag). */
 export async function openSales(payFaucet: string): Promise<Sale[]> {
-  const rpc = new RpcClient(endpoint());
-  try {
-    const tip = (await rpc.getBlockHeaderByNumber(undefined)).blockNum();
-    const ids: NoteId[] = [];
-    while (scannedTo < tip) {
-      const info = await rpc.syncNotes(scannedTo + 1, tip, [new NoteTag(pswapTag(payFaucet))]);
-      for (const block of info.blocks()) for (const n of block.notes()) ids.push(n.noteId());
-      if (info.blockTo() <= scannedTo) break;
-      scannedTo = info.blockTo();
-    }
-    for (let i = 0; i < ids.length; i += 50) {
-      for (const f of await rpc.getNotesById(ids.slice(i, i + 50))) {
-        const input = f.asInputNote();
-        const sale = input && decodeSale(f.noteId.toString(), input.note());
-        if (!input || !sale || !acceptSale(sale, payFaucet)) continue;
-        seen.set(sale.id, { ...sale, createdAt: input.location()?.blockNum() ?? 0, nullifier: input.note().nullifier().toHex(), consumed: false });
-      }
-    }
-    for (const s of seen.values()) {
-      if (s.consumed) continue;
-      const at = await rpc.getNullifierCommitHeight(Word.fromHex(s.nullifier), s.createdAt).catch(() => undefined);
-      if (at !== undefined) seen.set(s.id, { ...s, consumed: true });
-    }
-  } finally {
-    rpc.free();
-  }
-  return [...seen.values()].filter((s) => !s.consumed);
+  scanSales ??= tagScanner<Sale>(pswapTag(payFaucet));
+  const sales = await scanSales(await tip(), (input, id) => {
+    const sale = decodeSale(id, input.note());
+    return sale && acceptSale(sale, payFaucet) ? sale : null;
+  });
+  return sales.filter((s) => !s.consumed);
 }

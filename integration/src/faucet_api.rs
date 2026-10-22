@@ -2,6 +2,8 @@
 //! public P2ID note of the chain's fee asset (USDCx) for the account. Mirrors `web/src/lib/funding.ts`.
 
 use anyhow::{bail, Context, Result};
+
+use crate::helpers::hex_decode;
 use miden_client::account::AccountId;
 use sha2::{Digest, Sha256};
 
@@ -56,14 +58,4 @@ pub fn request_fee_tokens(base_url: &str, account: AccountId) -> Result<String> 
         Some(id) => Ok(id.to_string()),
         None => bail!("faucet get_tokens returned {result}"),
     }
-}
-
-fn hex_decode(s: &str) -> Result<Vec<u8>> {
-    if !s.len().is_multiple_of(2) {
-        bail!("odd hex length");
-    }
-    (0..s.len())
-        .step_by(2)
-        .map(|i| u8::from_str_radix(&s[i..i + 2], 16).context("bad hex"))
-        .collect()
 }

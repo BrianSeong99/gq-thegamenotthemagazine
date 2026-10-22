@@ -384,7 +384,7 @@ async fn longer_game_tail_is_accepted() -> Result<()> {
     let extra = [felt(7), felt(8), felt(9), felt(10)];
     let mut prize_felts = s.record_storage.to_felts();
     prize_felts.extend_from_slice(&extra);
-    let record = build_note_felts(s.champion.id(), integration::scripts::record_script()?, prize_felts, FungibleAsset::new(s.faucet.id(), PRIZE)?, 11)?;
+    let record = build_note_felts(s.champion.id(), integration::scripts::scripts_for(integration::scripts::GQ_SCORE_MASM)?.0, prize_felts, FungibleAsset::new(s.faucet.id(), PRIZE)?, 11)?;
     let champion = s.champion.clone();
     s.publish(&champion, &record)?;
     let mut ch_felts = s.record_storage.shot_for(s.rival.id(), record.id(), SHOT_DEADLINE).to_felts();

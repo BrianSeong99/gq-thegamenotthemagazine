@@ -20,7 +20,7 @@ use std::{num::NonZeroU32, time::Instant};
 use anyhow::{bail, ensure, Context, Result};
 use integration::{
     faucet_api::{request_fee_tokens, TESTNET_FAUCET_API},
-    helpers::{gamecoin_file, mainnet, network_id, proposal_file, setup_client, wait_for_commit, NETWORK_TIMEOUT, POLL_INTERVAL},
+    helpers::{gamecoin_file, hex_decode, mainnet, network_id, proposal_file, setup_client, wait_for_commit, NETWORK_TIMEOUT, POLL_INTERVAL},
 };
 use miden_client::{
     account::{
@@ -147,7 +147,7 @@ async fn deploy(first_owner: &str, first_gc: &str) -> Result<()> {
     let f = Faucet { gamecoin: id.to_hex(), signers: vec![Word::from(key.public_key().to_commitment()).to_hex()], threshold: 1 };
     f.save()?;
     println!("Gamecoin faucet: {} ({})", id.to_bech32(network_id()), id.to_hex());
-    println!("signer {}; wrote {}; set VITE_GC_FAUCET or web/src/config.ts GC_FAUCET to it", f.signers[0], gamecoin_file().display());
+    println!("signer {}; wrote {}; set web/src/config.ts GC_FAUCET to it", f.signers[0], gamecoin_file().display());
 
     if let Some(code) = code {
         // one code per account; the node answers once its funding note is committed
@@ -269,7 +269,7 @@ async fn propose(client: &mut GqClient, keystore: &FilesystemKeyStore, f: &Fauce
 /// Signs the proposal with every local signer key, then submits it or writes it for the next signer.
 async fn advance(client: &mut GqClient, keystore: &FilesystemKeyStore, f: &Faucet, mut p: Proposal) -> Result<()> {
     let id = f.id()?;
-    let request = TransactionRequest::read_from_bytes(&unhex(&p.request)?)?;
+    let request = TransactionRequest::read_from_bytes(&hex_decode(&p.request)?)?;
     // an unsigned run hands back what the signers sign: the summary of this exact transaction
     let summary = match client.execute_transaction(id, request.clone()).await {
         Err(ClientError::TransactionExecutorError(TransactionExecutorError::Unauthorized(s))) => *s,
@@ -300,7 +300,7 @@ async fn advance(client: &mut GqClient, keystore: &FilesystemKeyStore, f: &Fauce
     }
     let mut request = request;
     for (k, s) in &p.signatures {
-        let sig = Signature::read_from_bytes(&unhex(s)?)?;
+        let sig = Signature::read_from_bytes(&hex_decode(s)?)?;
         request.advice_map_mut().insert(Hasher::merge(&[parse_word(k)?, msg]), sig.to_encoded_signature(msg));
     }
     println!("{}: {have} of {} signatures, submitting", p.what, f.threshold);
@@ -363,10 +363,6 @@ async fn fees() -> Result<()> {
 
 fn hex(bytes: &[u8]) -> String {
     bytes.iter().map(|b| format!("{b:02x}")).collect()
-}
-
-fn unhex(s: &str) -> Result<Vec<u8>> {
-    (0..s.len()).step_by(2).map(|i| Ok(u8::from_str_radix(s.get(i..i + 2).context("odd hex")?, 16)?)).collect()
 }
 
 fn parse_word(s: &str) -> Result<Word> {

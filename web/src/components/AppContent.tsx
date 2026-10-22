@@ -128,7 +128,7 @@ function GqApp({ onStarted }: { onStarted?: () => void }) {
   const wallet = LOCAL_WALLET ? local : bread;
 
   const params = new URLSearchParams(location.search);
-  const sharedRecordId = params.get("record") ?? params.get("prize"); // ?prize= is the old link form
+  const sharedRecordId = params.get("record");
 
   const [started, setStarted] = useState(!!sharedRecordId);
   useEffect(() => {

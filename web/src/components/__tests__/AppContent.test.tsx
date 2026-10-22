@@ -23,7 +23,7 @@ const { wallet, me, cities, chain, bread, shop } = vi.hoisted(() => ({
   // ten cities, as the rules demand
   cities: Array.from({ length: 10 }, (_, idx) => ({ idx, lat: 9000 + idx * 100, lon: 18000 + idx * 100, cos: 100 })),
   chain: { notes: [] as unknown[], shared: null as unknown },
-  bread: { postShot: vi.fn(), postRecord: vi.fn(), settle: vi.fn(), collect: vi.fn(), gcBalance: vi.fn(async () => 0n), buyGamecoin: vi.fn() },
+  bread: { postShot: vi.fn(), postRecord: vi.fn(), settle: vi.fn(), collect: vi.fn(), buyGamecoin: vi.fn() },
   shop: { openSales: vi.fn(async () => []) },
 }));
 vi.mock("@miden-sdk/miden-wallet-adapter-react", () => ({ useMidenFiWallet: () => wallet }));
@@ -637,11 +637,11 @@ describe("home, connected", () => {
     await screen.findByText(/find c0!/i);
   });
 
-  it("opens a record from a pasted code (old ?prize= links too)", async () => {
+  it("opens a record from a pasted code", async () => {
     await start(/^champion vs rival$/i);
     await screen.findByText(/have a code\?/i);
     fireEvent.change(screen.getByPlaceholderText(/paste the link or code/i), {
-      target: { value: "http://x/?prize=0x62ea91634f23d65b4bcae5eb027ea1cad37be056412618cad17de9c3171e1ee8" },
+      target: { value: "http://x/?record=0x62ea91634f23d65b4bcae5eb027ea1cad37be056412618cad17de9c3171e1ee8" },
     });
     fireEvent.click(screen.getByRole("button", { name: /^go$/i }));
     await screen.findByText(/2,?000 pts to beat/i);

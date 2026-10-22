@@ -4,7 +4,7 @@
 use anyhow::Result;
 use integration::{
     helpers::setup_client,
-    scripts::{shot_script, record_script},
+    scripts::{scripts_for, GQ_SCORE_MASM},
     NOTE_TAG,
 };
 use miden_client::{note::NoteTag, store::NoteFilter, Word};
@@ -14,8 +14,8 @@ async fn main() -> Result<()> {
     let mut client = setup_client().await?.client;
     client.add_note_tag(NoteTag::new(NOTE_TAG)).await?;
     client.sync_state().await?;
-    let record_root = record_script()?.root();
-    let shot_root = shot_script()?.root();
+    let (record_script, shot_script) = scripts_for(GQ_SCORE_MASM)?;
+    let (record_root, shot_root) = (record_script.root(), shot_script.root());
     let records = client.get_input_notes(NoteFilter::All).await?;
     let mut n = 0;
     for r in records {

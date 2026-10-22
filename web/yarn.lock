@@ -542,11 +542,6 @@
     "@jridgewell/resolve-uri" "^3.1.0"
     "@jridgewell/sourcemap-codec" "^1.4.14"
 
-"@miden-sdk/create@0.17.0":
-  version "0.17.0"
-  resolved "https://registry.yarnpkg.com/@miden-sdk/create/-/create-0.17.0.tgz#49c0315cb20073d9285114dc7b5a68c5916e9651"
-  integrity sha512-+tMq8S6FKynkUR9Ami/GzOOm/KodKZ5B0a0SzDUh2Wwv9dczOCZ18cB+8tAcZdYJxnHoxi7hKJyQq3X3OjfYug==
-
 "@miden-sdk/miden-sdk@0.17.1":
   version "0.17.1"
   resolved "https://registry.yarnpkg.com/@miden-sdk/miden-sdk/-/miden-sdk-0.17.1.tgz#c6eb4545db975228f0cd6ac2d34799c901ff3f37"

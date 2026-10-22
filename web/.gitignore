@@ -24,7 +24,7 @@ dist-ssr
 *.sln
 *.sw?
 
-# Skills are synced from node_modules on install (see the "prepare" script).
+# Miden agent skills: `npx -p @miden-sdk/create miden-skills sync` fetches them.
 # miden-concepts is committed because it is not published to npm.
 .claude/skills/*
 !.claude/skills/miden-concepts/

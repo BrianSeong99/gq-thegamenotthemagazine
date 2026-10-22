@@ -20,6 +20,11 @@ use miden_client::{
 use miden_client_sqlite_store::ClientBuilderSqliteExt;
 use rand::Rng;
 
+/// Bytes from a hex string without `0x`.
+pub fn hex_decode(s: &str) -> Result<Vec<u8>> {
+    (0..s.len()).step_by(2).map(|i| u8::from_str_radix(s.get(i..i + 2).context("odd hex")?, 16).context("bad hex")).collect()
+}
+
 pub const NETWORK_TIMEOUT: Duration = Duration::from_secs(600);
 pub const POLL_INTERVAL: Duration = Duration::from_secs(5);
 

@@ -213,7 +213,6 @@ export function fmtGamecoin(v: bigint, t: T = en): string {
 export function withoutRecord(href: string): string {
   const url = new URL(href);
   url.searchParams.delete("record");
-  url.searchParams.delete("prize");
   return url.toString();
 }
 

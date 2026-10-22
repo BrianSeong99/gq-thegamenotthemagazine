@@ -18,7 +18,7 @@ use integration::{
     helpers::{create_basic_wallet_account, gamecoin_faucet, setup_client, wait_for_commit},
     quiz::GqGameData,
     rules::{answer_advice, Answer, City, ROUNDS, VECTOR_CITIES},
-    scripts::{shot_script, record_script},
+    scripts::{scripts_for, GQ_SCORE_MASM},
     storage::ChallengeStorage,
     NOTE_TAG,
 };
@@ -69,7 +69,7 @@ async fn main() -> Result<()> {
 
     // --- champion posts the record
     let chain_tip = client.get_sync_height().await?.as_u32();
-    let shot = shot_script()?;
+    let (record_script, shot) = scripts_for(GQ_SCORE_MASM)?;
     let record_storage = ChallengeStorage::record(
         chain_tip + LIFETIME_BLOCKS,
         2_000, // target: beat 2000 points
@@ -78,7 +78,7 @@ async fn main() -> Result<()> {
         Word::from(shot.root()),
         GqGameData { seed: draw_word(client.rng()), dataset: Word::default(), cities: CITIES }.to_felts(),
     );
-    let record = make_note(&mut client, champion.id(), record_script()?, &record_storage, FungibleAsset::new(gc, PRIZE)?)?;
+    let record = make_note(&mut client, champion.id(), record_script, &record_storage, FungibleAsset::new(gc, PRIZE)?)?;
     post(&mut client, champion.id(), &record).await?;
     println!("record note {}", record.id().to_hex());
 
@@ -124,7 +124,7 @@ async fn consume(client: &mut C, account: AccountId, notes: &[&Note], answers: &
     client.sync_state().await?;
     let owned: Vec<Note> = notes.iter().map(|n| (*n).clone()).collect();
     let (commitment, packed) = answer_advice(answers);
-    let mut advice = deadline_advice(Word::from(shot_script()?.root()), &owned);
+    let mut advice = deadline_advice(Word::from(scripts_for(GQ_SCORE_MASM)?.1.root()), &owned);
     advice.push((commitment, packed));
     let request = TransactionRequestBuilder::new()
         .input_notes(notes.iter().map(|n| ((*n).clone(), Some(commitment))))

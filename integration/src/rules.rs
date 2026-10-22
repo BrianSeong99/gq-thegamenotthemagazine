@@ -100,15 +100,6 @@ pub fn pack_round(a: Answer) -> u64 {
     (a.lat as u64) << 32 | (a.lon as u64 * 2048 + a.t as u64)
 }
 
-pub fn unpack_round(v: u64) -> Answer {
-    let lo = v as u32;
-    Answer {
-        lat: (v >> 32) as u32,
-        lon: lo / 2048,
-        t: lo % 2048,
-    }
-}
-
 /// The answers as they travel in the advice map: one field element per round.
 pub fn pack_answers(answers: &[Answer; ROUNDS]) -> [u64; ROUNDS] {
     answers.map(pack_round)
@@ -208,10 +199,7 @@ mod tests {
     }
 
     #[test]
-    fn pack_round_trips() {
-        for a in [ans(0, 0, 0), ans(18000, 35999, 2047), ans(13885, 18235, 437)] {
-            assert_eq!(unpack_round(pack_round(a)), a);
-        }
+    fn pack_round_layout() {
         assert_eq!(pack_round(ans(1, 2, 3)), (1u64 << 32) | (2 * 2048 + 3));
     }
 

@@ -72,11 +72,6 @@ export function packRound(a: Answer): bigint {
   return (BigInt(a.lat) << 32n) | BigInt(a.lon * 2048 + a.t);
 }
 
-export function unpackRound(v: bigint): Answer {
-  const lo = Number(v & 0xffffffffn);
-  return { lat: Number(v >> 32n), lon: Math.floor(lo / 2048), t: lo % 2048 };
-}
-
 /** The answers as they travel in the advice map: ten packed rounds, in round order. */
 export function packAnswers(answers: Answer[]): bigint[] {
   if (answers.length !== ROUNDS) throw new Error(`expected ${ROUNDS} answers`);

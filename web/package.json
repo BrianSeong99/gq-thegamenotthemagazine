@@ -4,7 +4,6 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "prepare": "miden-skills sync || true",
     "dev": "vite",
     "build": "tsc -b && vite build && test -f dist/assets/assets/miden_client_web.wasm",
     "lint": "eslint .",
@@ -26,7 +25,6 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",
-    "@miden-sdk/create": "0.17.0",
     "@miden-sdk/vite-plugin": "0.17.0",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",

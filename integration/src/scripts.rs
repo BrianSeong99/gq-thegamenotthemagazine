@@ -24,13 +24,3 @@ pub fn scripts_for(game_masm: &str) -> Result<(NoteScript, NoteScript)> {
     let shot = builder()?.compile_note_script(SHOT_MASM).context("compile shot.masm")?;
     Ok((record, shot))
 }
-
-/// GeoQuizz's record script.
-pub fn record_script() -> Result<NoteScript> {
-    Ok(scripts_for(GQ_SCORE_MASM)?.0)
-}
-
-/// GeoQuizz's shot script.
-pub fn shot_script() -> Result<NoteScript> {
-    Ok(scripts_for(GQ_SCORE_MASM)?.1)
-}

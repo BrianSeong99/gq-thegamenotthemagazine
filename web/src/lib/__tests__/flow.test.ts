@@ -319,10 +319,9 @@ describe("errors in plain words", () => {
 });
 
 describe("leaving a record behind", () => {
-  it("drops ?record= (and the old ?prize=) and keeps the rest", () => {
+  it("drops ?record= and keeps the rest", () => {
     expect(withoutRecord("http://localhost:5173/?record=0xabc")).toBe("http://localhost:5173/");
     expect(withoutRecord("http://localhost:5173/?local=2&record=0xabc")).toBe("http://localhost:5173/?local=2");
-    expect(withoutRecord("http://localhost:5173/?prize=0xabc")).toBe("http://localhost:5173/");
   });
 });
 

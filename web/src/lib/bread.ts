@@ -10,14 +10,13 @@ import {
   NoteArray,
   NoteType,
   Poseidon2,
-  RpcClient,
   TransactionRequestBuilder,
   Word,
   type TransactionRequest,
 } from "@miden-sdk/miden-sdk";
 import { Transaction } from "@miden-sdk/miden-wallet-adapter-base";
 import type { useMidenFiWallet } from "@miden-sdk/miden-wallet-adapter-react";
-import { buildChallengeNote, endpoint, fetchNotesWithProof, feltArray, loadScripts, parseAccountId, syncNotes, wordFromFelts, type Client, type ChallengeNote } from "./chain";
+import { buildChallengeNote, fetchNotesWithProof, feltArray, loadScripts, parseAccountId, syncNotes, tip, wordFromFelts, type Client, type ChallengeNote } from "./chain";
 import { SHOT_WINDOW_BLOCKS, GC_DECIMALS, GC_FAUCET, NETWORK_POLL_INTERVAL_MS, NETWORK_POLL_TIMEOUT_MS } from "@/config";
 import { encodeStorage, SHOT_DEADLINE_INDEX, shotStorage, ZERO_WORD, type AccountFelts, type ChallengeStorage, type GameAnswer } from "./notes";
 import { randomSeed, type Word4 } from "./quiz";
@@ -27,23 +26,19 @@ import { payFor, type Sale } from "./shop";
 /** What the app needs from a signer: Bread's adapter hook, or the local test wallet. */
 export type Wallet = Pick<ReturnType<typeof useMidenFiWallet>, "address" | "requestTransaction" | "requestAssets"> & { local?: boolean };
 
-/** The 12 felts a multisig account reads from its auth args (miden-standards `MultisigAuthArgs`). */
-export function authArgElements(boundBlock: number, salt: Word4, feeFaucet: { suffix: bigint; prefix: bigint }): bigint[] {
-  return [
+/** The 12 felts a multisig account reads from its auth args (miden-standards `MultisigAuthArgs`), and their commitment. */
+export function multisigAuthArgs(boundBlock: number, salt: Word4, feeFaucet: AccountId): { elements: bigint[]; commitment: Word } {
+  const elements = [
     BigInt(boundBlock),
     0n, // no approval expiration
     0n,
     0n,
     ...salt,
-    feeFaucet.suffix,
-    feeFaucet.prefix,
+    feeFaucet.suffix().asInt(),
+    feeFaucet.prefix().asInt(),
     1n, // one-to-one fee conversion
     1n,
   ];
-}
-
-export function multisigAuthArgs(boundBlock: number, salt: Word4, feeFaucet: AccountId): { elements: bigint[]; commitment: Word } {
-  const elements = authArgElements(boundBlock, salt, { suffix: feeFaucet.suffix().asInt(), prefix: feeFaucet.prefix().asInt() });
   return { elements, commitment: Poseidon2.hashElements(feltArray(elements)) };
 }
 
@@ -66,11 +61,6 @@ async function walletAssets(wallet: Wallet): Promise<Assets> {
 function balanceOf(assets: Assets, faucet: string): bigint {
   const id = AccountId.fromHex(faucet).toString();
   return assets.filter((a) => parseAccountId(a.faucetId).toString() === id).reduce((sum, a) => sum + BigInt(a.amount), 0n);
-}
-
-/** The wallet's own view of its Gamecoin balance. */
-export async function gcBalance(wallet: Wallet): Promise<bigint> {
-  return balanceOf(await walletAssets(wallet), GC_FAUCET);
 }
 
 /** Throws a readable error (flow.ts explain) when the wallet holds less than `needed` Gamecoin. */
@@ -98,16 +88,6 @@ export async function waitFor(client: Client, runExclusive: <T>(fn: () => Promis
 }
 
 export type Submitted = { txId: string; noteIds: string[] };
-
-/** The node's latest block. */
-async function tip(): Promise<number> {
-  const rpc = new RpcClient(endpoint());
-  try {
-    return (await rpc.getBlockHeaderByNumber(undefined)).blockNum();
-  } finally {
-    rpc.free();
-  }
-}
 
 const RETRIES = 3;
 
