@@ -603,6 +603,14 @@ describe("open challenges in Champion vs Rival", () => {
     expect(stack).toContainElement(await screen.findByText(/^You have 12 Gamecoins\./));
     expect(stack).not.toContainElement(await screen.findByText("Open challenges"));
   });
+
+  it("asks the wallet for the balance only once a shop is on screen (Bread confirms each read), not on connect", async () => {
+    await start();
+    expect(bread.gcBalance).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: /^champion vs rival$/i }));
+    expect(await screen.findByText(/^You have 12 Gamecoins\./)).toBeInTheDocument();
+    expect(bread.gcBalance).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe("home, connected", () => {

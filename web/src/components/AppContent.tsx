@@ -178,7 +178,7 @@ function GqApp({ onStarted }: { onStarted?: () => void }) {
   const runToken = useRef(0);
   /** The last Gamecoin grant, so a second press does not mint again before Bread takes the first. */
   const [buyGc, setBuyGc] = useState("10");
-  // what the wallet holds, read once per wallet and after each transaction; null while unknown
+  // what the wallet holds, read when a shop comes on screen and after each transaction (Bread confirms each read); null while unknown
   const [held, setHeld] = useState<bigint | null>(null);
   const walletRef = useRef(wallet);
   useEffect(() => {
@@ -189,9 +189,11 @@ function GqApp({ onStarted }: { onStarted?: () => void }) {
 
   const me = wallet.connected && wallet.address ? accountFelts(parseAccountId(wallet.address)) : null;
   const meKey = me && keyOf(me);
+  const shopOnScreen = tab === "vs" || tab === "hub";
   useEffect(() => {
-    void readBalance();
-  }, [meKey, readBalance]);
+    setHeld(null);
+    if (meKey && shopOnScreen) void readBalance();
+  }, [meKey, shopOnScreen, readBalance]);
   // the boards and the nickname order leave the development wallets' test rounds out
   const publicNotes = useMemo(() => {
     const test = (a: AccountFelts | null) => !!a && TEST_ACCOUNTS.includes(hexOf(a));
@@ -336,7 +338,7 @@ function GqApp({ onStarted }: { onStarted?: () => void }) {
     };
     const finish = (s: S) => {
       void refresh();
-      void readBalance();
+      if (shopOnScreen) void readBalance();
       setMode(onConfirmed?.(s) ?? { kind: "done", text: outcomeText(text, true, t), txId: s.txId });
     };
     setTrouble(null);
