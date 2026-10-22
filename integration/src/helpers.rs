@@ -20,8 +20,8 @@ use miden_client::{
 use miden_client_sqlite_store::ClientBuilderSqliteExt;
 use rand::Rng;
 
-pub(crate) const NETWORK_TIMEOUT: Duration = Duration::from_secs(600);
-pub(crate) const POLL_INTERVAL: Duration = Duration::from_secs(5);
+pub const NETWORK_TIMEOUT: Duration = Duration::from_secs(600);
+pub const POLL_INTERVAL: Duration = Duration::from_secs(5);
 
 /// A testnet client over `store.sqlite3` and its keystore, both next to the repo root.
 pub struct ClientSetup {
@@ -52,9 +52,14 @@ fn root_file(name: &str, ext: &str) -> std::path::PathBuf {
     std::path::PathBuf::from(concat!(env!("CARGO_MANIFEST_DIR"), "/..")).join(format!("{name}{tag}{ext}"))
 }
 
-/// Where `gamecoin deploy` writes the faucet id.
+/// Where `gamecoin deploy` writes the faucet id and its signers.
 pub fn gamecoin_file() -> std::path::PathBuf {
     root_file("gamecoin", ".json")
+}
+
+/// Where `gamecoin` parks a transaction waiting for more signatures.
+pub fn proposal_file() -> std::path::PathBuf {
+    root_file("proposal", ".json")
 }
 
 /// The Gamecoin faucet `gamecoin deploy` wrote to the gamecoin file.
@@ -65,7 +70,9 @@ pub fn gamecoin_faucet() -> Result<AccountId> {
 }
 
 pub async fn setup_client() -> Result<ClientSetup> {
-    let keystore = Arc::new(FilesystemKeyStore::new(root_file("keystore", "")).context("Failed to initialize keystore")?);
+    // `GQ_KEYSTORE`: another keystore, e.g. a second signer's on the same machine
+    let keystore_path = std::env::var("GQ_KEYSTORE").map_or_else(|_| root_file("keystore", ""), std::path::PathBuf::from);
+    let keystore = Arc::new(FilesystemKeyStore::new(keystore_path).context("Failed to initialize keystore")?);
     let store_path = root_file("store", ".sqlite3");
 
     let builder = if mainnet() {

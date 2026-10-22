@@ -100,12 +100,18 @@ the app creates and fee-funds itself.
 Gamecoins are bought in the app: "Buy Gamecoin" fills a sale note (a standard PSWAP note, 0.001
 USDCx per Gamecoin, 100 at a time) and the coins land in the wallet with the fill. Anyone holding
 Gamecoin may post a sale note; the game buys from the cheapest one at or under the price. The admin
-account posts them from `?admin=1`. The faucet (`0x16bfec55b2b2329147ee739d1c731f` on mainnet,
-`0x6a8e2ccb2090bcd1071cea18da2cce` on testnet; one `gamecoin.json` per network at the repo root)
-mints from the CLI: `GQ_NETWORK=mainnet cargo run --release --bin gamecoin mint <account> <GC>`
-(`gamecoin deploy` creates a new faucet, on mainnet with the invite code in `GQ_INVITE_CODE`;
-`gamecoin fees` tops up a testnet faucet's fee balance, a mainnet one is sent USDCx). The test
-wallets (`?local=`) are testnet only: a new mainnet account needs an invite code.
+account posts them from `?admin=1`. The faucet (`0x16bfec55b2b2329147ee739d1c731f` on mainnet;
+one `gamecoin.json` per network at the repo root) mints from the CLI:
+`GQ_NETWORK=mainnet cargo run --release --bin gamecoin mint <account> <GC>`.
+
+`gamecoin deploy` creates a faucet run by a multisig (on mainnet with the invite code in
+`GQ_INVITE_CODE`): it starts with one signer key in the repo's keystore, `gamecoin key` makes
+another (in `GQ_KEYSTORE` for a second signer on the same machine) and `gamecoin signers
+<threshold> <key>...` puts the new set in force. Short of the threshold, `mint` and `signers` write
+`proposal.json`, which the next signer co-signs with `gamecoin sign`; the signatures ride in the
+transaction's advice map, so the submitting machine needs no key. `gamecoin fees` tops up a
+testnet faucet's fee balance; a mainnet one is sent USDCx. The test wallets (`?local=`) need an
+invite code on mainnet (`&code=`).
 `cargo run --release --bin testnet_flow` runs champion / a rival who never settles / winning rival
 with in-process wallets.
 

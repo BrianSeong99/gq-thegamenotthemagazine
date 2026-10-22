@@ -11,3 +11,6 @@ tmp/
 # working notes, kept local
 tasks/
 docs/bread-anchor-mismatch.md
+keystore.*/
+proposal.json
+proposal.mainnet.json
