@@ -1,6 +1,6 @@
 // The screens, wired to mocked hooks, a fake chain and a fake Bread: the template's way of testing
 // Miden components without WASM. One scenario per incident from the first Bread session.
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ChallengeNote } from "@/lib/chain";
 import type { ChallengeStorage } from "@/lib/notes";
@@ -128,13 +128,14 @@ async function start(tab?: RegExp) {
 }
 
 describe("1P stages", () => {
-  it("unlock on my own posted records: a 5200 opens America, Africa and Europe, Asia stays locked", async () => {
-    chain.notes = [{ ...prize, id: "0xmine", createdAt: 5, storage: { ...storage, champion: me, target: 5200 } }];
+  it("unlock on how many records I posted and my best: three records with a 5200 open America, Africa and Europe, Asia stays locked", async () => {
+    const mine = (id: string, target: number) => ({ ...prize, id, createdAt: 5, storage: { ...storage, champion: me, target } });
+    chain.notes = [mine("0xa", 5200), mine("0xb", 100), mine("0xc", 100)];
     await start();
     await screen.findByRole("button", { name: "Europe" });
     expect(screen.getByRole("button", { name: "America" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Africa" })).toBeEnabled();
-    const asia = screen.getByRole("button", { name: /^Asia: 6,000 pts to unlock$/ });
+    const asia = screen.getByRole("button", { name: /^Asia: 4 records, 1 above 6,000$/ });
     expect(asia).toBeDisabled();
     // the picked map takes the screen, the tab and the title follow, the World Tour becomes a tile
     fireEvent.click(screen.getByRole("button", { name: "Europe" }));
@@ -142,6 +143,19 @@ describe("1P stages", () => {
     expect(screen.getByText("1P Europe", { selector: ".panel-title" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "World" })).toBeEnabled();
     expect(screen.queryByRole("button", { name: "Europe" })).toBeNull();
+  });
+
+  it("need both: one 6500 record opens America alone, four small ones open nothing", async () => {
+    const mine = (id: string, target: number) => ({ ...prize, id, createdAt: 5, storage: { ...storage, champion: me, target } });
+    chain.notes = [mine("0xa", 6500)];
+    await start();
+    expect(await screen.findByRole("button", { name: "America" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: /^Africa: 2 records, 1 above 4,000$/ })).toBeDisabled();
+    cleanup();
+    chain.notes = [mine("0xa", 100), mine("0xb", 100), mine("0xc", 100), mine("0xd", 100)];
+    await start();
+    expect(await screen.findByRole("button", { name: /^America: 1 record above 3,000$/ })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /^Asia: 4 records, 1 above 6,000$/ })).toBeDisabled();
   });
 
   it("are not shown until the notes are read, then open or locked", async () => {
@@ -153,7 +167,7 @@ describe("1P stages", () => {
     expect(screen.queryByRole("group", { name: "Stages" })).toBeNull();
     release();
     expect(await screen.findByRole("button", { name: "America" })).toBeEnabled();
-    expect(screen.getByRole("button", { name: /^Asia: 6,000 pts to unlock$/ })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /^Asia: 4 records, 1 above 6,000$/ })).toBeDisabled();
   });
 
   it("say Loading bonus maps while the wallet is still reconnecting", async () => {
@@ -167,18 +181,18 @@ describe("1P stages", () => {
     wallet.connecting = false;
     fireEvent.click(screen.getByRole("button", { name: /player hub/i }));
     fireEvent.click(screen.getByRole("button", { name: /1p world tour/i }));
-    expect(await screen.findByRole("button", { name: /^America: 3,000 pts to unlock$/ })).toBeDisabled();
+    expect(await screen.findByRole("button", { name: /^America: 1 record above 3,000$/ })).toBeDisabled();
     expect(screen.queryByRole("status")).toBeNull();
   });
 
   it("without a record of mine every stage is locked and says what it needs", async () => {
     chain.notes = [];
     await start();
-    const america = await screen.findByRole("button", { name: /^America: 3,000 pts to unlock$/ });
+    const america = await screen.findByRole("button", { name: /^America: 1 record above 3,000$/ });
     expect(america).toBeDisabled();
-    // the whole line on a desktop, the number alone beside the lock on a phone (CSS picks), the button's name always the whole line
-    expect(america.querySelector(".need .full")).toHaveTextContent("3,000 pts to unlock");
-    expect(america.querySelector(".need .short")).toHaveTextContent(/^3,000$/);
+    // the whole line on a desktop, the two numbers alone beside the lock on a phone (CSS picks), the button's name always the whole line
+    expect(america.querySelector(".need .full")).toHaveTextContent("1 record above 3,000");
+    expect(america.querySelector(".need .short")).toHaveTextContent(/^1 · 3k$/);
     expect(screen.getByRole("img", { name: "World map" })).toBeInTheDocument();
   });
 
@@ -194,17 +208,18 @@ describe("1P stages", () => {
     expect(screen.getByRole("img", { name: "Asia" })).toBeInTheDocument();
   });
 
-  it("a record on a locked stage shows the map and the score I need, and Insert Gamecoin refuses", async () => {
+  it("a record on a stage I have not unlocked can still be played: a shot needs no record of mine", async () => {
     const game = encodeGame({ seed: [0n, 0n, 0n, 0n], dataset: [9n, 9n, 9n, 9n], cities });
     chain.shared = { ...prize, storage: { ...storage, game } };
     chain.notes = [chain.shared];
+    bread.postShot.mockResolvedValue({ txId: "tx", noteIds: ["0xnew"], deadline: 220 });
     window.history.replaceState({}, "", "/?record=0xp");
     render(<AppContent />);
     expect(await screen.findByText("Asia", { selector: ".value" })).toBeInTheDocument();
-    expect(screen.getByText("You need a record above 6,000 pts to play Asia.")).toBeInTheDocument();
+    expect(screen.queryByText(/You need a record/)).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: /insert gamecoin/i }));
-    await waitFor(() => expect(screen.getAllByText("You need a record above 6,000 pts to play Asia.").length).toBeGreaterThan(1));
-    expect(bread.postShot).not.toHaveBeenCalled();
+    expect(await screen.findByText(/find s0!/i)).toBeInTheDocument();
+    expect(bread.postShot).toHaveBeenCalled();
   });
 });
 

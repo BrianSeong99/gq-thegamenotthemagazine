@@ -240,8 +240,8 @@ const ES: Record<string, string> = {
   Europe: "Europa",
   Asia: "Asia",
   "1P {stage}": "1J {stage}",
-  "{n} pts to unlock": "{n} pts para desbloquear",
-  "You need a record above {n} pts to play {stage}.": "Necesitas un récord de más de {n} pts para jugar {stage}.",
+  "1 record above {n}": "1 récord de más de {n}",
+  "{r} records, 1 above {n}": "{r} récords, 1 de más de {n}",
   Stages: "Etapas",
   Map: "Mapa",
 };

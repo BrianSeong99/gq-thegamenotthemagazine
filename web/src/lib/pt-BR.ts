@@ -239,8 +239,8 @@ export const PT_BR: Record<string, string> = {
   Europe: "Europa",
   Asia: "Ásia",
   "1P {stage}": "1J {stage}",
-  "{n} pts to unlock": "{n} pts para desbloquear",
-  "You need a record above {n} pts to play {stage}.": "Você precisa de um recorde acima de {n} pts para jogar {stage}.",
+  "1 record above {n}": "1 recorde acima de {n}",
+  "{r} records, 1 above {n}": "{r} recordes, 1 acima de {n}",
   Stages: "Fases",
   Map: "Mapa",
 };

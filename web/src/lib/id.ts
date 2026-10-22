@@ -220,8 +220,8 @@ export const ID: Record<string, string> = {
   Europe: "Eropa",
   Asia: "Asia",
   "1P {stage}": "1P {stage}",
-  "{n} pts to unlock": "{n} poin untuk membuka",
-  "You need a record above {n} pts to play {stage}.": "Kamu perlu rekor di atas {n} poin untuk memainkan {stage}.",
+  "1 record above {n}": "1 rekor di atas {n}",
+  "{r} records, 1 above {n}": "{r} rekor, 1 di atas {n}",
   Stages: "Tahap",
   Map: "Peta",
 };

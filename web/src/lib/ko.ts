@@ -220,8 +220,8 @@ export const KO: Record<string, string> = {
   Europe: "유럽",
   Asia: "아시아",
   "1P {stage}": "1P {stage}",
-  "{n} pts to unlock": "{n}점이면 해제",
-  "You need a record above {n} pts to play {stage}.": "{stage}을(를) 플레이하려면 {n}점 이상의 기록이 필요합니다.",
+  "1 record above {n}": "{n}점 이상 기록 1개",
+  "{r} records, 1 above {n}": "기록 {r}개, 1개는 {n}점 이상",
   Stages: "스테이지",
   Map: "지도",
 };

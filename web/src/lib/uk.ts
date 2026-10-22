@@ -220,8 +220,8 @@ export const UK: Record<string, string> = {
   Europe: "Європа",
   Asia: "Азія",
   "1P {stage}": "1P {stage}",
-  "{n} pts to unlock": "{n} оч. для відкриття",
-  "You need a record above {n} pts to play {stage}.": "Потрібен рекорд понад {n} оч., щоб грати {stage}.",
+  "1 record above {n}": "1 рекорд понад {n}",
+  "{r} records, 1 above {n}": "{r} рекорди, 1 понад {n}",
   Stages: "Етапи",
   Map: "Карта",
 };

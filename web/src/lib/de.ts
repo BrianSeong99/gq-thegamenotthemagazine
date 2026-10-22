@@ -220,8 +220,8 @@ export const DE: Record<string, string> = {
   Europe: "Europa",
   Asia: "Asien",
   "1P {stage}": "1P {stage}",
-  "{n} pts to unlock": "{n} Pkt. zum Freischalten",
-  "You need a record above {n} pts to play {stage}.": "Du brauchst einen Rekord über {n} Pkt., um {stage} zu spielen.",
+  "1 record above {n}": "1 Rekord über {n}",
+  "{r} records, 1 above {n}": "{r} Rekorde, 1 über {n}",
   Stages: "Stufen",
   Map: "Karte",
 };

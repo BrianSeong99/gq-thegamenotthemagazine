@@ -240,8 +240,8 @@ export const ZH: Record<string, string> = {
   Europe: "欧洲",
   Asia: "亚洲",
   "1P {stage}": "单人 {stage}",
-  "{n} pts to unlock": "{n} 分解锁",
-  "You need a record above {n} pts to play {stage}.": "需要 {n} 分以上的纪录才能挑战{stage}。",
+  "1 record above {n}": "1 项 {n} 分以上的纪录",
+  "{r} records, 1 above {n}": "{r} 项纪录，1 项 {n} 分以上",
   Stages: "关卡",
   Map: "地图",
 };

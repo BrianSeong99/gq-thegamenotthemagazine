@@ -39,6 +39,8 @@ describe("stretched coordinates", () => {
   it("the unlock order is the tile order", () => {
     const ts = STAGES.map((s) => s.threshold);
     expect(ts).toEqual([...ts].sort((a, b) => a - b));
+    const rs = STAGES.map((s) => s.records);
+    expect(rs).toEqual([...rs].sort((a, b) => a - b));
   });
 });
 

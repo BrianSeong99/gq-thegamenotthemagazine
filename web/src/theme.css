@@ -196,6 +196,11 @@ main { max-width: 1440px; margin: 0 auto; padding: 28px 4% 56px; }
 .stage:disabled img { filter: grayscale(1) brightness(0.45); }
 .stage .need { display: flex; align-items: center; gap: 3px; font-size: 10px; color: var(--pink); }
 .stage .need .short { display: none; }
+/* a tile under 110px wide (a phone, 70px upright): the lock and the two numbers alone, the sentence stays the button's name */
+@media (max-width: 900px) {
+  .stage .need .full { display: none; }
+  .stage .need .short { display: inline; }
+}
 .tag { color: var(--muted); font-size: 0.85em; }
 .world-map { width: 100%; height: auto; display: block; background: var(--cobalt); border: 2px solid var(--rule); }
 .world-map .grid { stroke: #4b63ff; stroke-width: 0.6; }
@@ -262,9 +267,6 @@ table.report td:nth-child(2) { text-align: right; color: var(--muted); }
   .welcome-screen .rotate-hint { margin: 16px; }
   /* the whole picture, the start line under it, the flags under that, the wordmark never cut */
   .welcome-screen { align-content: center; }
-  /* a tile is 70px wide: the lock and the number alone, the sentence stays the button's name */
-  .stage .need .full { display: none; }
-  .stage .need .short { display: inline; }
   .welcome > img { height: auto; width: 100%; }
   .welcome .start { position: static; transform: none; margin: 16px auto 0; font-size: 24px; }
   .welcome .flags { position: static; justify-content: flex-end; margin-top: 8px; }

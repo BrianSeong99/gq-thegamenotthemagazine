@@ -1,4 +1,4 @@
-// The 1P stages: the World Tour and four regions a posted record unlocks. A stage's map is an
+// The 1P stages: the World Tour and four regions my posted records unlock (how many, and the best). A stage's map is an
 // equirectangular crop of the pixel world (tasks/maps/pixelmap.py draws it from Natural Earth), and
 // its quiz runs in "stretched" coordinates: the region scaled by `factor` around its centre, so
 // the contract's kilometre scoring becomes map-distance scoring with no change to the scripts. The
@@ -12,8 +12,10 @@ export type Stage = {
   id: StageId;
   /** the English name, a t() key */
   name: string;
-  /** the score a posted record must reach to unlock it */
+  /** the score one of my posted records must reach to unlock it */
   threshold: number;
+  /** how many records I must have posted to unlock it */
+  records: number;
   lon0: number;
   lon1: number;
   lat0: number;
@@ -23,23 +25,23 @@ export type Stage = {
   /** how much bigger the region is drawn than on the world map */
   factor: number;
 };
-const stage = (id: StageId, name: string, threshold: number, lon0: number, lon1: number, lat0: number, lat1: number): Stage => ({
-  id, name, threshold, lon0, lon1, lat0, lat1,
+const stage = (id: StageId, name: string, threshold: number, records: number, lon0: number, lon1: number, lat0: number, lat1: number): Stage => ({
+  id, name, threshold, records, lon0, lon1, lat0, lat1,
   map: `/brand/pixel-${id}.svg`,
   cities: id === "world" ? "/cities.json" : `/cities.${id}.json`,
   factor: Math.min(360 / (lon1 - lon0), 180 / (lat1 - lat0)),
 });
 /**
- * In the order of the tiles: the World Tour, then by the score to unlock. A region's frame is 3:2
+ * In the order of the tiles: the World Tour, then by what unlocks them. A region's frame is 3:2
  * (wide around the tall continents, so it fits a desktop screen) with its bottom sixth free of
  * cities, where the stage tiles sit. Bounds mirror tasks/maps/pixelmap.py.
  */
 export const STAGES: Stage[] = [
-  stage("world", "World", 0, -180, 180, -90, 90),
-  stage("america", "America", 3000, -230.5, 30.5, -84, 90),
-  stage("africa", "Africa", 4000, -50.75, 82.75, -50, 39),
-  stage("europe", "Europe", 5000, -25.25, 45.25, 25, 72),
-  stage("asia", "Asia", 6000, -14, 229, -72, 90),
+  stage("world", "World", 0, 0, -180, 180, -90, 90),
+  stage("america", "America", 3000, 1, -230.5, 30.5, -84, 90),
+  stage("africa", "Africa", 4000, 2, -50.75, 82.75, -50, 39),
+  stage("europe", "Europe", 5000, 3, -25.25, 45.25, 25, 72),
+  stage("asia", "Asia", 6000, 4, -14, 229, -72, 90),
 ];
 export const WORLD = STAGES[0];
 export const stageById = (id: StageId): Stage => STAGES.find((s) => s.id === id)!;

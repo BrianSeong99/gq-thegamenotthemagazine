@@ -220,8 +220,8 @@ export const JA: Record<string, string> = {
   Europe: "ヨーロッパ",
   Asia: "アジア",
   "1P {stage}": "1P {stage}",
-  "{n} pts to unlock": "{n} 点で解放",
-  "You need a record above {n} pts to play {stage}.": "{stage}をプレイするには {n} 点以上の記録が必要です。",
+  "1 record above {n}": "{n} 点以上の記録 1 つ",
+  "{r} records, 1 above {n}": "記録 {r} つ、1 つは {n} 点以上",
   Stages: "ステージ",
   Map: "マップ",
 };

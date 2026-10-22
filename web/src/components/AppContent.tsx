@@ -205,10 +205,10 @@ function GqApp({ onStarted }: { onStarted?: () => void }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [publicNotes, meKey]);
   const nameOf = (a: AccountFelts) => names.get(keyOf(a)) ?? lettersBackward(bech32Of(a)).slice(0, 3);
-  /** My best posted record, on any map: what the stages unlock on. */
-  const myBest = Math.max(0, ...notes.filter((n) => n.kind === "record" && sameAccount(n.storage.champion, me)).map((n) => n.storage.target));
-  const unlocked = (s: GameStage) => s.threshold <= myBest;
-  const needs = (s: GameStage) => t("You need a record above {n} pts to play {stage}.", { n: s.threshold.toLocaleString(), stage: t(s.name) });
+  /** The records I posted, on any map: how many and the best unlock the 1P stages. A shot at anyone's record needs none. */
+  const myRecords = notes.filter((n) => n.kind === "record" && sameAccount(n.storage.champion, me));
+  const myBest = Math.max(0, ...myRecords.map((n) => n.storage.target));
+  const unlocked = (s: GameStage) => s.threshold <= myBest && s.records <= myRecords.length;
   /** The tiles appear once they can tell locked from open: the notes read and the wallet back. */
   const stagesKnown = notesRead && (!!me || !wallet.connecting);
 
@@ -408,7 +408,6 @@ function GqApp({ onStarted }: { onStarted?: () => void }) {
     if (refusal) return say(refusal);
     const recordStage = gameStage(record.storage.game);
     if (!recordStage) return say(t("This record uses another city list. It can't be played here."));
-    if (!unlocked(recordStage)) return say(needs(recordStage));
     const open = openShotsOn(notes, rival, record, height);
     if (open.length > 0) {
       // one Gamecoin per sitting: play the shot already on the table instead of paying again
@@ -634,7 +633,6 @@ function GqApp({ onStarted }: { onStarted?: () => void }) {
           <span className="value">{fmtGamecoin(record.storage.minStake, t)}</span>
         </div>
         {state === "mine" && <p className="muted">{t("This is yours.")}</p>}
-        {recordStage && !unlocked(recordStage) && state !== "mine" && <p className="muted">{needs(recordStage)}</p>}
         {(state === "open" || state === "already-challenged") && (
           <button className="btn primary wide" onClick={() => withWallet({ kind: "shot", record })}>
             {state === "open" ? t("Insert Gamecoin") : t("Play")}

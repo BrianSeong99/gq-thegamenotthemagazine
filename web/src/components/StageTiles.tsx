@@ -1,5 +1,6 @@
 // The stage tiles over the bottom of the 1P map: the four maps other than the one shown, in the
-// order of the score that unlocks them. A locked tile shows the score it needs (the number alone on a phone) and does nothing.
+// order they unlock. A locked tile shows how many records it needs and the score one of them must reach
+// (on a narrow screen the two numbers alone, the score in thousands) and does nothing.
 // The lobby shows them only once my records are known (notes read, wallet back).
 
 import { useT } from "@/lib/i18n";
@@ -12,7 +13,7 @@ export function StageTiles({ shown, unlocked, onPick }: { shown: Stage; unlocked
       {STAGES.filter((s) => s.id !== shown.id).map((s) => {
         const open = unlocked(s);
         const n = s.threshold.toLocaleString();
-        const need = t("{n} pts to unlock", { n });
+        const need = s.records === 1 ? t("1 record above {n}", { n }) : t("{r} records, 1 above {n}", { r: s.records, n });
         return (
           <button key={s.id} className="stage" disabled={!open} onClick={() => onPick(s.id)} aria-label={open ? t(s.name) : `${t(s.name)}: ${need}`}>
             <img src={s.map} alt="" />
@@ -24,7 +25,7 @@ export function StageTiles({ shown, unlocked, onPick }: { shown: Stage; unlocked
                   <rect x="1" y="4" width="6" height="5" fill="currentColor" />
                 </svg>{" "}
                 <span className="full">{need}</span>
-                <span className="short">{n}</span>
+                <span className="short">{`${s.records} · ${s.threshold / 1000}k`}</span>
               </span>
             )}
           </button>
