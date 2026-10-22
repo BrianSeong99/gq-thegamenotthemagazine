@@ -4,6 +4,7 @@ import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ChallengeNote } from "@/lib/chain";
 import type { ChallengeStorage } from "@/lib/notes";
+import type { Sale } from "@/lib/shop";
 
 vi.mock("@miden-sdk/react", () => import("@/__tests__/mocks/miden-sdk-react"));
 
@@ -22,9 +23,9 @@ const { wallet, me, cities, chain, bread, shop } = vi.hoisted(() => ({
   me: { suffix: 3n, prefix: 4n },
   // ten cities, as the rules demand
   cities: Array.from({ length: 10 }, (_, idx) => ({ idx, lat: 9000 + idx * 100, lon: 18000 + idx * 100, cos: 100 })),
-  chain: { notes: [] as unknown[], shared: null as unknown },
+  chain: { notes: [] as ChallengeNote[], shared: null as ChallengeNote | null },
   bread: { postShot: vi.fn(), postRecord: vi.fn(), settle: vi.fn(), collect: vi.fn(), buyGamecoin: vi.fn() },
-  shop: { openSales: vi.fn(async () => []) },
+  shop: { openSales: vi.fn(async (): Promise<Sale[]> => []) },
 }));
 vi.mock("@miden-sdk/miden-wallet-adapter-react", () => ({ useMidenFiWallet: () => wallet }));
 
