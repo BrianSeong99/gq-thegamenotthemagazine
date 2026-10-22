@@ -24,7 +24,7 @@ const { wallet, me, cities, chain, bread, shop } = vi.hoisted(() => ({
   // ten cities, as the rules demand
   cities: Array.from({ length: 10 }, (_, idx) => ({ idx, lat: 9000 + idx * 100, lon: 18000 + idx * 100, cos: 100 })),
   chain: { notes: [] as ChallengeNote[], shared: null as ChallengeNote | null },
-  bread: { postShot: vi.fn(), postRecord: vi.fn(), settle: vi.fn(), collect: vi.fn(), buyGamecoin: vi.fn() },
+  bread: { postShot: vi.fn(), postRecord: vi.fn(), settle: vi.fn(), collect: vi.fn(), buyGamecoin: vi.fn(), gcBalance: vi.fn(async () => 12_000_000n) },
   shop: { openSales: vi.fn(async (): Promise<Sale[]> => []) },
 }));
 vi.mock("@miden-sdk/miden-wallet-adapter-react", () => ({ useMidenFiWallet: () => wallet }));
@@ -581,10 +581,11 @@ describe("open challenges in Champion vs Rival", () => {
     expect(screen.getByText(/have a code\?/i)).toBeInTheDocument();
   });
 
-  it("the code box and the shop share a column, the open challenges stand beside it", async () => {
+  it("the code box and the shop (with the wallet's balance) share a column, the open challenges stand beside it", async () => {
     await start(/^champion vs rival$/i);
     const stack = screen.getByText(/have a code\?/i).closest(".stack");
     expect(stack).toContainElement(screen.getByRole("button", { name: /^buy$/i }));
+    expect(stack).toContainElement(await screen.findByText(/^You have 12 Gamecoins\./));
     expect(stack).not.toContainElement(await screen.findByText("Open challenges"));
   });
 });

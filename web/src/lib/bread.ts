@@ -63,6 +63,11 @@ function balanceOf(assets: Assets, faucet: string): bigint {
   return assets.filter((a) => parseAccountId(a.faucetId).toString() === id).reduce((sum, a) => sum + BigInt(a.amount), 0n);
 }
 
+/** The wallet's own view of its Gamecoin balance. */
+export async function gcBalance(wallet: Wallet): Promise<bigint> {
+  return balanceOf(await walletAssets(wallet), GC_FAUCET);
+}
+
 /** Throws a readable error (flow.ts explain) when the wallet holds less than `needed` Gamecoin. */
 async function requireGc(wallet: Wallet, needed: bigint): Promise<void> {
   const balance = balanceOf(await walletAssets(wallet), GC_FAUCET);

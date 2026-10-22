@@ -12,7 +12,7 @@ import { useSound, type Track } from "@/lib/useSound";
 import { RECORD_LIFETIME_BLOCKS, STAKE, TEST_ACCOUNTS, ADMIN, GC_DECIMALS, GC_PRICE, MAX_BUY_GC } from "@/config";
 import { accountFelts, bech32Of, fetchChallengeNote, hexOf, knownNote, listChallengeNotes, loadScripts, parseAccountId, syncNotes, wordFromHex, type ChallengeNote } from "@/lib/chain";
 import { boards, history as pastGames, keyOf, lettersBackward, nicknames, owed, playersInOrder, stageTag } from "@/lib/hub";
-import { postShot, postRecord, settle, collect, setSubmitAttemptListener, setSubmitStageListener, waitFor, type Submitted, openSale, buyGamecoin } from "@/lib/bread";
+import { postShot, postRecord, settle, collect, setSubmitAttemptListener, setSubmitStageListener, waitFor, type Submitted, openSale, buyGamecoin, gcBalance } from "@/lib/bread";
 import { shotDeadline, shotStorage, ZERO_WORD, type AccountFelts, type ChallengeStorage } from "@/lib/notes";
 import { blockToMs, claimVerdict, explain, fmtGamecoin, NOT_FINISHED, sameAccount, SHOT_LOST, shotRefusal, withoutRecord, withTimeout, type Trouble, myOpenShotsOn as openShotsOn, outcomeText, parseCode, reportRows, settlePlan, sharedRecordState, type ReportRow } from "@/lib/flow";
 import { cityNames, datasetWord, decodeGame, encodeGame, gameStage, quizCities, randomSeed, type Place, type Word4 } from "@/lib/quiz";
@@ -178,10 +178,20 @@ function GqApp({ onStarted }: { onStarted?: () => void }) {
   const runToken = useRef(0);
   /** The last Gamecoin grant, so a second press does not mint again before Bread takes the first. */
   const [buyGc, setBuyGc] = useState("10");
+  // what the wallet holds, read once per wallet and after each transaction; null while unknown
+  const [held, setHeld] = useState<bigint | null>(null);
+  const walletRef = useRef(wallet);
+  useEffect(() => {
+    walletRef.current = wallet;
+  });
+  const readBalance = useCallback(() => gcBalance(walletRef.current).then(setHeld, () => setHeld(null)), []);
   const [sellGc, setSellGc] = useState("1000");
 
   const me = wallet.connected && wallet.address ? accountFelts(parseAccountId(wallet.address)) : null;
   const meKey = me && keyOf(me);
+  useEffect(() => {
+    void readBalance();
+  }, [meKey, readBalance]);
   // the boards and the nickname order leave the development wallets' test rounds out
   const publicNotes = useMemo(() => {
     const test = (a: AccountFelts | null) => !!a && TEST_ACCOUNTS.includes(hexOf(a));
@@ -326,6 +336,7 @@ function GqApp({ onStarted }: { onStarted?: () => void }) {
     };
     const finish = (s: S) => {
       void refresh();
+      void readBalance();
       setMode(onConfirmed?.(s) ?? { kind: "done", text: outcomeText(text, true, t), txId: s.txId });
     };
     setTrouble(null);
@@ -508,8 +519,16 @@ function GqApp({ onStarted }: { onStarted?: () => void }) {
   const gc = BigInt(Math.min(MAX_BUY_GC, Math.max(1, Math.floor(Number(buyGc) || 1)))) * 10n ** BigInt(GC_DECIMALS);
   const shopBox = (
     <section className="panel shop">
-      <div className="panel-title">{t("Buy Gamecoin")}</div>
-      <p className="muted">{t("0.001 USDCx each, 100 at a time.")}</p>
+      <div className="panel-title">{t("Buy Gamecoins")}</div>
+      <p className="muted">
+        {held !== null && (
+          <>
+            {t("You have {gc}.", { gc: fmtGamecoin(held, t) })}
+            <br />
+          </>
+        )}
+        {t("0.001 USDCx each, 100 max at a time.")}
+      </p>
       <input type="number" min={1} max={MAX_BUY_GC} value={buyGc} onChange={(e) => setBuyGc(e.target.value)} aria-label={t("How many")} />
       <button className="btn" onClick={() => withWallet({ kind: "buy", gc })}>
         {t("Buy")}
@@ -520,7 +539,7 @@ function GqApp({ onStarted }: { onStarted?: () => void }) {
   const adminBox = ADMIN_PANEL && me && hexOf(me) === parseAccountId(ADMIN).toString() && (
     <section className="panel shop">
       <div className="panel-title">Put Gamecoin on sale</div>
-      <p className="muted">{t("0.001 USDCx each, 100 at a time.").split(",")[0]}, from this wallet.</p>
+      <p className="muted">{t("0.001 USDCx each, 100 max at a time.").split(",")[0]}, from this wallet.</p>
       <input type="number" min={1} value={sellGc} onChange={(e) => setSellGc(e.target.value)} aria-label="How many to sell" />
       <button className="btn" onClick={() => withWallet({ kind: "sell", gc: BigInt(Math.max(1, Math.floor(Number(sellGc) || 1))) * 10n ** BigInt(GC_DECIMALS) })}>
         Put on sale
