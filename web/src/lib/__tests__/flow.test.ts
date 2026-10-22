@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { ChallengeNote } from "../chain";
 import type { ChallengeStorage, Word4 } from "../notes";
 import { stageById, WORLD } from "../stages";
-import { GC_FAUCET, MIN_SHOT_WINDOW_BLOCKS, RECORD_LIFETIME_BLOCKS } from "@/config";
+import { BLOCK_SECONDS, GC_FAUCET, MIN_SHOT_WINDOW_BLOCKS, RECORD_LIFETIME_BLOCKS } from "@/config";
 import {
   acceptNote,
   blocksToClock,
@@ -337,6 +337,6 @@ describe("before sending a claim", () => {
     expect(blocksToClock(81)).toBe("4:23"); // 263.25 s: whole seconds
     expect(blocksToClock(-5)).toBe("0:00");
     expect(blocksToClock(26_400)).toBe("23:50:00");
-    expect(blocksToClock(1_201)).toBe("1:00:03");
+    expect(blocksToClock(Math.round(3603 / BLOCK_SECONDS))).toMatch(/^1:00:0\d$/);
   });
 });

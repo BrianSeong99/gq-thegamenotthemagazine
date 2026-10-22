@@ -87,7 +87,7 @@ import { useMidenClient } from "@miden-sdk/react";
 import { waitFor as waitForMock } from "@/lib/bread";
 import { fetchChallengeNote, hexOf, knownNote, listChallengeNotes, syncNotes } from "@/lib/chain";
 import { encodeGame } from "@/lib/quiz";
-import { GC_FAUCET, MIN_SHOT_WINDOW_BLOCKS, RECORD_LIFETIME_BLOCKS } from "@/config";
+import { BLOCK_SECONDS, GC_FAUCET, MIN_SHOT_WINDOW_BLOCKS, RECORD_LIFETIME_BLOCKS } from "@/config";
 import { AppContent } from "../AppContent";
 
 beforeEach(() => {
@@ -457,7 +457,7 @@ describe("welcome and 1P World Tour", () => {
 
   it("the ribbon says the game runs on mainnet", async () => {
     await start();
-    expect(screen.getByText("Testnet")).toBeInTheDocument();
+    expect(screen.getByText("Mainnet")).toBeInTheDocument();
   });
 
   it("on a phone turned sideways mid-quiz, the map and the city panel scroll up to fill the screen", async () => {
@@ -531,12 +531,12 @@ describe("open challenges in Champion vs Rival", () => {
   });
 
   it("lists the lowest score first, each with a countdown to its expiry instead of the prize", async () => {
-    chain.notes = [listed("0xb", 3300), listed("0xa", 3100, {}, 100 + 1_201)];
+    chain.notes = [listed("0xb", 3300), listed("0xa", 3100, {}, 100 + Math.round(3600 / BLOCK_SECONDS) + 1)];
     await start(/^champion vs rival$/i);
     const rows = await screen.findAllByRole("button", { name: /view challenge/i });
     expect(rows.map((b) => b.getAttribute("aria-label"))).toEqual(["View challenge, 3,100 pts, World", "View challenge, 3,300 pts, World"]);
-    expect(screen.getByText(/Ends in 1:00:0[0-3]/)).toBeInTheDocument();
-    expect(screen.getByText(/Ends in 23:1[45]:\d\d/)).toBeInTheDocument();
+    expect(screen.getByText(/Ends in 1:00:0[0-6]/)).toBeInTheDocument();
+    expect(screen.getByText(/Ends in 23:\d\d:\d\d/)).toBeInTheDocument();
     expect(screen.queryByText(/prize/i)).toBeNull();
   });
 

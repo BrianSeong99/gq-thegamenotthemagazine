@@ -17,6 +17,8 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     globals: true,
+    // the suite pins the shipped build, whatever a developer's .env.local picks
+    env: { VITE_MIDEN_NETWORK: "mainnet" },
     setupFiles: ["./vitest.setup.ts"],
     include: ["src/**/*.{test,spec}.{ts,tsx}"],
     server: {

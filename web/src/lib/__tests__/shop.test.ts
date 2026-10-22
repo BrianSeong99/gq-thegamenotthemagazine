@@ -7,7 +7,8 @@ import { acceptSale, payFor, pickSale, pswapTag, type Sale } from "../shop";
 // mainnet USDCx (the fee asset; the testnet one is 0x4cbdcaffe75f0a317482224dae6436)
 const PAY = "0xe69e6ca6e39df1b10c1e5399399feb";
 const GC = 1_000_000n;
-const TAG = 1663724262;
+// 0x632A16E6: note type, 14 bits of the PSWAP root, the top bytes of the Gamecoin (0x16bf…) and USDCx (0xe69e…) prefixes
+const TAG = 1663702758;
 // 10 GC for 0.01 of the pay asset: the official price
 const sale = (over: Partial<Sale> = {}): Sale => ({ id: "0xs", creator: "0xc", gcFaucet: GC_FAUCET, payFaucet: PAY, offered: 10n * GC, asked: 10n * GC_PRICE, minFill: 0n, ...over });
 
