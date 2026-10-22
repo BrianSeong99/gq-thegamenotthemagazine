@@ -1,3 +1,7 @@
 {
-  "gamecoin": "0x16bfec55b2b2329147ee739d1c731f"
+  "gamecoin": "0x34a3510213533f512ec4abe36baf84",
+  "signers": [
+    "0xc51eba00a38be47cd32c41746775053cbb5f21ab618ae7bee2f4f7fe244830e8"
+  ],
+  "threshold": 1
 }

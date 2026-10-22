@@ -100,7 +100,7 @@ the app creates and fee-funds itself.
 Gamecoins are bought in the app: "Buy Gamecoin" fills a sale note (a standard PSWAP note, 0.001
 USDCx per Gamecoin, 100 at a time) and the coins land in the wallet with the fill. Anyone holding
 Gamecoin may post a sale note; the game buys from the cheapest one at or under the price. The admin
-account posts them from `?admin=1`. The faucet (`0x16bfec55b2b2329147ee739d1c731f` on mainnet;
+account posts them from `?admin=1`. The faucet (`0x34a3510213533f512ec4abe36baf84` on mainnet;
 one `gamecoin.json` per network at the repo root) mints from the CLI:
 `GQ_NETWORK=mainnet cargo run --release --bin gamecoin mint <account> <GC>`.
 
