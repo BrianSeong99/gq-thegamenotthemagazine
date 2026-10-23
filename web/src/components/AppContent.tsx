@@ -22,7 +22,7 @@ import { gqAnswer, type City } from "@/lib/rules";
 import { History } from "./History";
 import { Leaderboards } from "./Leaderboards";
 import { Lobby } from "./Lobby";
-import { ShareButtons } from "./ShareButtons";
+import { ResultShareButtons, ShareButtons } from "./ShareButtons";
 import { Play, type PlayResult } from "./Play";
 import { Shell } from "./Shell";
 import { ClaimButton, EndsIn, ErrorBox, Waiting, type Stage } from "./Status";
@@ -799,6 +799,11 @@ function GqApp({ onStarted }: { onStarted?: () => void }) {
             <div className="panel-title">{t("Run complete!")}</div>
             <div className="big-score">{t("{n} pts", { n: mode.result.score.toLocaleString() })}</div>
             <Report rows={reportRows(mode.cities, mode.result.answers, placesOf(mode.stage))} />
+            <p>{t("Share your result for free.")}</p>
+            <ResultShareButtons score={mode.result.score} stage={mode.stage} />
+            <button className="btn" onClick={() => setMode({ kind: "play-champion", seed: mode.seed, cities: mode.cities, stage: mode.stage })}>
+              {t("Try again")}
+            </button>
           </section>
           <aside className="panel yellow">
             <div className="panel-title">{t("Post your record?")}</div>

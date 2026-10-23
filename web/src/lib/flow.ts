@@ -276,6 +276,19 @@ export function recordLinks(recordId: string, score: number, expiresAt: number, 
   };
 }
 
+/** A casual result invites free play; it is never an on-chain record or claim. */
+export function resultLinks(score: number, stage?: Stage) {
+  const url = `${location.origin}${location.pathname}`;
+  const region = stage && stage.id !== "world" ? ` ${stage.name}` : "";
+  const text = `${score} points on GQ${region}! Play for free.\n${url}`;
+  return {
+    url,
+    text,
+    x: `https://x.com/intent/post?text=${encodeURIComponent(text)}`,
+    weibo: `https://service.weibo.com/share/share.php?url=${encodeURIComponent(url)}&title=${encodeURIComponent(`${score} 分，GQ${stage && stage.id !== "world" ? ` ${translator("zh-Hans")(stage.name)}` : ""}！免费游玩。`)}`,
+  };
+}
+
 export type ReportRow = { name: string; seconds: string; points: number };
 
 /** The run report: one row per city, time as the player saw it, points as the chain scores them. */

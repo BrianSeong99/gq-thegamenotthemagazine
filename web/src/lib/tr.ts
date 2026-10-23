@@ -57,6 +57,8 @@ export const TR: Record<string, string> = {
   "Posting your record": "Rekorun paylaşılıyor",
   "Record posted!": "Rekor paylaşıldı!",
   "Now find someone to beat you.": "Şimdi seni geçecek birini bul.",
+  "Copy result": "Sonucu kopyala",
+  "Share your result for free.": "Sonucunu ücretsiz paylaş.",
   "Share on X": "X'te paylaş",
   "Share on Weibo": "Weibo'da paylaş",
   "Copy link": "Bağlantıyı kopyala",

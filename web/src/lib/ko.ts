@@ -57,6 +57,8 @@ export const KO: Record<string, string> = {
   "Posting your record": "기록 올리는 중",
   "Record posted!": "기록을 올렸습니다!",
   "Now find someone to beat you.": "이제 도전자를 찾아보세요.",
+  "Copy result": "결과 복사",
+  "Share your result for free.": "결과를 무료로 공유하세요.",
   "Share on X": "X에 공유",
   "Share on Weibo": "Weibo에 공유",
   "Copy link": "링크 복사",

@@ -65,6 +65,8 @@ const ES: Record<string, string> = {
   "Posting your record": "Publicando tu récord",
   "Record posted!": "¡Récord publicado!",
   "Now find someone to beat you.": "Ahora busca a alguien que te supere.",
+  "Copy result": "Copiar resultado",
+  "Share your result for free.": "Comparte tu resultado gratis.",
   "Share on X": "Compartir en X",
   "Share on Weibo": "Compartir en Weibo",
   "Copy link": "Copiar enlace",

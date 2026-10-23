@@ -57,6 +57,8 @@ export const JA: Record<string, string> = {
   "Posting your record": "記録を投稿中",
   "Record posted!": "記録を投稿しました！",
   "Now find someone to beat you.": "さあ、挑戦者を見つけましょう。",
+  "Copy result": "結果をコピー",
+  "Share your result for free.": "結果を無料でシェア。",
   "Share on X": "X でシェア",
   "Share on Weibo": "Weibo でシェア",
   "Copy link": "リンクをコピー",

@@ -57,6 +57,8 @@ export const UK: Record<string, string> = {
   "Posting your record": "Публікуємо рекорд",
   "Record posted!": "Рекорд опубліковано!",
   "Now find someone to beat you.": "Тепер знайди того, хто спробує тебе побити.",
+  "Copy result": "Копіювати результат",
+  "Share your result for free.": "Поділися результатом безкоштовно.",
   "Share on X": "Поділитися в X",
   "Share on Weibo": "Поділитися у Weibo",
   "Copy link": "Скопіювати посилання",

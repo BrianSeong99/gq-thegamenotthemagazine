@@ -392,6 +392,31 @@ describe("Simplified Chinese", () => {
 });
 
 describe("welcome and 1P World Tour", () => {
+  it.each([false, true])("shares a free result and replays before posting, connected=%s with zero GC", async (connected) => {
+    wallet.connected = connected;
+    bread.gcBalance.mockResolvedValue(0n);
+    vi.useFakeTimers({ shouldAdvanceTime: true, toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      await start();
+      fireEvent.click(await screen.findByRole("button", { name: /locate first city/i }));
+      await playRound();
+      const share = screen.getByRole("link", { name: /share on x/i });
+      const text = new URL(share.getAttribute("href")!).searchParams.get("text")!;
+      expect(text).toContain("points on GQ");
+      expect(text).toContain("Play for free");
+      expect(text).not.toMatch(/record=|Gamecoin|expires|prize/);
+      expect(screen.getByRole("button", { name: /post it/i })).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: /try again/i }));
+      await screen.findByText(/find c0!/i);
+      expect(bread.postRecord).not.toHaveBeenCalled();
+      expect(bread.postShot).not.toHaveBeenCalled();
+      expect(bread.buyGamecoin).not.toHaveBeenCalled();
+      expect(wallet.connect).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("the GeoQuizz wordmark goes back to the splash screen without reloading, sound choice kept", async () => {
     await start();
     fireEvent.click(await screen.findByRole("button", { name: /sound on/i }));
