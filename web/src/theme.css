@@ -233,7 +233,7 @@ table.report td:last-child { text-align: right; font-family: var(--display); col
 table.report td:nth-child(2) { text-align: right; color: var(--muted); }
 
 @media (max-width: 960px) {
-  .cols { grid-template-columns: 1fr; }
+  .cols, .cols.wide-aside { grid-template-columns: minmax(0, 1fr); }
   .slogan span { display: block; }
   .arena { width: auto; }
   .arena .hero { height: auto; width: 100%; }

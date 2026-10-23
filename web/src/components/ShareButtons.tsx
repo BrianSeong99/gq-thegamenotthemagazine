@@ -18,6 +18,14 @@ function SocialButtons({ links: { url, x, weibo }, copyText, result = false }: {
   const t = useT();
   const { lang } = useLang();
   const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(copyText ?? url);
+      setCopied(true);
+    } catch {
+      setCopied(false);
+    }
+  };
   return (
     <div className="share">
       <a className="btn primary" href={x} target="_blank" rel="noreferrer">
@@ -28,7 +36,7 @@ function SocialButtons({ links: { url, x, weibo }, copyText, result = false }: {
           {t("Share on Weibo")}
         </a>
       )}
-      <button className="btn" onClick={() => void navigator.clipboard.writeText(copyText ?? url).then(() => setCopied(true))}>
+      <button className="btn" onClick={() => void copy()}>
         {copied ? t("Copied!") : result ? t("Copy result") : t("Copy link")}
       </button>
     </div>
