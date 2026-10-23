@@ -1,5 +1,6 @@
 import path from "node:path";
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
+import { gamecoinFaucet } from "./src/gamecoinConfig";
 import react from "@vitejs/plugin-react";
 import { midenVitePlugin } from "@miden-sdk/vite-plugin";
 
@@ -17,19 +18,24 @@ const siteUrl =
 const assetFileNames = (a: { names?: string[] }) =>
   (a.names?.[0] ?? "").endsWith(".wasm") ? "assets/assets/miden_client_web.wasm" : "assets/[name]-[hash][extname]";
 
-export default defineConfig({
-  // page and worker builds both emit the wasm at the one path the classic worker can find
-  build: { rollupOptions: { output: { assetFileNames } } },
-  worker: { rollupOptions: { output: { assetFileNames } } },
-  plugins: [
-    react(),
-    midenVitePlugin({ crossOriginIsolation: true }),
-    { name: "site-url", transformIndexHtml: (html) => html.replaceAll("%SITE_URL%", siteUrl.replace(/\/$/, "")) },
-  ],
-  resolve: {
-    dedupe: ["react", "react-dom", "react/jsx-runtime"],
-    alias: {
-      "@": path.resolve(__dirname, "./src"),
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), "VITE_");
+  // Reject an invalid Testnet asset before producing a build or starting the dev server.
+  gamecoinFaucet(env.VITE_MIDEN_NETWORK, env.VITE_TESTNET_GAMECOIN_FAUCET_ID);
+  return {
+    // page and worker builds both emit the wasm at the one path the classic worker can find
+    build: { rollupOptions: { output: { assetFileNames } } },
+    worker: { rollupOptions: { output: { assetFileNames } } },
+    plugins: [
+      react(),
+      midenVitePlugin({ crossOriginIsolation: true }),
+      { name: "site-url", transformIndexHtml: (html) => html.replaceAll("%SITE_URL%", siteUrl.replace(/\/$/, "")) },
+    ],
+    resolve: {
+      dedupe: ["react", "react-dom", "react/jsx-runtime"],
+      alias: {
+        "@": path.resolve(__dirname, "./src"),
+      },
     },
-  },
+  };
 });

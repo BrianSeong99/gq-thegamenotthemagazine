@@ -83,6 +83,21 @@ server sets the same ones). No environment variables are needed: the app runs on
 `VITE_MIDEN_NETWORK=testnet` (in `web/.env.local` for development) picks the testnet node and
 prover, the testnet Gamecoin faucet and admin, the test wallets and the Testnet badge.
 
+An optional Testnet build can use the validated development Gamecoin faucet below. These are
+public asset identifiers, not credentials. The original Testnet faucet
+`0xe1f2c48d5bfa8d5173dfcfdc8ac977` remains the default when the override is unset.
+
+```sh
+cd web
+VITE_MIDEN_NETWORK=testnet VITE_TESTNET_GAMECOIN_FAUCET_ID=0x97924b9a77ed54917ff6d6364ae661 yarn build
+```
+
+The override accepts only this validated development faucet. An empty, malformed or unvalidated
+value fails before the Testnet build starts. Mainnet ignores the override and always uses
+`0x34a3510213533f512ec4abe36baf84`. Changing a build's Gamecoin selects the asset used by the game
+and shop; players need that asset, and shop sale notes must offer it. The admin account and
+network settings are unchanged. This setting cannot be changed by a URL or wallet response.
+
 ## Build and test
 
 Toolchain (once): `cargo install --locked midenup && midenup install 0.17.0`.

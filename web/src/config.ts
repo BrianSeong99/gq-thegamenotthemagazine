@@ -1,11 +1,13 @@
 // GQ (GeoQuizz) on Miden v0.17 mainnet; VITE_MIDEN_NETWORK=testnet for development.
 
+import { gamecoinFaucet } from "./gamecoinConfig";
+
 export const MAINNET = import.meta.env.VITE_MIDEN_NETWORK !== "testnet";
 
 export const APP_NAME = "GQ GeoQuizz";
 
 // Gamecoin (GC): the game's fungible faucet (`cargo run --bin gamecoin deploy`, one per network).
-export const GC_FAUCET = MAINNET ? "0x34a3510213533f512ec4abe36baf84" : "0xe1f2c48d5bfa8d5173dfcfdc8ac977";
+export const GC_FAUCET = gamecoinFaucet(import.meta.env.VITE_MIDEN_NETWORK, import.meta.env.VITE_TESTNET_GAMECOIN_FAUCET_ID);
 export const GC_DECIMALS = 6;
 // The shop: Gamecoin sold through sale notes (PSWAP) for the chain's fee asset (USDCx on mainnet, 6
 // decimals): 0.001 per Gamecoin, at most 100 per buy. The price is a ceiling: a cheaper sale note sells first.
